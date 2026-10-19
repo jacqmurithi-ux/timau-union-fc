@@ -16,9 +16,13 @@ The public website must not expose private management records or provide a route
 
 ## Phase 1: Public website
 
-**Status: Source package prepared for manual upload and review.**
+**Status: Published and verified by the project owner.**
 
-### Included in the source package
+Public website:
+
+https://jacqmurithi-ux.github.io/timau-union-fc/
+
+### Included in Phase 1
 
 - [x] Public homepage and club introduction.
 - [x] Fixtures and results placeholders.
@@ -33,35 +37,31 @@ The public website must not expose private management records or provide a route
 - [x] Member-access placeholder.
 - [x] Setup and hosting documentation.
 - [x] Club-inspired red, white and black visual theme, with yellow highlights.
-- [x] Club crest asset included as a temporary concept, pending confirmation of the official crest.
+- [x] Live website verification confirmed by the project owner.
+- [x] `docs/IMPLEMENTATION-STATUS.md` updated.
+- [x] `docs/CREST-MANAGEMENT.md` updated.
+- [x] Documentation changes committed to GitHub `main`, as confirmed by the project owner.
 
-### Outstanding verification
+### Outstanding Phase 1 actions
 
-- [ ] Confirm all Phase 1 files are committed to the GitHub repository.
-- [ ] Review the public content with authorised club officials.
-- [ ] Replace the concept crest with the approved official crest, if supplied.
-- [ ] Verify all navigation links and asset paths.
-- [ ] Test on mobile and desktop devices.
-- [ ] Check accessibility, keyboard navigation and supported browsers.
-- [ ] Confirm GitHub Pages configuration.
-- [ ] Verify the published website URL and deployed version.
-- [ ] Confirm that no private records, credentials or sensitive information are exposed.
+- [ ] Obtain formal club-official approval for public-facing content.
+- [ ] Obtain and approve the official club crest.
+- [ ] Replace the temporary concept crest once approved, if necessary.
+- [ ] Record any remaining technical test results not explicitly confirmed.
 
-**Important:** Preparing or manually uploading source files does not, by itself, confirm that the changes are committed, tested or deployed.
+### Phase 1 release boundaries
 
-### Phase 1 boundaries
+The member-access page is a placeholder, not an authentication system. It must not collect passwords, verification codes or other credentials.
 
-This phase covers the public website and a non-functional member-access placeholder only.
+The public website must remain accessible without signing in. Its only connection to the private application is the clearly labelled **Member login** link.
 
-The member-access page is not an authentication system. It must not collect passwords, verification codes or other credentials until an approved and secure authentication implementation exists.
-
-The public website must remain usable without signing in. Its only connection to the private application is the clearly labelled **Member login** link.
+No private player details, financial records or internal management discussions may be exposed through public pages.
 
 ## Phase 2: Authentication and access design
 
-**Status: Not implemented. Design review and explicit approval required.**
+**Status: Not implemented. Separate review and explicit approval required.**
 
-Before implementation, review and approve:
+Before development begins, review and approve:
 
 - [ ] Email-invitation-only access, with no public self-registration.
 - [ ] Chairman-controlled invitations and role assignment.
@@ -80,7 +80,7 @@ The Chairman is responsible for invitations and role assignment under the approv
 
 The Vice Chairman acts as the deputy but must not independently assign roles.
 
-No role should receive access merely because a page, navigation item or URL is hidden. Permissions must be enforced by the backend and database policies.
+Permissions must be enforced by the backend and database policies, not merely by hiding navigation items or application pages.
 
 There must be no public self-registration unless the club explicitly approves a change to this requirement.
 
@@ -99,17 +99,17 @@ Potential modules for a later approved phase include:
 - [ ] Equipment and other club assets.
 - [ ] Reports and activity records.
 
-Before developing each module:
+Before developing any module:
 
 1. Define its purpose and scope.
 2. Identify which roles can view, create, edit, approve or delete records.
 3. Define data ownership and access boundaries.
-4. Specify the database schema and any proposed migrations.
+4. Specify the database schema and proposed migrations.
 5. Review RLS policies and backend operations.
 6. Test permitted and denied actions.
 7. Obtain explicit approval before implementation and release.
 
-Sensitive records must remain in the private application and must never be exposed through public website queries or public database views.
+Sensitive records must remain in the private application and must not be exposed through public website queries or public database views.
 
 ## Phase 4: Public content workflow
 
@@ -123,17 +123,17 @@ Proposed workflow:
 4. Only approved public content is published.
 5. Private records remain restricted to authorised users.
 
-Before implementation, confirm who can submit, review, approve, publish, edit and withdraw public content. Approval permissions must be enforced, not merely represented by interface controls.
+Before implementation, confirm who can submit, review, approve, publish, edit and withdraw public content. Approval permissions must be enforced rather than represented by interface controls alone.
 
 ## Security requirements
 
 These requirements apply throughout the project:
 
 - Never place Supabase service-role keys, private API keys or other secrets in HTML, CSS, client-side JavaScript or public repository files.
-- Treat the Supabase publishable/anonymous client key as public configuration only; it must always be backed by correctly configured database policies.
+- Treat Supabase publishable/anonymous client keys as public configuration only; correctly configured database policies must protect the underlying data.
 - Do not treat hidden navigation, client-side role checks or obscure URLs as access control.
-- Enforce private-data access using authenticated backend operations and appropriately tested Supabase RLS policies.
-- Apply least-privilege access: each role receives only the permissions it needs.
+- Enforce private-data access through authenticated backend operations and appropriately tested Supabase RLS policies.
+- Apply least-privilege access.
 - Use public-safe data for the public website.
 - Keep private player details, financial records and internal management discussions out of public pages and public responses.
 - Obtain appropriate permission before publishing personal information, photographs or sponsor branding.
@@ -143,14 +143,14 @@ These requirements apply throughout the project:
 
 ## Hosting and release policy
 
-- The intended public deployment path is **GitHub `main` → GitHub Pages → the verified club domain or published URL**.
+- The approved public deployment path is **GitHub `main` → GitHub Pages → published club website**.
 - Do not introduce Vercel deployment configuration or change the approved hosting path without explicit authorisation.
-- Do not claim a deployment is live until the published website has been checked.
+- Record deployment as verified only after checking the published website.
 - Do not apply database migrations or change authentication, database permissions or production data as part of Phase 1.
 
 ## Release gates
 
-No Supabase migrations, authentication changes, private management features or deployment changes are authorised by this Phase 1 package.
+The Phase 1 package does not authorise Supabase migrations, authentication changes, private management features or hosting changes.
 
 Every later phase requires:
 
@@ -163,11 +163,20 @@ Every later phase requires:
 
 ## Current next steps
 
-1. Confirm the Phase 1 source files are present in the GitHub repository.
-2. Review the website locally and verify links, mobile layout and crest assets.
-3. Obtain club officials' approval for public-facing content.
-4. Configure and verify GitHub Pages using the approved hosting path.
-5. Record the actual test and deployment results before marking any outstanding checklist items complete.
-6. Keep Phases 2–4 in the design and approval stage until separately authorised.
+1. [x] Publish the Phase 1 website to GitHub Pages.
+2. [x] Verify the live website, as confirmed by the project owner.
+3. [x] Update the implementation-status documentation.
+4. [x] Update the crest-management documentation.
+5. [ ] Obtain formal club-official approval for public content.
+6. [ ] Approve and integrate the official club crest.
+7. [ ] Review and explicitly approve the scope of Phase 2 before beginning authentication work.
 
-**Current release decision:** Phase 1 is prepared for review. Implementation, security verification and production deployment remain unconfirmed until the relevant checks have been completed.
+## Current release decision
+
+**Phase 1: Published and verified by the project owner.**
+
+Formal approval of public content and the official crest remains outstanding.
+
+**Phases 2–4: Not implemented.** Work on authentication, database changes and private management features must wait for separate review and explicit approval.
+
+No repository changes beyond those confirmed by the project owner are implied by this status document.
