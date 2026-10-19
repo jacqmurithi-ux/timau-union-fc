@@ -3,7 +3,8 @@
 **Status:** Findings from source review only.  
 **Review date:** 2026-10-19  
 **Reviewed files:** `supabase/review-drafts/identity_roles_review_draft.sql`, `tests/PHASE-1-RLS-REVIEW-CHECKLIST.md`, and `docs/ROLE-PERMISSION-MATRIX.md`.  
-**Database access:** Not available during this review. The target project's schema, grants, function owners, Data API exposure settings, and existing data have **not** been inspected.  
+**Target Supabase project:** `owvvimydkjsjlrmnzvdi` (`https://owvvimydkjsjlrmnzvdi.supabase.co`) — confirmed by the project owner on 2026-10-19 as the main Timau Union FC project.  
+**Database access:** Not available during this review. The target project's schema, grants, function owners, Data API exposure settings, and existing data have **not** been inspected. A prior project reference (`dzpquzfghapjodmrmavw`) was incorrect for this work and must not be used for Timau Union FC.
 **Execution status:** No SQL was run and no Supabase project was changed. This document does not approve the draft for execution.
 
 ## Summary
