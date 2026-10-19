@@ -26,18 +26,20 @@ Run only against disposable Union Test until all checks pass. Never point this c
 - [x] Queue claim, finalization, matching verified-email activation and replay denial passed in rolled-back SQL test.
 - [ ] Real Auth Admin invitation email flow succeeds and destination is correct.
 - [ ] Email mismatch and unverified email fail closed.
-- [ ] Expired/cancelled/revoked invitations fail closed.
-- [ ] Auth Admin failure, duplicate retries, crash while sending, and DB finalization failure have safe recovery.
+- [x] Expiry transition, cancellation and email-mismatch checks passed in rolled-back SQL tests.
+- [ ] Revoked Auth identities and existing JWT behavior verified through real API.
+- [x] Auth-user checkpoint and DB-finalization retry path implemented in draft.
+- [ ] Test real Auth Admin failure, process crash before checkpoint, duplicate retries and DB finalization failure/recovery.
 - [ ] No invite tokens, raw provider responses, or secret values are logged or stored.
 - [ ] Rate limiting/abuse controls and CORS allowlist verified.
 
 ## Roles and concurrency
 - [x] Suspend/restore/revoke transition and audit trail passed in rolled-back SQL test.
 - [x] Invalid Chairman successor leaves the existing Chairman unchanged; handover transaction maintains exactly one active Chairman in sequential test.
-- [ ] Run true concurrent handovers in two independent sessions (one winner, one denied).
+- [x] Two independent SQL requests tested concurrently: one Chairman handover succeeded, the other was denied; exactly one active Chairman remained.
 - [ ] Duplicate active role, invalid membership transition and self-role changes rejected.
 - [ ] Timestamp trigger verified.
-- [ ] Performance advisor's five unindexed FK findings reviewed; add indexes where justified.
+- [x] Added indexes for the five previously reported unindexed foreign keys; performance advisor now reports only unused-index informational findings on the empty test project.
 
 ## Final evidence
 - [ ] Data API Exposed schemas screenshot/confirmation attached.
