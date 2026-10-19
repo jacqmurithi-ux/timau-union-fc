@@ -2,41 +2,46 @@
 
 Run only against disposable Union Test until all checks pass. Never point this checklist at production.
 
-## Catalog / grants
-- [ ] All four tables have RLS enabled.
-- [ ] No anon SELECT/INSERT/UPDATE/DELETE grants.
-- [ ] Authenticated has SELECT only; no direct writes to profile, membership, role, audit.
-- [ ] `private` absent from Data API exposed schemas (Dashboard confirmation required).
-- [ ] SECURITY DEFINER helpers have safe owner, fixed empty search_path and least-privilege EXECUTE grants.
-- [ ] No secret key or invitation token appears in browser bundle, logs or audit details.
+## Catalog / grants (Union Test preliminary checks passed)
+- [x] All five identity/workflow tables have RLS enabled.
+- [x] No anon SELECT grants on identity/workflow tables.
+- [x] Authenticated has SELECT only; no direct INSERT/UPDATE/DELETE on profile, membership, role, audit or invitation tables.
+- [x] Privileged workflow RPCs deny EXECUTE to anon/authenticated and grant it to service_role.
+- [ ] Confirm `private` absent from Data API exposed schemas (Dashboard confirmation required).
+- [ ] Confirm actual HTTP/PostgREST behavior, not just catalog privileges.
+- [ ] Recheck security advisor after all changes and record output.
 
 ## Identity authorization
-- [ ] Anonymous request reads no records.
-- [ ] Active member reads own profile/membership/role only.
-- [ ] Invited, suspended and revoked identities cannot read business data.
-- [ ] Active Chairman reads authorized member records and audit events only.
+- [x] Negative SQL test: nonexistent/non-Chairman actor cannot create an invitation.
+- [ ] Anonymous API requests read no records.
+- [ ] Active member reads own profile/membership/role only through real API.
+- [ ] Invited, suspended and revoked identities cannot read protected resources through real API.
+- [ ] Chairman reads only authorized records/audit events.
 - [ ] Vice Chairman cannot assign roles or invite officials.
 - [ ] User-editable metadata cannot grant privileges.
 - [ ] Existing JWT after suspension/revocation cannot access protected records.
 
 ## Invitation lifecycle
-- [ ] Chairman-only invite; invalid role/email rejected.
-- [ ] Self-assignment and unauthorized role elevation rejected.
-- [ ] Verified email must match normalized invitation email.
-- [ ] Expired/cancelled/revoked/replayed invite fails closed.
-- [ ] Duplicate invite/retry is idempotent.
-- [ ] Auth Admin failure and database failure recover without active orphan membership.
-- [ ] All transitions append safe, actor-attributed audit events.
+- [x] Idempotency key replay returns same request; conflicting payload is rejected in rolled-back SQL test.
+- [x] Queue claim, finalization, matching verified-email activation and replay denial passed in rolled-back SQL test.
+- [ ] Real Auth Admin invitation email flow succeeds and destination is correct.
+- [ ] Email mismatch and unverified email fail closed.
+- [ ] Expired/cancelled/revoked invitations fail closed.
+- [ ] Auth Admin failure, duplicate retries, crash while sending, and DB finalization failure have safe recovery.
+- [ ] No invite tokens, raw provider responses, or secret values are logged or stored.
+- [ ] Rate limiting/abuse controls and CORS allowlist verified.
 
 ## Roles and concurrency
-- [ ] Duplicate active role rejected.
-- [ ] Only one active Chairman even under concurrent transactions.
-- [ ] Chairman handover is atomic; forced failure leaves original Chairman intact.
-- [ ] Non-active membership cannot receive active role.
-- [ ] Revocation requires actor and revokes all role assignments transactionally.
-- [ ] Trigger updates `updated_at` on ordinary row updates.
+- [x] Suspend/restore/revoke transition and audit trail passed in rolled-back SQL test.
+- [x] Invalid Chairman successor leaves the existing Chairman unchanged; handover transaction maintains exactly one active Chairman in sequential test.
+- [ ] Run true concurrent handovers in two independent sessions (one winner, one denied).
+- [ ] Duplicate active role, invalid membership transition and self-role changes rejected.
+- [ ] Timestamp trigger verified.
+- [ ] Performance advisor's five unindexed FK findings reviewed; add indexes where justified.
 
 ## Final evidence
-- [ ] Capture test output, migration IDs and advisor results.
-- [ ] Review source and deployment configuration.
-- [ ] No production operation before explicit production migration approval.
+- [ ] Data API Exposed schemas screenshot/confirmation attached.
+- [ ] Capture real HTTP/API tests, Auth delivery tests, concurrency output and advisor results.
+- [ ] Review implementation, operational recovery runbook, and deploy configuration.
+- [ ] No production operation before separate explicit production migration approval.
+- [ ] Edge Function remains undeployed while PR is draft.
