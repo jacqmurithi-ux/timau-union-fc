@@ -139,7 +139,7 @@ create policy "membership_select_self_or_chairman"
   on public.club_memberships for select to authenticated
   using (
     user_id = (select auth.uid())
-    or (select public.can_manage_club_roles())
+    or (select private.can_manage_club_roles())
   );
 
 drop policy if exists "role_assignment_select_self_or_chairman" on public.role_assignments;
@@ -152,14 +152,14 @@ create policy "role_assignment_select_self_or_chairman"
       where m.id = membership_id
         and m.user_id = (select auth.uid())
     )
-    or (select public.can_manage_club_roles())
+    or (select private.can_manage_club_roles())
   );
 
 -- Audit events are not readable by all authenticated users.
 drop policy if exists "audit_select_chairman_only" on public.audit_events;
 create policy "audit_select_chairman_only"
   on public.audit_events for select to authenticated
-  using ((select public.can_manage_club_roles()));
+  using ((select private.can_manage_club_roles()));
 
 -- Intentionally no INSERT/UPDATE/DELETE policies on these tables.
 -- Trusted server-side invitation/role/audit operations must be implemented separately.
