@@ -4,7 +4,7 @@ Status: **Partial verification passed; release blocked.** All live database chec
 
 ## Automated checks run in Union Test
 
-The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). It was executed against Union Test and completed without a raised exception. The new database-backed rate-limit function was also tested: ten activation attempts were allowed, the eleventh was denied, and the temporary test counter was removed. Separate catalog queries inspected function grants and RLS policies.
+The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). It was executed against Union Test and completed without a raised exception. The database-backed rate-limit function was tested across all buckets: 5 invitation requests were allowed and request 6 denied; 10 activation attempts were allowed and attempt 11 denied; 60 admin mutations were allowed and mutation 61 denied. The temporary test counters were removed. Separate catalog queries inspected function grants and RLS policies.
 
 - [x] Exactly the five expected identity/workflow tables were found with RLS enabled: `user_profiles`, `club_memberships`, `role_assignments`, `audit_events`, `invitation_requests`.
 - [x] All ten `public.club_admin_*` privileged RPCs have `SECURITY DEFINER` and a fixed empty `search_path`.
