@@ -123,7 +123,12 @@ declare v public.invitation_requests%rowtype; u auth.users%rowtype;
 begin
  select * into v from public.invitation_requests where id=_invitation_id for update;
  if not found or v.state<>'sent' then raise exception using errcode='22023',message='invitation_not_activatable'; end if;
- if v.expires_at<=clock_timestamp() then update public.invitation_requests set state='expired' where id=v.id; raise exception using errcode='22023',message='invitation_expired'; end if;
+ if v.expires_at<=clock_timestamp() then
+  update public.invitation_requests set state='expired' where id=v.id;
+  insert into public.audit_events(actor_user_id,action_key,entity_type,entity_id,outcome,details)
+  values(v.requested_by,'invitation_expired','invitation_request',v.id::text,'denied','{"reason":"expired_before_activation"}');
+  return 'expired';
+ end if;
  select * into u from auth.users where id=_actor;
  if u.id is null or lower(coalesce(u.email,''))<>v.invited_email or u.email_confirmed_at is null or v.auth_user_id<>_actor then
  raise exception using errcode='42501',message='verified_invited_identity_required'; end if;
