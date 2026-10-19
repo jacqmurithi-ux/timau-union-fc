@@ -10,6 +10,7 @@ const jsonHeaders = { "Content-Type": "application/json", "Vary": "Origin" };
 Deno.serve(async (req) => {
   const origin = req.headers.get("Origin");
   const cors: Record<string, string> = { ...jsonHeaders, "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, idempotency-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+  if (origin && originList.length === 0) return response(503, { error: "origin_allowlist_not_configured" }, cors);
   if (origin && originList.includes(origin)) cors["Access-Control-Allow-Origin"] = origin;
   if (origin && !originList.includes(origin)) return response(403, { error: "origin_not_allowed" }, cors);
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -26,12 +27,27 @@ Deno.serve(async (req) => {
   const { data: authData, error: authError } = await caller.auth.getUser();
   if (authError || !authData.user) return response(401, { error: "invalid_session" }, cors);
   const actor = authData.user;
+  if (!(req.headers.get("Content-Type") ?? "").toLowerCase().includes("application/json")) return response(415, { error: "content_type_must_be_json" }, cors);
+  const declaredLength = Number(req.headers.get("Content-Length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 16_384) return response(413, { error: "request_too_large" }, cors);
+  let rawBody: string;
+  try { rawBody = await req.text(); } catch { return response(400, { error: "invalid_json" }, cors); }
+  if (new TextEncoder().encode(rawBody).byteLength > 16_384) return response(413, { error: "request_too_large" }, cors);
   let parsed: unknown;
-  try { parsed = await req.json(); } catch { return response(400, { error: "invalid_json" }, cors); }
+  try { parsed = JSON.parse(rawBody); } catch { return response(400, { error: "invalid_json" }, cors); }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return response(400, { error: "invalid_request_body" }, cors);
   const body = parsed as Record<string, unknown>;
   const action = typeof body.action === "string" ? body.action : "";
   if (!allowedActions.has(action)) return response(400, { error: "unsupported_action" }, cors);
+
+  // Database-backed per-identity rate limits survive Edge Function cold starts.
+  // These are abuse controls, not a substitute for provider/gateway-wide rate limits.
+  const rateLimitBucket = action === "invite" ? "invite" : action === "activate_invitation" ? "activation" : "admin_mutation";
+  const { data: rateLimitAllowed, error: rateLimitError } = await admin.rpc("club_admin_consume_rate_limit", {
+    _actor: actor.id, _bucket: rateLimitBucket,
+  });
+  if (rateLimitError) return response(503, { error: "rate_limit_unavailable" }, cors);
+  if (rateLimitAllowed !== true) return response(429, { error: "rate_limit_exceeded" }, cors);
 
   // Activation is self-service only; the actor ID always comes from verified Auth.
   if (action === "activate_invitation") {
@@ -80,7 +96,12 @@ Deno.serve(async (req) => {
     }
 
     const redirectTo = Deno.env.get("INVITE_REDIRECT_URL");
-    if (!redirectTo) {
+    let redirectUrl: URL | null = null;
+    try { if (redirectTo) redirectUrl = new URL(redirectTo); } catch { /* fail closed below */ }
+    const localHttpAllowed = redirectUrl?.protocol === "http:" && ["localhost", "127.0.0.1"].includes(redirectUrl.hostname);
+    const secureSchemeAllowed = redirectUrl?.protocol === "https:" || localHttpAllowed;
+    if (!redirectUrl || !secureSchemeAllowed || Boolean(redirectUrl.username || redirectUrl.password)
+      || !originList.includes(redirectUrl.origin)) {
       await admin.rpc("club_admin_finish_invitation", { _invitation_id: invitationId, _success: false, _auth_user_id: null, _error_code: "invite_redirect_not_configured" });
       return response(503, { error: "invitation_delivery_not_configured" }, cors);
     }
