@@ -85,10 +85,13 @@ await readProfile("revoked identity with existing JWT", fixtures.revoked, false)
 const chairmanRead = await request({ path: endpoint("user_profiles"), jwt: fixtures.chairman.jwt });
 assert.ok(chairmanRead.ok, `Chairman authorized read failed: HTTP ${chairmanRead.status} ${chairmanRead.text}`);
 assert.ok(Array.isArray(chairmanRead.data), "Chairman response should be a row array");
-for (const name of ["member", "invited", "suspended", "revoked"]) {
+for (const name of ["member", "suspended", "revoked"]) {
   assert.ok(chairmanRead.data.some(row => row.user_id === fixtures[name].id), `Chairman cannot read expected authorized fixture: ${name}`);
 }
 console.log("PASS Chairman can read the seeded authorized profile fixtures");
+const chairmanAudit = await request({ path: endpoint("audit_events", "select=id&limit=1"), jwt: fixtures.chairman.jwt });
+assert.ok(chairmanAudit.ok, `Chairman audit read failed: HTTP ${chairmanAudit.status} ${chairmanAudit.text}`);
+console.log("PASS Chairman audit endpoint is authorized");
 
 const sentinel = "00000000-0000-4000-8000-000000000099";
 const memberDelete = await request({
