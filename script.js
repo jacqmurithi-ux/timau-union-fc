@@ -1,56 +1,83 @@
 
 "use strict";
 
-const menuToggle = document.getElementById("menu-toggle");
-const primaryNav = document.getElementById("primary-nav");
+document.addEventListener("DOMContentLoaded", () => {
+  const menuToggle = document.getElementById("menu-toggle");
+  const primaryNav = document.getElementById("primary-nav");
 
-if (menuToggle && primaryNav) {
-  menuToggle.addEventListener("click", () => {
-    const isOpen = primaryNav.classList.toggle("is-open");
+  /**
+   * Update the mobile navigation's open/closed state.
+   */
+  if (menuToggle && primaryNav) {
+    const menuLabel = menuToggle.querySelector(".menu-label");
+    const menuIcon = menuToggle.querySelector(".menu-icon");
 
-    menuToggle.setAttribute("aria-expanded", String(isOpen));
+    const setMenuState = (isOpen, returnFocus = false) => {
+      primaryNav.classList.toggle("is-open", isOpen);
 
-    const label = menuToggle.querySelector(".menu-label");
-    if (label) {
-      label.textContent = isOpen ? "Close" : "Menu";
-    }
+      menuToggle.setAttribute("aria-expanded", String(isOpen));
 
-    const icon = menuToggle.querySelector(".menu-icon");
-    if (icon) {
-      icon.textContent = isOpen ? "×" : "☰";
-    }
-  });
+      if (menuLabel) {
+        menuLabel.textContent = isOpen ? "Close" : "Menu";
+      }
 
-  primaryNav.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      primaryNav.classList.remove("is-open");
-      menuToggle.setAttribute("aria-expanded", "false");
+      if (menuIcon) {
+        menuIcon.textContent = isOpen ? "×" : "☰";
+        menuIcon.setAttribute("aria-hidden", "true");
+      }
 
-      const label = menuToggle.querySelector(".menu-label");
-      if (label) label.textContent = "Menu";
+      if (returnFocus) {
+        menuToggle.focus();
+      }
+    };
 
-      const icon = menuToggle.querySelector(".menu-icon");
-      if (icon) icon.textContent = "☰";
+    menuToggle.addEventListener("click", () => {
+      const isOpen =
+        menuToggle.getAttribute("aria-expanded") !== "true";
+
+      setMenuState(isOpen);
     });
-  });
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      primaryNav.classList.remove("is-open");
-      menuToggle.setAttribute("aria-expanded", "false");
-      menuToggle.focus();
+    // Close the mobile menu after a navigation link is selected.
+    primaryNav.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => {
+        setMenuState(false);
+      });
+    });
 
-      const label = menuToggle.querySelector(".menu-label");
-      if (label) label.textContent = "Menu";
+    // Allow keyboard users to dismiss the menu with Escape.
+    document.addEventListener("keydown", (event) => {
+      if (
+        event.key === "Escape" &&
+        primaryNav.classList.contains("is-open")
+      ) {
+        setMenuState(false, true);
+      }
+    });
 
-      const icon = menuToggle.querySelector(".menu-icon");
-      if (icon) icon.textContent = "☰";
+    // Close the menu when switching to a desktop-sized layout.
+    const desktopLayout = window.matchMedia("(min-width: 768px)");
+
+    const handleLayoutChange = (event) => {
+      if (event.matches) {
+        setMenuState(false);
+      }
+    };
+
+    if (desktopLayout.addEventListener) {
+      desktopLayout.addEventListener("change", handleLayoutChange);
+    } else {
+      // Compatibility with older browsers.
+      desktopLayout.addListener(handleLayoutChange);
     }
-  });
-}
+  }
 
-const yearElement = document.getElementById("current-year");
+  /**
+   * Keep the footer year current automatically.
+   */
+  const yearElement = document.getElementById("current-year");
 
-if (yearElement) {
-  yearElement.textContent = String(new Date().getFullYear());
-}
+  if (yearElement) {
+    yearElement.textContent = String(new Date().getFullYear());
+  }
+});
