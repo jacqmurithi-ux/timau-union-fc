@@ -116,7 +116,8 @@ begin
   values(v.requested_by,'invitation_delivery_failed','invitation_request',v.id::text,'failure',jsonb_build_object('error_code',left(coalesce(_error_code,'auth_invite_failed'),80)));
   return 'failed';
  end if;
- if _auth_user_id is null or not exists(select 1 from auth.users where id=_auth_user_id and lower(email)=v.invited_email) then
+ if _auth_user_id is null or (v.auth_user_id is not null and v.auth_user_id<>_auth_user_id)
+ or not exists(select 1 from auth.users where id=_auth_user_id and lower(email)=v.invited_email) then
   update public.invitation_requests set state='failed',last_error_code='auth_email_mismatch' where id=v.id;
   insert into public.audit_events(actor_user_id,action_key,entity_type,entity_id,outcome,details)
   values(v.requested_by,'invitation_delivery_rejected','invitation_request',v.id::text,'failure','{"error_code":"auth_email_mismatch"}');
