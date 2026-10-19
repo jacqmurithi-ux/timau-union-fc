@@ -37,9 +37,8 @@ if (missing.length) {
   console.error("Missing test-only environment variables:", missing.join(", "));
   process.exit(2);
 }
-assert.match(url, /^https:\/\/[^/]+\.supabase\.co$/i, "URL must be a Supabase HTTPS project URL");
+assert.equal(new URL(url).hostname, "dzpquzfghapjodmrmavw.supabase.co", "This suite is restricted to Union Test");
 assert.ok(!url.includes("owvvimydkjsjlrmnzvdi"), "Production project is forbidden for this test script");
-assert.ok(!url.includes("chamalive"), "Wrong project supplied");
 
 const endpoint = (table, query = "select=user_id") => `${url}/rest/v1/${table}?${query}`;
 async function request({ path, jwt = anonKey, method = "GET", body }) {
