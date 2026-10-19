@@ -16,7 +16,7 @@ Run only against disposable Union Test. Never point this checklist at production
 ## Identity authorization / API
 
 - [x] Negative SQL simulation: nonexistent/non-Chairman actor cannot create an invitation.
-- [x] Latest-head non-deploying CI passed Node syntax check for the PostgREST smoke suite and Deno type-check for the Edge Function (run 32, commit `58055b3`).
+- [x] Latest-head non-deploying CI passed Node syntax check for the PostgREST smoke suite and Deno type-check for the Edge Function (run 37, commit `5a4b2b2`).
 - [ ] CI skipped the live PostgREST step because Union Test JWT fixture secrets are not configured; add them as repository secrets and rerun to obtain real API evidence.
 - [ ] Anonymous API SELECT denied through real HTTP.
 - [ ] Active member reads their own profile only through real HTTP.
