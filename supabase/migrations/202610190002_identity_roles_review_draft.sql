@@ -28,7 +28,7 @@ create table if not exists public.club_memberships (
 );
 
 create table if not exists public.role_assignments (
-  id uuid primary key default extensions.gen_random_uuid(),
+  id uuid primary key default gen_random_uuid(),
   membership_id uuid not null references public.club_memberships(id) on delete cascade,
   role_key text not null check (role_key in (
     'chairman','vice_chairman','secretary','team_manager','treasurer',
@@ -85,33 +85,20 @@ grant select on table public.club_memberships to authenticated;
 grant select on table public.role_assignments to authenticated;
 grant select on table public.audit_events to authenticated;
 
--- SECURITY DEFINER helpers must be owned by a trusted migration owner.
--- Fixed empty search_path and fully qualified relations reduce object-shadowing risk.
-create or replace function public.is_active_club_official()
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $function$
-  select exists (
-    select 1
-    from public.club_memberships m
-    join public.role_assignments r on r.membership_id = m.id
-    where m.user_id = auth.uid()
-      and m.status = 'active'
-      and r.revoked_at is null
-  );
-$function$;
+-- Keep SECURITY DEFINER helpers in a non-exposed schema, never public.
+-- The migration executor must be a trusted database owner; verify ownership in review.
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
 
-create or replace function public.has_active_club_role(_role_key text)
+create or replace function private.has_active_club_role(_role_key text)
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $function$
-  select exists (
+  select auth.uid() is not null and exists (
     select 1
     from public.club_memberships m
     join public.role_assignments r on r.membership_id = m.id
@@ -122,22 +109,21 @@ as $function$
   );
 $function$;
 
-create or replace function public.can_manage_club_roles()
+create or replace function private.can_manage_club_roles()
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $function$
-  select public.has_active_club_role('chairman');
+  select auth.uid() is not null
+    and private.has_active_club_role('chairman');
 $function$;
 
-revoke all on function public.is_active_club_official() from public, anon;
-revoke all on function public.has_active_club_role(text) from public, anon;
-revoke all on function public.can_manage_club_roles() from public, anon;
-grant execute on function public.is_active_club_official() to authenticated;
-grant execute on function public.has_active_club_role(text) to authenticated;
-grant execute on function public.can_manage_club_roles() to authenticated;
+revoke all on function private.has_active_club_role(text) from public, anon;
+revoke all on function private.can_manage_club_roles() from public, anon;
+grant execute on function private.has_active_club_role(text) to authenticated;
+grant execute on function private.can_manage_club_roles() to authenticated;
 
 -- RLS policies grant read access only; no client-side role/membership mutations.
 drop policy if exists "profile_select_self_or_chairman" on public.user_profiles;
@@ -145,7 +131,7 @@ create policy "profile_select_self_or_chairman"
   on public.user_profiles for select to authenticated
   using (
     user_id = (select auth.uid())
-    or (select public.can_manage_club_roles())
+    or (select private.can_manage_club_roles())
   );
 
 drop policy if exists "membership_select_self_or_chairman" on public.club_memberships;
