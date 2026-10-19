@@ -65,7 +65,15 @@ Deno.serve(async (req) => {
     if (claimError) return response(503, { error: "invitation_queue_unavailable", invitation_id: invitationId }, cors);
     const row = Array.isArray(claimed) ? claimed[0] : claimed;
     if (!row) {
-      const { data: current } = await admin.from("invitation_requests").select("state").eq("id", invitationId).maybeSingle();
+      const { data: current } = await admin.from("invitation_requests").select("state,auth_user_id").eq("id", invitationId).maybeSingle();
+      if (current?.state === "sending" && current.auth_user_id) {
+        const { data: recovered, error: recoverError } = await admin.rpc("club_admin_finish_invitation", {
+          _invitation_id: invitationId, _success: true, _auth_user_id: current.auth_user_id, _error_code: null,
+        });
+        if (!recoverError) return response(200, { invitation_id: invitationId, state: recovered, recovered: true }, cors);
+        return response(503, { error: "invitation_reconciliation_required", invitation_id: invitationId }, cors);
+      }
+      if (current?.state === "sending") return response(503, { error: "invitation_reconciliation_required", invitation_id: invitationId }, cors);
       return response(current?.state === "sent" ? 200 : 409, { invitation_id: invitationId, state: current?.state ?? "not_claimable" }, cors);
     }
 
@@ -82,12 +90,17 @@ Deno.serve(async (req) => {
       });
       return response(502, { error: "invitation_delivery_failed", invitation_id: invitationId }, cors);
     }
+    const { error: recordUserError } = await admin.rpc("club_admin_record_invitation_auth_user", {
+      _invitation_id: invitationId, _auth_user_id: invited.user.id,
+    });
+    // Even if the checkpoint call has a transient error, attempt finalization once.
+    // A successful finalization is the authoritative state transition.
     const { data: finishState, error: finishError } = await admin.rpc("club_admin_finish_invitation", {
       _invitation_id: invitationId, _success: true, _auth_user_id: invited.user.id, _error_code: null,
     });
     // Auth delivery and Postgres cannot share a distributed transaction. Do not auto-resend
     // if finalization fails: return a reconciliation marker and preserve the request ID.
-    if (finishError) return response(503, { error: "invitation_reconciliation_required", invitation_id: invitationId }, cors);
+    if (finishError) return response(503, { error: "invitation_reconciliation_required", invitation_id: invitationId, checkpoint_saved: !recordUserError }, cors);
     return response(200, { invitation_id: invitationId, state: finishState }, cors);
   }
 
