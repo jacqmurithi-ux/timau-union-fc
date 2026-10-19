@@ -13,6 +13,7 @@ create table private.api_rate_limit_counters (
 );
 
 alter table private.api_rate_limit_counters enable row level security;
+create policy api_rate_limit_deny_all on private.api_rate_limit_counters for all to public using (false) with check (false);
 revoke all on table private.api_rate_limit_counters from public, anon, authenticated, service_role;
 
 create or replace function public.club_admin_consume_rate_limit(_actor uuid, _bucket text)
