@@ -1,45 +1,42 @@
-# Phase 1 — RLS and identity schema review checklist
+# Phase 1 RLS and identity workflow test checklist
 
-Status: Review checklist; not evidence of tests executed.
+Run only against disposable Union Test until all checks pass. Never point this checklist at production.
 
-## Before any SQL execution
+## Catalog / grants
+- [ ] All four tables have RLS enabled.
+- [ ] No anon SELECT/INSERT/UPDATE/DELETE grants.
+- [ ] Authenticated has SELECT only; no direct writes to profile, membership, role, audit.
+- [ ] `private` absent from Data API exposed schemas (Dashboard confirmation required).
+- [ ] SECURITY DEFINER helpers have safe owner, fixed empty search_path and least-privilege EXECUTE grants.
+- [ ] No secret key or invitation token appears in browser bundle, logs or audit details.
 
-- [ ] Confirm target project is disposable/non-production and its project reference is verified.
-- [ ] Review every DDL statement, extension dependency, default, constraint, index and foreign-key behavior.
-- [ ] Confirm the trusted migration owner and ownership of all SECURITY DEFINER functions.
-- [ ] Confirm role helper functions remain in a non-exposed schema, have a fixed empty search_path, fully qualify objects, and return false for unauthenticated calls.
-- [ ] Verify private schema is not exposed through the Supabase Data API.
-- [ ] Confirm only required schema/table/function grants are present.
-- [ ] Confirm no client INSERT/UPDATE/DELETE policies exist for membership, role assignment or audit records.
-- [ ] Confirm all tables in exposed schemas have RLS enabled.
-- [ ] Confirm there is no public/anon read path to private profile, membership, role or audit data.
-- [ ] Check that no public user metadata is used for authorization.
-- [ ] Confirm invitation flow can create a pending auth identity and bind it to the intended email without allowing invitees to choose a role.
-- [ ] Confirm account revocation is checked by protected requests and consider session/token expiry behavior.
-- [ ] Check that audit detail fields cannot accidentally capture credentials, tokens or unnecessary sensitive data.
+## Identity authorization
+- [ ] Anonymous request reads no records.
+- [ ] Active member reads own profile/membership/role only.
+- [ ] Invited, suspended and revoked identities cannot read business data.
+- [ ] Active Chairman reads authorized member records and audit events only.
+- [ ] Vice Chairman cannot assign roles or invite officials.
+- [ ] User-editable metadata cannot grant privileges.
+- [ ] Existing JWT after suspension/revocation cannot access protected records.
 
-## Required negative tests
+## Invitation lifecycle
+- [ ] Chairman-only invite; invalid role/email rejected.
+- [ ] Self-assignment and unauthorized role elevation rejected.
+- [ ] Verified email must match normalized invitation email.
+- [ ] Expired/cancelled/revoked/replayed invite fails closed.
+- [ ] Duplicate invite/retry is idempotent.
+- [ ] Auth Admin failure and database failure recover without active orphan membership.
+- [ ] All transitions append safe, actor-attributed audit events.
 
-Use separate test identities for Chairman, Vice Chairman, Secretary, Team Manager, Treasurer, Coach, Sponsor Lead, Media Team, an authenticated person without active membership, and anonymous access.
+## Roles and concurrency
+- [ ] Duplicate active role rejected.
+- [ ] Only one active Chairman even under concurrent transactions.
+- [ ] Chairman handover is atomic; forced failure leaves original Chairman intact.
+- [ ] Non-active membership cannot receive active role.
+- [ ] Revocation requires actor and revokes all role assignments transactionally.
+- [ ] Trigger updates `updated_at` on ordinary row updates.
 
-- [ ] Anonymous reads of all private tables fail.
-- [ ] Authenticated but non-member reads of private tables fail.
-- [ ] Active member reads only their own profile, membership and role assignments unless explicitly authorized as Chairman.
-- [ ] Vice Chairman cannot assign, elevate or revoke roles.
-- [ ] Any user cannot create or update their own role assignment.
-- [ ] Any user cannot activate their own membership or change its status.
-- [ ] Any user cannot insert, update or delete audit events.
-- [ ] A revoked/suspended member is denied even if their session still exists.
-- [ ] A direct REST/RPC request cannot bypass the UI or access another member by changing an identifier.
-- [ ] Unauthenticated calls to helper functions return false or are denied.
-- [ ] Helper functions cannot be used to infer other users' roles.
-- [ ] Query plans and RLS policy checks do not trigger recursive-policy errors.
-- [ ] All permitted reads work for the intended role and no broader data is returned.
-
-## Verification record
-
-Record the date, test project reference (not secrets), migration commit, SQL runner/version, test identity/role, request method, expected result, actual result and evidence for each test. Never include access tokens or secrets in test artifacts.
-
-## Release gate
-
-No production migration until the draft is reviewed, tests pass in a non-production project, and a separate production migration is presented and explicitly approved. Moving a draft into a review folder does not mean it is ready to apply.
+## Final evidence
+- [ ] Capture test output, migration IDs and advisor results.
+- [ ] Review source and deployment configuration.
+- [ ] No production operation before explicit production migration approval.
