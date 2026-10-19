@@ -21,13 +21,15 @@ The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog
 These are still release blockers and must not be marked passed based on catalog/SQL simulations:
 
 - [ ] Dashboard confirmation that `private` is excluded from Data API Exposed schemas.
-- [ ] Real HTTP/PostgREST requests using anonymous and separate authenticated test identities, including direct REST/RPC attempts.
+- [ ] Real HTTP/PostgREST requests using anonymous and separate authenticated test identities, including direct REST/RPC attempts. A repeatable suite is committed at `tests/phase-1-postgrest-smoke.mjs`; it could not execute in this environment because outbound DNS/network access was unavailable and test JWT fixtures are not configured.
 - [ ] Real Auth Admin email delivery, correct redirect destination, unverified/mismatched email rejection, duplicate retry, provider failure, cancellation/expiry, and post-delivery database failure/reconciliation.
 - [ ] Existing JWT/session behavior after suspension and revocation against protected resources.
 - [x] Added database-backed per-identity limits in the review draft: 5 invitations/hour, 10 activation attempts/minute, and 60 other privileged mutations/minute. SQL threshold simulation passed; Edge Function integration and provider/gateway-wide abuse controls still require runtime verification.
 - [ ] Verify configured `ALLOWED_ORIGINS` and `INVITE_REDIRECT_URL` in the target function environment and Supabase Auth redirect allowlist.
+- [x] Added `docs/PHASE-1-INVITATION-RECOVERY-RUNBOOK.md` for safe manual recovery when a request remains `sending`.
 - [ ] Independent review of the SQL and Edge Function, including the invitation delivery/checkpoint crash window and operational reconciliation runbook.
-- [ ] Full test suite/lint/type checks executed in a controlled environment with output captured.
+- [x] GitHub Actions non-deploying static checks passed: Node syntax check for the HTTP smoke suite and Deno type-check for the Edge Function.
+- [ ] Full live HTTP/Auth integration suite and configured-runtime checks still require test identities and a deployed test-only endpoint.
 - [ ] Final reviewer approval before merge.
 
 ## Safe release posture
