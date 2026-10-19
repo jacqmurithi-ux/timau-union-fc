@@ -4,13 +4,12 @@ Status: **Partial verification passed; release blocked.** All live database chec
 
 ## Automated checks run in Union Test
 
-Executed a read-only catalog verification plus a PL/pgSQL assertion block against the connected Union Test database.
+Executed catalog queries and PL/pgSQL assertion blocks against the connected Union Test database.
 
 - [x] Exactly the five expected identity/workflow tables were found with RLS enabled: `user_profiles`, `club_memberships`, `role_assignments`, `audit_events`, `invitation_requests`.
 - [x] All nine `public.club_admin_*` privileged RPCs have `SECURITY DEFINER` and a fixed empty `search_path`.
 - [x] All nine privileged RPCs deny EXECUTE to `anon` and `authenticated`, and allow EXECUTE to `service_role`.
-- [x] No direct `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, or `TRIGGER` grants to `authenticated` on the five tables.
-- [x] No direct `SELECT` grant to `anon` on the five tables.
+- [x] Effective privilege assertions using `has_table_privilege` confirmed `anon` cannot SELECT any of the five tables and `authenticated` cannot INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES or TRIGGER on them.
 - [x] Calling the invitation-begin RPC with a nonexistent/non-Chairman actor was rejected with insufficient privilege; no invitation was created.
 - [x] Inspected the five SELECT policies: profile/membership/role visibility is self-scoped for active members or Chairman-authorized; invitation and audit reads are Chairman-authorized.
 - [x] Confirmed schema-level SQL privileges show `anon` has no USAGE on `private`; `authenticated` has USAGE for policy helper calls. This does **not** prove the Supabase Data API Exposed schemas setting.
