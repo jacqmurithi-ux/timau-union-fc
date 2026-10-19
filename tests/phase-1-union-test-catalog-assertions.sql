@@ -1,7 +1,7 @@
 -- Timau Union FC Phase 1 catalog/privilege smoke tests.
 -- Run ONLY against Union Test (dzpquzfghapjodmrmavw): dzpquzfghapjodmrmavw.
--- Safe to rerun: checks catalog/grants and calls one intentionally denied RPC;
--- it must not create or modify records. Never run this as a production migration.
+-- Safe to rerun: checks catalog/grants, calls one intentionally denied RPC,
+-- and creates/removes one temporary rate-limit counter. Never run in production.
 
 DO $test$
 DECLARE
@@ -10,6 +10,9 @@ DECLARE
   missing_tables text;
   rpc_count integer;
   violation_count integer;
+  i integer;
+  rate_allowed boolean;
+  rate_test_actor uuid := '00000000-0000-4000-8000-000000000091';
 BEGIN
   SELECT string_agg(t.table_name, ', ')
     INTO missing_tables
@@ -57,8 +60,8 @@ BEGIN
   WHERE n.nspname = 'public'
     AND p.proname LIKE 'club_admin_%';
 
-  IF rpc_count <> 9 THEN
-    RAISE EXCEPTION 'FAIL: expected 9 privileged RPCs, found %', rpc_count;
+  IF rpc_count <> 10 THEN
+    RAISE EXCEPTION 'FAIL: expected 10 privileged RPCs including rate limiter, found %', rpc_count;
   END IF;
 
   SELECT count(*) INTO violation_count
@@ -94,6 +97,18 @@ BEGIN
     NULL; -- Expected denial.
   END;
 
-  RAISE NOTICE 'PASS: RLS, effective table privileges, nine privileged RPCs, fixed search_path, and non-Chairman denial';
+  FOR i IN 1..10 LOOP
+    rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'activation');
+    IF NOT rate_allowed THEN
+      RAISE EXCEPTION 'FAIL: activation rate-limit denied request % before limit', i;
+    END IF;
+  END LOOP;
+  rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'activation');
+  IF rate_allowed THEN
+    RAISE EXCEPTION 'FAIL: activation rate-limit did not deny request 11';
+  END IF;
+  DELETE FROM private.api_rate_limit_counters WHERE actor_user_id = rate_test_actor;
+
+  RAISE NOTICE 'PASS: RLS, effective table privileges, ten privileged RPCs, fixed search_path, non-Chairman denial, and rate limit threshold';
 END
 $test$;
