@@ -5,8 +5,6 @@
 
 begin;
 
-create extension if not exists pgcrypto with schema extensions;
-
 create table if not exists public.user_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null check (length(btrim(display_name)) between 1 and 120),
@@ -16,7 +14,7 @@ create table if not exists public.user_profiles (
 );
 
 create table if not exists public.club_memberships (
-  id uuid primary key default extensions.gen_random_uuid(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references auth.users(id) on delete cascade,
   status text not null default 'invited'
     check (status in ('invited','active','suspended','revoked')),
@@ -48,9 +46,14 @@ create index if not exists role_assignments_membership_active_idx
   on public.role_assignments (membership_id, role_key)
   where revoked_at is null;
 
+-- Prevent multiple simultaneously active assignments of the same role.
+create unique index if not exists role_assignments_one_active_role_idx
+  on public.role_assignments (membership_id, role_key)
+  where revoked_at is null;
+
 create table if not exists public.audit_events (
   id bigint generated always as identity primary key,
-  actor_user_id uuid references auth.users(id) on delete set null,
+  actor_user_id uuid, -- retain actor identifier even if the auth account is later deleted
   action_key text not null check (length(btrim(action_key)) between 1 and 100),
   entity_type text not null check (length(btrim(entity_type)) between 1 and 100),
   entity_id text,
