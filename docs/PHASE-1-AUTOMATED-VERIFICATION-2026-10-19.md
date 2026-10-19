@@ -4,7 +4,7 @@ Status: **Partial verification passed; release blocked.** All live database chec
 
 ## Automated checks run in Union Test
 
-Executed catalog queries and PL/pgSQL assertion blocks against the connected Union Test database.
+The repeatable smoke-test script is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). It was executed against Union Test and completed without a raised exception. Separate catalog queries inspected function grants and RLS policies.
 
 - [x] Exactly the five expected identity/workflow tables were found with RLS enabled: `user_profiles`, `club_memberships`, `role_assignments`, `audit_events`, `invitation_requests`.
 - [x] All nine `public.club_admin_*` privileged RPCs have `SECURITY DEFINER` and a fixed empty `search_path`.
