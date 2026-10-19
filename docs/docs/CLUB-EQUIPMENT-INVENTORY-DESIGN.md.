@@ -1,0 +1,327 @@
+
+# Timau Union FC — Club Equipment & Kit Inventory Design
+
+**Status:** Design proposal — pending review  
+**Scope:** Design only. Implementation remains on hold.  
+**Related documents:** [`features-flow.md`](../features-flow.md), [`AUTHENTICATION-DESIGN.md`](./AUTHENTICATION-DESIGN.md)
+
+## 1. Purpose
+
+Design a secure, mobile-first inventory workflow for recording, issuing, returning, inspecting, maintaining and reporting on Timau Union FC property.
+
+The inventory covers all club property, including:
+
+- Playing kits and training wear
+- Footballs, cones, bibs, nets, goalkeeping gear and training equipment
+- Medical, first-aid and match-day supplies
+- Office equipment, furniture and storage items
+- Other property purchased, donated, transferred or carried forward into the register
+
+The system must support **both quantity tracking and individual-item tracking**. The Team Manager is the day-to-day inventory maintainer, within explicitly granted permissions.
+
+## 2. Design principles
+
+1. Keep one dependable club inventory register with a traceable history.
+2. Record quantity, condition, location, custody and lifecycle status as separate facts.
+3. Record the source of each item or stock batch: purchased, donated, transferred, opening inventory or other.
+4. Record receipts, issues, returns, movements, adjustments and disposals as history rather than silently overwriting prior records.
+5. Use least-privilege access. Inventory responsibilities do not automatically grant financial approval or access to unrelated private records.
+6. Keep private inventory, donor and custody information out of the public website.
+7. Make common tasks usable on mobile phones and with limited data.
+8. Enforce authorization in trusted backend/database controls. Hiding a menu or button is not a security boundary.
+
+## 3. Inventory categories
+
+Initial suggested categories:
+
+- **Playing kits:** jerseys, shorts, socks, goalkeeper kits, training wear and bibs.
+- **Football and training equipment:** balls, cones, ladders, hurdles, poles, nets, pumps and other training aids.
+- **Goalkeeping and protection:** gloves, pads and protective equipment.
+- **Medical and safety supplies:** first-aid kits, reusable medical equipment and consumables.
+- **Match-day equipment:** flags, corner poles, water containers and other approved club property.
+- **Office equipment:** phones, computers, printers, routers and accessories.
+- **Furniture and fixtures:** desks, chairs, cabinets, shelves and storage units.
+- **Other property:** any item approved for inclusion in the club register.
+
+Categories should be configurable by authorized officials without changing the permission model.
+
+## 4. Two tracking methods
+
+### 4.1 Quantity-tracked stock
+
+Use this for items managed as a countable stock quantity, especially consumables or interchangeable items.
+
+Suggested fields:
+
+- Inventory record ID
+- Item name, category and description
+- Unit of measure, such as each, pair, pack or box
+- Size, variant or other distinguishing attribute where relevant
+- Quantity received, available, reserved, issued, damaged or otherwise unavailable
+- Storage location
+- Minimum-stock threshold, if applicable
+- Acquisition/donation source and receipt date
+- Reference to supporting receipt or record, if available
+- Movement history and recording official
+
+Quantities must reconcile through recorded movements. A stock adjustment must include a reason and must not erase earlier entries.
+
+### 4.2 Individually tracked assets
+
+Use this for identifiable equipment or property that needs its own custody, condition, repair or retirement history.
+
+Suggested fields:
+
+- Unique internal asset ID
+- Item name and category
+- Brand, model or serial number, when applicable
+- Date received and source
+- Condition at receipt
+- Current status, location and custodian
+- Acquisition value, only for authorized users where recorded
+- Issue and return history
+- Inspection, repair and maintenance history
+- Loss, damage, transfer and retirement records
+
+The internal asset ID is distinct from a manufacturer serial number and from any printed squad number.
+
+## 5. Jersey and kit tracking
+
+The kit register should support:
+
+- Kit type or season, such as home, away, goalkeeper or training
+- Jersey size, using the club's agreed size list
+- Printed squad number
+- Unique item ID where each jersey is individually tracked
+- Condition and current location
+- Availability, issue and return status
+- Player or authorized custodian currently holding the item
+- Issue date, expected return date and actual return date
+- Damage, replacement, loss and repair history
+
+A **printed squad number must not be used as the database identity of a jersey**. The same number may legitimately appear on a different kit type or in a different season. The register should flag potential duplicate active assignments for review, while allowing authorized officials to document approved exceptions.
+
+Players do not need login accounts. Authorized officials record kit issues and returns. A future signed acknowledgement or printed issue slip may be considered separately.
+
+## 6. Donations and acquisitions
+
+Each receipt or intake should identify its source:
+
+- Purchased by the club
+- Donated
+- Transferred from another organization or person
+- Opening inventory
+- Other, with explanation
+
+For donations, capture where available:
+
+- Item or stock description and quantity
+- Condition at receipt
+- Donor name or organization
+- Date received
+- Any restrictions or intended use
+- Acknowledgement status or reference
+- Supporting note or receipt, if available
+- Official recording the receipt
+- Review or verification status, where required
+
+Do not invent a donor name, date or value if unknown. Mark the information as **unknown** or **not provided**. Donor contact details and internal donation notes are private and visible only to authorized roles.
+
+Recording a donated asset does not itself create a cash transaction. The Team Manager's inventory role does not authorize spending, payment approval or alteration of financial records.
+
+## 7. Item lifecycle and movements
+
+Suggested statuses, subject to category-specific rules:
+
+- Available
+- Reserved
+- Issued
+- Returned and awaiting inspection
+- Damaged
+- Under repair
+- Lost or missing
+- Retired or disposed
+
+### 7.1 Receive stock or an asset
+
+1. Select or create the item record.
+2. Record quantity or individual asset details.
+3. Record source, receipt date, condition and location.
+4. Attach a supporting reference where available.
+5. Submit for any required review.
+6. Add the receipt to the movement history.
+
+### 7.2 Issue equipment or kit
+
+1. Select available stock or an individual asset.
+2. Record the recipient/custodian, purpose and issue date.
+3. Record the expected return date if the item is loaned.
+4. Check that stock or asset availability permits the issue.
+5. Save the movement and update current availability.
+6. Keep a permanent issue history.
+
+### 7.3 Return equipment
+
+1. Find the active issue record.
+2. Record return date, quantity and observed condition.
+3. Route damaged items to inspection or repair.
+4. Return serviceable items to available stock or their storage location.
+5. Preserve the issue and return history.
+
+### 7.4 Record damage, loss, repair or disposal
+
+1. Select the affected item or stock record.
+2. Record what happened, when it was noticed and who reported it.
+3. Record the action taken and supporting details.
+4. Require independent review for significant adjustments, write-offs or disposals, according to the approved permission matrix.
+5. Preserve the audit trail and prior state.
+
+The system should prevent negative stock, impossible status transitions and duplicate active custody of the same individually tracked asset.
+
+## 8. Storage, custody and stocktake
+
+Inventory records should support storage locations such as the club store, training ground, office or another approved location.
+
+For individually tracked items, maintain current custody and handover history. For quantity stock, maintain quantities by location when the club needs to distinguish stock held in multiple places.
+
+A stocktake workflow should allow an authorized official to:
+
+1. Select a location or category.
+2. Count physical stock or confirm individual assets.
+3. Compare observed counts with recorded quantities and statuses.
+4. Record missing, extra, damaged or misplaced items.
+5. Submit discrepancies for review.
+6. Apply approved corrections as traceable adjustments.
+
+A stocktake must not silently overwrite the system quantity. The system should preserve the count, discrepancy reason, reviewer and resulting adjustment.
+
+## 9. Proposed screens
+
+1. **Inventory dashboard:** counts by category and status, low-stock warnings, overdue returns and pending reviews.
+2. **Inventory register:** search and filters for category, size, squad number, condition, location, source and tracking method.
+3. **Item detail:** current details, history, custody, documents and permitted actions.
+4. **Receive items:** purchased, donated, transferred and opening inventory intake.
+5. **Issue and return:** simple phone-friendly workflows for kits and equipment.
+6. **Stocktake and discrepancies:** physical count, variance explanation and review.
+7. **Maintenance and retirement:** repairs, losses, write-offs and disposals.
+8. **Reports:** permission-filtered summaries and history.
+
+Do not expose the inventory register or private item details on public pages.
+
+## 10. Proposed role and permission boundaries
+
+The exact capability matrix must be approved before implementation. Suggested starting point:
+
+- **Team Manager:** day-to-day register maintenance, receipts, issues, returns, location updates and stocktake preparation, within assigned scope.
+- **Chairman:** oversight and explicitly assigned approvals. This does not mean every action must be Chairman-only.
+- **Treasurer:** access to acquisition costs and finance-related references only where authorized; financial approval remains governed by separate finance permissions.
+- **Secretary:** selected view or recordkeeping tasks only when explicitly granted.
+- **Coach:** view relevant equipment availability and submit equipment requests; no automatic authority to change inventory records.
+- **Other officials:** only the specific capabilities explicitly granted.
+- **Players:** no login accounts; their kit/equipment custody may be recorded by authorized officials.
+- **Public/supporters:** no access to private inventory, donor details, custody records or internal reports.
+
+Permissions should distinguish at least:
+
+- View records
+- Create receipts
+- Issue items
+- Record returns
+- Edit descriptive fields
+- Change custody or location
+- Adjust quantities
+- Approve adjustments
+- Retire or dispose of assets
+- View acquisition values
+- View donor contacts
+- Export reports
+- View audit history
+
+Do not bundle sensitive permissions together without a deliberate decision.
+
+## 11. Reports
+
+Suggested reports:
+
+- Inventory summary by category, tracking method and status
+- Kit availability by size, kit type and squad number
+- Currently issued items and expected returns
+- Overdue returns
+- Damaged items and repair queue
+- Donation register and intake history
+- Acquisition register
+- Stocktake results and unresolved discrepancies
+- Individual asset history
+- Low-stock list and replenishment needs
+
+Reports and exports must follow the same authorization rules as the underlying records. Financial values, donor contact details and sensitive audit information must not appear in general exports unless specifically permitted.
+
+## 12. Security, privacy and audit requirements
+
+- Supabase Auth identifies signed-in users; database Row Level Security (RLS) and trusted backend authorization remain the security boundary.
+- Apply least privilege and deny access by default.
+- Protect every read and write path, including direct API requests, report endpoints, exports and file access.
+- Do not put service-role keys or other privileged secrets in browser code.
+- Validate quantity changes, status transitions, club ownership and permissions on the trusted side.
+- Keep an audit history for receipts, issues, returns, edits to material fields, transfers, stock adjustments, approvals, repairs, losses, disposals and exports where appropriate.
+- Record who performed an action and when; include a reason for sensitive corrections.
+- Keep donor contact information, acquisition values, custody details and internal notes private.
+- Limit uploaded evidence to authorized users and validate its access rules.
+- Fail closed if permissions cannot be confirmed.
+- Do not allow inventory permissions to grant access to player welfare, private finance, authentication administration or unrelated records.
+
+This document proposes requirements only; it does not define or change SQL, schema, policies, grants or backend functions.
+
+## 13. Mobile-first usability
+
+The interface should work on small screens, use plain language, minimize repeated typing and avoid unnecessary large downloads. Common tasks—receive, issue, return and record damage—should be short, with clear confirmation before saving.
+
+Search and filters should work well with the club's expected item names, sizes and squad numbers.
+
+Where connectivity is unreliable, the system must not claim that a change was saved until the trusted backend confirms it. Any future offline workflow would need a separate design for conflicts, duplicate submissions and authorization.
+
+## 14. Acceptance criteria for a future implementation
+
+The implementation is not ready for authorization until it can demonstrate that:
+
+- Both quantity tracking and individual asset tracking are supported.
+- Jersey size and printed squad number are searchable and distinct from the internal item ID.
+- Donated items retain donor/date/source details where provided, with private information access-controlled.
+- All club property categories, including office equipment and furniture, can be registered.
+- Receipts, issues, returns, repairs, adjustments and disposals retain a traceable history.
+- The Team Manager can perform approved day-to-day tasks without receiving unrelated financial or administrative powers.
+- Significant stock corrections and disposals follow separately approved controls.
+- Negative stock, unauthorized actions and invalid lifecycle transitions are rejected.
+- Direct API access and cross-club access cannot bypass permissions.
+- Private inventory data is absent from public pages and public-facing data views.
+- Sensitive reports and exports are permission-controlled.
+- The interface is usable on mobile devices and fails safely when authorization or connectivity is uncertain.
+
+## 15. Decisions needed before implementation
+
+Confirm these items during design review:
+
+1. Who can act as the backup inventory maintainer when the Team Manager is unavailable?
+2. Which categories use quantity tracking, individual tracking or a mix?
+3. What kit sizes and units of measure should be available?
+4. Which items require minimum-stock alerts?
+5. How often should stocktake occur, and who reviews discrepancies?
+6. Which adjustments, losses and disposals require a second person's approval?
+7. Who may see acquisition values, donor contact details, serial numbers and uploaded receipts?
+8. Is an issue acknowledgement required, and if so, should it be a signature, confirmation by an official or printed form?
+9. What retention rules apply to donor, custody and audit records?
+10. Should QR/barcode labels or printable issue forms be considered in a later phase?
+11. Which reports may be exported, and by which roles?
+
+## 16. Architecture and scope boundary
+
+- **Public website:** static, public-safe pages hosted through GitHub Pages from `main`.
+- **Private management system:** `/app/`, login required and available only to authorized users.
+- **Identity and data:** Supabase Auth and PostgreSQL, protected by RLS and trusted backend authorization.
+- **No Vercel:** the approved hosting route remains GitHub Pages.
+- **No public self-registration:** invitation-only access remains the approved authentication design.
+- **No player login:** officials maintain player kit and custody records.
+
+**Not authorized by this design:** application code, database schema changes, migrations, SQL/RLS policy changes, Supabase configuration changes, production data edits, payment functionality or deployment. Each requires separate explicit authorization.
+
+Review and approve this document before implementation planning proceeds.
