@@ -1,28 +1,31 @@
-
-# Timau Union FC — Implementation Status
+Timau Union FC — Implementation Status
 
 Last updated: 19 October 2026
 
-## Project overview
+Project overview
 
 Timau Union FC is a community-owned football club based in Timau, Meru County, Kenya.
 
 The project has two distinct parts:
 
-1. **Public club website** — accessible without signing in and limited to approved public information.
-2. **Private management application** — planned for `/app`, requiring authentication and role-based authorisation.
+1. Public club website — accessible without signing in and limited to approved public information.
+2. Private management application — planned for "/app", requiring authentication and role-based authorisation.
 
 The public website must not expose private management records or provide a route around the private application's security controls.
 
-## Phase 1: Public website
+Phase 1: Public website
 
-**Status: Published and verified by the project owner.**
+Status: Published and verified by the project owner.
 
 Public website:
 
 https://jacqmurithi-ux.github.io/timau-union-fc/
 
-### Included in Phase 1
+Member-access placeholder:
+
+https://jacqmurithi-ux.github.io/timau-union-fc/app/
+
+Included in Phase 1
 
 - [x] Public homepage and club introduction.
 - [x] Fixtures and results placeholders.
@@ -37,29 +40,29 @@ https://jacqmurithi-ux.github.io/timau-union-fc/
 - [x] Member-access placeholder.
 - [x] Setup and hosting documentation.
 - [x] Club-inspired red, white and black visual theme, with yellow highlights.
-- [x] Live website verification confirmed by the project owner.
-- [x] `docs/IMPLEMENTATION-STATUS.md` updated.
-- [x] `docs/CREST-MANAGEMENT.md` updated.
-- [x] Documentation changes committed to GitHub `main`, as confirmed by the project owner.
+- [x] Official club crest integrated as "assets/club-crest.jpg" and displaying correctly, as verified by the project owner.
+- [x] Member-access page path corrected; "/app/" loads, as verified by the project owner.
+- [x] Live public website verification confirmed by the project owner.
+- [x] "docs/IMPLEMENTATION-STATUS.md" updated.
+- [x] "docs/CREST-MANAGEMENT.md" updated.
+- [x] Documentation changes committed to GitHub "main", as confirmed by the project owner.
 
-### Outstanding Phase 1 actions
+Outstanding Phase 1 actions
 
 - [ ] Obtain formal club-official approval for public-facing content.
-- [ ] Obtain and approve the official club crest.
-- [ ] Replace the temporary concept crest once approved, if necessary.
 - [ ] Record any remaining technical test results not explicitly confirmed.
 
-### Phase 1 release boundaries
+Phase 1 release boundaries
 
 The member-access page is a placeholder, not an authentication system. It must not collect passwords, verification codes or other credentials.
 
-The public website must remain accessible without signing in. Its only connection to the private application is the clearly labelled **Member login** link.
+The public website must remain accessible without signing in. Its only connection to the private application is the clearly labelled Member login link.
 
 No private player details, financial records or internal management discussions may be exposed through public pages.
 
-## Phase 2: Authentication and access design
+Phase 2: Authentication and access design
 
-**Status: Not implemented. Separate review and explicit approval required.**
+Status: Not implemented. Separate review and explicit approval required.
 
 Before development begins, review and approve:
 
@@ -74,7 +77,7 @@ Before development begins, review and approve:
 - [ ] Database access policies and Row Level Security (RLS).
 - [ ] Tests for unauthorised access and role escalation.
 
-### Role governance
+Role governance
 
 The Chairman is responsible for invitations and role assignment under the approved governance model.
 
@@ -84,9 +87,9 @@ Permissions must be enforced by the backend and database policies, not merely by
 
 There must be no public self-registration unless the club explicitly approves a change to this requirement.
 
-## Phase 3: Private management application
+Phase 3: Private management application
 
-**Status: Not implemented. Separate scope and approval required.**
+Status: Not implemented. Separate scope and approval required.
 
 Potential modules for a later approved phase include:
 
@@ -111,9 +114,9 @@ Before developing any module:
 
 Sensitive records must remain in the private application and must not be exposed through public website queries or public database views.
 
-## Phase 4: Public content workflow
+Phase 4: Public content workflow
 
-**Status: Proposed; not implemented or approved.**
+Status: Proposed; not implemented or approved.
 
 Proposed workflow:
 
@@ -125,7 +128,7 @@ Proposed workflow:
 
 Before implementation, confirm who can submit, review, approve, publish, edit and withdraw public content. Approval permissions must be enforced rather than represented by interface controls alone.
 
-## Security requirements
+Security requirements
 
 These requirements apply throughout the project:
 
@@ -141,14 +144,14 @@ These requirements apply throughout the project:
 - Test unauthorised access, role escalation and direct requests to protected data.
 - Keep authentication and private management changes separate from the static public website.
 
-## Hosting and release policy
+Hosting and release policy
 
-- The approved public deployment path is **GitHub `main` → GitHub Pages → published club website**.
+- The approved public deployment path is GitHub "main" → GitHub Pages → published club website.
 - Do not introduce Vercel deployment configuration or change the approved hosting path without explicit authorisation.
 - Record deployment as verified only after checking the published website.
 - Do not apply database migrations or change authentication, database permissions or production data as part of Phase 1.
 
-## Release gates
+Release gates
 
 The Phase 1 package does not authorise Supabase migrations, authentication changes, private management features or hosting changes.
 
@@ -161,22 +164,24 @@ Every later phase requires:
 5. Testing of both authorised and unauthorised actions.
 6. Verification of the release and its deployed state.
 
-## Current next steps
+Current next steps
 
 1. [x] Publish the Phase 1 website to GitHub Pages.
 2. [x] Verify the live website, as confirmed by the project owner.
-3. [x] Update the implementation-status documentation.
-4. [x] Update the crest-management documentation.
-5. [ ] Obtain formal club-official approval for public content.
-6. [ ] Approve and integrate the official club crest.
-7. [ ] Review and explicitly approve the scope of Phase 2 before beginning authentication work.
+3. [x] Correct and verify the member-access page path at "/app/".
+4. [x] Integrate and verify the official club crest.
+5. [x] Update the implementation-status documentation.
+6. [x] Update the crest-management documentation.
+7. [ ] Obtain formal club-official approval for public content.
+8. [ ] Record any remaining technical test results.
+9. [ ] Review and explicitly approve the scope of Phase 2 before beginning authentication work.
 
-## Current release decision
+Current release decision
 
-**Phase 1: Published and verified by the project owner.**
+Phase 1: Published and verified by the project owner. The official club crest is integrated and displaying correctly, and the member-access placeholder at "/app/" loads successfully.
 
-Formal approval of public content and the official crest remains outstanding.
+Formal approval of public-facing content remains outstanding.
 
-**Phases 2–4: Not implemented.** Work on authentication, database changes and private management features must wait for separate review and explicit approval.
+Phases 2–4: Not implemented. Work on authentication, database changes and private management features must wait for separate review and explicit approval.
 
-No repository changes beyond those confirmed by the project owner are implied by this status document.
+This status records the website and path checks confirmed by the project owner. It does not claim that authentication, private management features, database security testing or formal club content approval have been completed.
