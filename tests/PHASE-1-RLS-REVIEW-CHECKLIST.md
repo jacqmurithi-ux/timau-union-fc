@@ -8,7 +8,7 @@ Run only against disposable Union Test. Never point this checklist at production
 - [x] No effective anonymous SELECT and no direct authenticated table-write privileges on the five identity/workflow tables.
 - [x] Ten privileged `public.club_admin_*` RPCs use SECURITY DEFINER and fixed empty `search_path`; EXECUTE denied to anon/authenticated and granted to service_role.
 - [x] Rate-limit counter table is in `private`, RLS-enabled, has an explicit deny-all policy, and has no direct table grants to anon/authenticated/service_role.
-- [x] Rate-limit SQL simulation allows ten activation attempts/minute and denies the eleventh; temporary test counter was removed.
+- [x] Rate-limit SQL simulations passed all buckets: 5 invitations/hour (request 6 denied), 10 activations/minute (request 11 denied), and 60 admin mutations/minute (request 61 denied); temporary test counters were removed.
 - [x] Latest Supabase security advisor returns no findings.
 - [ ] Confirm in Supabase Dashboard that `private` is excluded from Data API Exposed schemas. SQL catalog checks cannot verify gateway configuration.
 - [ ] Run the real HTTP/PostgREST suite against the test project with separate fixtures; do not substitute SQL grants checks for API results.
