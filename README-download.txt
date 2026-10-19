@@ -1,1 +1,0 @@
-Timau Union FC design-only deliverable. Revised features-flow.md is located at docs/features-flow.md in this ZIP. This package has NOT been committed to GitHub. Do not implement until the club explicitly approves the design.
