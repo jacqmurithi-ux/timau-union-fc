@@ -235,4 +235,9 @@ grant execute on function public.club_admin_cancel_invitation(uuid,uuid) to serv
 grant execute on function public.club_admin_manage_membership(uuid,uuid,text) to service_role;
 grant execute on function public.club_admin_change_role(uuid,uuid,text,text,text) to service_role;
 grant execute on function public.club_admin_handover_chairman(uuid,uuid,text) to service_role;
+create index if not exists club_memberships_invited_by_idx on public.club_memberships(invited_by);
+create index if not exists invitation_requests_auth_user_id_idx on public.invitation_requests(auth_user_id);
+create index if not exists invitation_requests_requested_by_idx on public.invitation_requests(requested_by);
+create index if not exists role_assignments_assigned_by_idx on public.role_assignments(assigned_by);
+create index if not exists role_assignments_revoked_by_idx on public.role_assignments(revoked_by);
 commit;
