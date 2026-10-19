@@ -4,11 +4,11 @@ Status: **Partial verification passed; release blocked.** All live database chec
 
 ## Automated checks run in Union Test
 
-The repeatable smoke-test script is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). It was executed against Union Test and completed without a raised exception. Separate catalog queries inspected function grants and RLS policies.
+The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). It was executed against Union Test and completed without a raised exception. The new database-backed rate-limit function was also tested: ten activation attempts were allowed, the eleventh was denied, and the temporary test counter was removed. Separate catalog queries inspected function grants and RLS policies.
 
 - [x] Exactly the five expected identity/workflow tables were found with RLS enabled: `user_profiles`, `club_memberships`, `role_assignments`, `audit_events`, `invitation_requests`.
-- [x] All nine `public.club_admin_*` privileged RPCs have `SECURITY DEFINER` and a fixed empty `search_path`.
-- [x] All nine privileged RPCs deny EXECUTE to `anon` and `authenticated`, and allow EXECUTE to `service_role`.
+- [x] All ten `public.club_admin_*` privileged RPCs have `SECURITY DEFINER` and a fixed empty `search_path`.
+- [x] All ten privileged RPCs deny EXECUTE to `anon` and `authenticated`, and allow EXECUTE to `service_role`.
 - [x] Effective privilege assertions using `has_table_privilege` confirmed `anon` cannot SELECT any of the five tables and `authenticated` cannot INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES or TRIGGER on them.
 - [x] Calling the invitation-begin RPC with a nonexistent/non-Chairman actor was rejected with insufficient privilege; no invitation was created.
 - [x] Inspected the five SELECT policies: profile/membership/role visibility is self-scoped for active members or Chairman-authorized; invitation and audit reads are Chairman-authorized.
@@ -24,7 +24,8 @@ These are still release blockers and must not be marked passed based on catalog/
 - [ ] Real HTTP/PostgREST requests using anonymous and separate authenticated test identities, including direct REST/RPC attempts.
 - [ ] Real Auth Admin email delivery, correct redirect destination, unverified/mismatched email rejection, duplicate retry, provider failure, cancellation/expiry, and post-delivery database failure/reconciliation.
 - [ ] Existing JWT/session behavior after suspension and revocation against protected resources.
-- [ ] Verify configured `ALLOWED_ORIGINS` and `INVITE_REDIRECT_URL`, plus rate limiting/abuse controls.
+- [x] Added database-backed per-identity limits in the review draft: 5 invitations/hour, 10 activation attempts/minute, and 60 other privileged mutations/minute. SQL threshold simulation passed; Edge Function integration and provider/gateway-wide abuse controls still require runtime verification.
+- [ ] Verify configured `ALLOWED_ORIGINS` and `INVITE_REDIRECT_URL` in the target function environment and Supabase Auth redirect allowlist.
 - [ ] Independent review of the SQL and Edge Function, including the invitation delivery/checkpoint crash window and operational reconciliation runbook.
 - [ ] Full test suite/lint/type checks executed in a controlled environment with output captured.
 - [ ] Final reviewer approval before merge.
