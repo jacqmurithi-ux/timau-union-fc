@@ -37,6 +37,25 @@ jobs:
         run: node --check tests/phase-1-postgrest-smoke.mjs
       - name: Type-check Edge Function without deploying
         run: deno check --no-lock supabase/functions/club-admin/index.ts
+      - name: Run PostgREST integration tests when Union Test fixtures are configured
+        env:
+          SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ secrets.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_TEST_MEMBER_JWT: ${{ secrets.SUPABASE_TEST_MEMBER_JWT }}
+          SUPABASE_TEST_MEMBER_USER_ID: ${{ secrets.SUPABASE_TEST_MEMBER_USER_ID }}
+          SUPABASE_TEST_INVITED_JWT: ${{ secrets.SUPABASE_TEST_INVITED_JWT }}
+          SUPABASE_TEST_INVITED_USER_ID: ${{ secrets.SUPABASE_TEST_INVITED_USER_ID }}
+          SUPABASE_TEST_SUSPENDED_JWT: ${{ secrets.SUPABASE_TEST_SUSPENDED_JWT }}
+          SUPABASE_TEST_SUSPENDED_USER_ID: ${{ secrets.SUPABASE_TEST_SUSPENDED_USER_ID }}
+          SUPABASE_TEST_REVOKED_JWT: ${{ secrets.SUPABASE_TEST_REVOKED_JWT }}
+          SUPABASE_TEST_REVOKED_USER_ID: ${{ secrets.SUPABASE_TEST_REVOKED_USER_ID }}
+          SUPABASE_TEST_CHAIRMAN_JWT: ${{ secrets.SUPABASE_TEST_CHAIRMAN_JWT }}
+        run: |
+          if [ -z "$SUPABASE_TEST_URL" ] && [ -z "$SUPABASE_TEST_ANON_KEY" ] && [ -z "$SUPABASE_TEST_MEMBER_JWT" ]; then
+            echo "::notice::PostgREST integration tests skipped; configure Union Test fixture secrets to enable them."
+            exit 0
+          fi
+          node tests/phase-1-postgrest-smoke.mjs
       - name: Ensure review SQL is not placed in migrations
         run: |
           test -d supabase/review-drafts
