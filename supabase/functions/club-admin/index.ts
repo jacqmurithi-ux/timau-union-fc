@@ -26,8 +26,10 @@ Deno.serve(async (req) => {
   const { data: authData, error: authError } = await caller.auth.getUser();
   if (authError || !authData.user) return response(401, { error: "invalid_session" }, cors);
   const actor = authData.user;
-  let body: Record<string, unknown>;
-  try { body = await req.json(); } catch { return response(400, { error: "invalid_json" }, cors); }
+  let parsed: unknown;
+  try { parsed = await req.json(); } catch { return response(400, { error: "invalid_json" }, cors); }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return response(400, { error: "invalid_request_body" }, cors);
+  const body = parsed as Record<string, unknown>;
   const action = typeof body.action === "string" ? body.action : "";
   if (!allowedActions.has(action)) return response(400, { error: "unsupported_action" }, cors);
 
@@ -121,11 +123,13 @@ Deno.serve(async (req) => {
     if (!target) return response(400, { error: "invalid_user_id" }, cors);
     const role = typeof body.role === "string" ? body.role : "";
     if (!allowedRoles.has(role)) return response(400, { error: "invalid_role" }, cors);
+    if (body.note !== undefined && body.note !== null && (typeof body.note !== "string" || body.note.length > 500)) return response(400, { error: "invalid_note" }, cors);
     rpcName = "club_admin_change_role";
     args = { _actor: actor.id, _target_user_id: target, _role_key: role, _action: action === "assign_role" ? "assign" : "revoke", _note: cleanNote(body.note) };
   } else if (action === "chairman_handover") {
     const target = uuid(body.user_id);
     if (!target) return response(400, { error: "invalid_user_id" }, cors);
+    if (body.note !== undefined && body.note !== null && (typeof body.note !== "string" || body.note.length > 500)) return response(400, { error: "invalid_note" }, cors);
     rpcName = "club_admin_handover_chairman";
     args = { _actor: actor.id, _successor_user_id: target, _note: cleanNote(body.note) };
   } else {
