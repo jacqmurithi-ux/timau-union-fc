@@ -83,6 +83,26 @@ begin
 end $$;
 
 -- This commits membership + role + invitation state + audit together after Auth Admin succeeds.
+
+-- Persist the Auth user ID before finalizing membership/role so a retry can finish
+-- the DB transaction without sending a second email.
+create or replace function public.club_admin_record_invitation_auth_user(_invitation_id uuid,_auth_user_id uuid)
+returns text language plpgsql security definer set search_path=''
+as $
+declare v public.invitation_requests%rowtype;
+begin
+ select * into v from public.invitation_requests where id=_invitation_id for update;
+ if not found or v.state<>'sending' then raise exception using errcode='40001',message='invitation_not_claimed'; end if;
+ if _auth_user_id is null or not exists(select 1 from auth.users u where u.id=_auth_user_id and lower(u.email)=v.invited_email) then
+  raise exception using errcode='22023',message='auth_email_mismatch';
+ end if;
+ if v.auth_user_id is not null and v.auth_user_id<>_auth_user_id then raise exception using errcode='23505',message='auth_user_conflict'; end if;
+ update public.invitation_requests set auth_user_id=_auth_user_id where id=v.id;
+ insert into public.audit_events(actor_user_id,action_key,entity_type,entity_id,details)
+ values(v.requested_by,'invitation_auth_user_recorded','invitation_request',v.id::text,jsonb_build_object('email_match',true));
+ return 'recorded';
+end $;
+
 create or replace function public.club_admin_finish_invitation(_invitation_id uuid,_success boolean,_auth_user_id uuid default null,_error_code text default null)
 returns text language plpgsql security definer set search_path=''
 as $$
@@ -221,6 +241,7 @@ end $$;
 
 revoke all on function public.club_admin_begin_invitation(uuid,text,text,uuid) from public,anon,authenticated;
 revoke all on function public.club_admin_claim_invitation(uuid) from public,anon,authenticated;
+revoke all on function public.club_admin_record_invitation_auth_user(uuid,uuid) from public,anon,authenticated;
 revoke all on function public.club_admin_finish_invitation(uuid,boolean,uuid,text) from public,anon,authenticated;
 revoke all on function public.club_admin_activate_invitation(uuid,uuid) from public,anon,authenticated;
 revoke all on function public.club_admin_cancel_invitation(uuid,uuid) from public,anon,authenticated;
@@ -229,6 +250,7 @@ revoke all on function public.club_admin_change_role(uuid,uuid,text,text,text) f
 revoke all on function public.club_admin_handover_chairman(uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.club_admin_begin_invitation(uuid,text,text,uuid) to service_role;
 grant execute on function public.club_admin_claim_invitation(uuid) to service_role;
+grant execute on function public.club_admin_record_invitation_auth_user(uuid,uuid) to service_role;
 grant execute on function public.club_admin_finish_invitation(uuid,boolean,uuid,text) to service_role;
 grant execute on function public.club_admin_activate_invitation(uuid,uuid) to service_role;
 grant execute on function public.club_admin_cancel_invitation(uuid,uuid) to service_role;
