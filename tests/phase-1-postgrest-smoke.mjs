@@ -81,6 +81,31 @@ await readProfile("invited identity", fixtures.invited, false);
 await readProfile("suspended identity with existing JWT", fixtures.suspended, false);
 await readProfile("revoked identity with existing JWT", fixtures.revoked, false);
 
+const memberMembershipResponse = await request({ path: endpoint("club_memberships", "select=id,user_id,status"), jwt: fixtures.member.jwt });
+assert.ok(memberMembershipResponse.ok, `Active member membership read failed: HTTP ${memberMembershipResponse.status} ${memberMembershipResponse.text}`);
+assert.ok(Array.isArray(memberMembershipResponse.data), "Membership response should be an array");
+assert.ok(memberMembershipResponse.data.some(row => row.user_id === fixtures.member.id && row.status === "active"), "Active member membership fixture missing");
+assert.ok(memberMembershipResponse.data.every(row => row.user_id === fixtures.member.id), "Member can read another user's membership");
+const memberMembershipIds = new Set(memberMembershipResponse.data.map(row => row.id));
+const memberRolesResponse = await request({ path: endpoint("role_assignments", "select=membership_id,role_key"), jwt: fixtures.member.jwt });
+assert.ok(memberRolesResponse.ok, `Active member role read failed: HTTP ${memberRolesResponse.status} ${memberRolesResponse.text}`);
+assert.ok(Array.isArray(memberRolesResponse.data) && memberRolesResponse.data.length > 0, "Active member role fixture missing");
+assert.ok(memberRolesResponse.data.every(row => memberMembershipIds.has(row.membership_id)), "Member can read another membership's role assignment");
+console.log("PASS active member can read own membership and role assignments only");
+
+for (const name of ["invited", "suspended", "revoked"]) {
+  for (const [table, query] of [
+    ["club_memberships", "select=user_id,status"],
+    ["role_assignments", "select=membership_id,role_key"],
+  ]) {
+    const result = await request({ path: endpoint(table, query), jwt: fixtures[name].jwt });
+    if (result.ok) {
+      assert.ok(Array.isArray(result.data) && result.data.length === 0, `${name} identity read ${table} rows`);
+    }
+  }
+}
+console.log("PASS invited/suspended/revoked identities cannot read protected membership/role rows");
+
 const chairmanRead = await request({ path: endpoint("user_profiles"), jwt: fixtures.chairman.jwt });
 assert.ok(chairmanRead.ok, `Chairman authorized read failed: HTTP ${chairmanRead.status} ${chairmanRead.text}`);
 assert.ok(Array.isArray(chairmanRead.data), "Chairman response should be a row array");
@@ -88,6 +113,11 @@ for (const name of ["member", "suspended", "revoked"]) {
   assert.ok(chairmanRead.data.some(row => row.user_id === fixtures[name].id), `Chairman cannot read expected authorized fixture: ${name}`);
 }
 console.log("PASS Chairman can read the seeded authorized profile fixtures");
+const chairmanMemberships = await request({ path: endpoint("club_memberships", "select=user_id,status"), jwt: fixtures.chairman.jwt });
+assert.ok(chairmanMemberships.ok && Array.isArray(chairmanMemberships.data), `Chairman membership read failed: HTTP ${chairmanMemberships.status}`);
+for (const name of ["member", "invited", "suspended", "revoked"]) {
+  assert.ok(chairmanMemberships.data.some(row => row.user_id === fixtures[name].id), `Chairman cannot read membership fixture: ${name}`);
+}
 const chairmanAudit = await request({ path: endpoint("audit_events", "select=id&limit=1"), jwt: fixtures.chairman.jwt });
 assert.ok(chairmanAudit.ok, `Chairman audit read failed: HTTP ${chairmanAudit.status} ${chairmanAudit.text}`);
 console.log("PASS Chairman audit endpoint is authorized");
