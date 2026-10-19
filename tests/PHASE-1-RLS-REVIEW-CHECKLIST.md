@@ -1,50 +1,66 @@
 # Phase 1 RLS and identity workflow test checklist
 
-Run only against disposable Union Test until all checks pass. Never point this checklist at production. Fresh catalog/assertion evidence is recorded in [Phase 1 automated verification](../docs/PHASE-1-AUTOMATED-VERIFICATION-2026-10-19.md).
+Run only against disposable Union Test. Never point this checklist at production. Latest SQL evidence is recorded in [automated verification](../docs/PHASE-1-AUTOMATED-VERIFICATION-2026-10-19.md). The real API suite is prepared at [phase-1-postgrest-smoke.mjs](phase-1-postgrest-smoke.mjs) and requires separate disposable test identities/JWTs.
 
-## Catalog / grants (Union Test checks)
+## Catalog / grants — Union Test
+
 - [x] All five identity/workflow tables have RLS enabled.
-- [x] No anon SELECT grants on identity/workflow tables.
-- [x] Authenticated has SELECT only; no direct INSERT/UPDATE/DELETE on profile, membership, role, audit or invitation tables.
-- [x] Privileged workflow RPCs deny EXECUTE to anon/authenticated and grant it to service_role.
-- [x] All nine privileged RPCs use SECURITY DEFINER with fixed empty search_path.
-- [x] Security advisor rechecked after latest changes: no findings.
-- [ ] Confirm `private` absent from Data API exposed schemas (Dashboard confirmation required).
-- [ ] Confirm actual HTTP/PostgREST behavior, not just catalog privileges.
+- [x] No effective anonymous SELECT and no direct authenticated table-write privileges on the five identity/workflow tables.
+- [x] Ten privileged `public.club_admin_*` RPCs use SECURITY DEFINER and fixed empty `search_path`; EXECUTE denied to anon/authenticated and granted to service_role.
+- [x] Rate-limit counter table is in `private`, RLS-enabled, has an explicit deny-all policy, and has no direct table grants to anon/authenticated/service_role.
+- [x] Rate-limit SQL simulation allows ten activation attempts/minute and denies the eleventh; temporary test counter was removed.
+- [x] Latest Supabase security advisor returns no findings.
+- [ ] Confirm in Supabase Dashboard that `private` is excluded from Data API Exposed schemas. SQL catalog checks cannot verify gateway configuration.
+- [ ] Run the real HTTP/PostgREST suite against the test project with separate fixtures; do not substitute SQL grants checks for API results.
 
-## Identity authorization
-- [x] Negative SQL test: nonexistent/non-Chairman actor cannot create an invitation.
-- [ ] Anonymous API requests read no records.
-- [ ] Active member reads own profile/membership/role only through real API.
-- [ ] Invited, suspended and revoked identities cannot read protected resources through real API.
-- [ ] Chairman reads only authorized records/audit events.
-- [ ] Vice Chairman cannot assign roles or invite officials through real API.
-- [ ] User-editable metadata cannot grant privileges.
-- [ ] Existing JWT after suspension/revocation cannot access protected records.
+## Identity authorization / API
+
+- [x] Negative SQL simulation: nonexistent/non-Chairman actor cannot create an invitation.
+- [x] Non-deploying CI passed Node syntax check for the PostgREST smoke suite and Deno type-check for the Edge Function.
+- [ ] Anonymous API SELECT denied through real HTTP.
+- [ ] Active member reads their own profile only through real HTTP.
+- [ ] Invited, suspended and revoked identities cannot read protected identity records through real HTTP.
+- [ ] Chairman can read the seeded authorized fixtures and audit records through real HTTP.
+- [ ] Vice Chairman cannot invite or assign/revoke roles through the Edge Function.
+- [ ] User-editable Auth metadata cannot grant privileges through a real request.
+- [ ] Existing JWT/session after suspension/revocation cannot access protected resources through real HTTP.
+- [ ] Real API suite output attached to the PR. It could not run in this environment because outbound network/DNS was unavailable and separate test JWT fixtures are not configured.
 
 ## Invitation lifecycle
-- [x] Idempotency key replay returns same request; conflicting payload is rejected in rolled-back SQL test.
-- [x] Queue claim, finalization, matching verified-email activation and replay denial passed in rolled-back SQL test.
-- [ ] Real Auth Admin invitation email flow succeeds and destination is correct.
-- [ ] Email mismatch and unverified email fail closed through actual Auth/API flow.
-- [x] Expiry transition, cancellation and email-mismatch checks passed in rolled-back SQL tests.
-- [ ] Revoked Auth identities and existing JWT behavior verified through real API.
-- [x] Auth-user checkpoint and DB-finalization retry path implemented in draft.
-- [ ] Test real Auth Admin failure, process crash before checkpoint, duplicate retries and DB finalization failure/recovery.
-- [ ] No invite tokens, raw provider responses, or secret values are logged or stored.
-- [ ] Rate limiting/abuse controls and CORS allowlist verified.
 
-## Roles and concurrency
-- [x] Suspend/restore/revoke transition and audit trail passed in rolled-back SQL test.
-- [x] Invalid Chairman successor leaves the existing Chairman unchanged; handover transaction maintains exactly one active Chairman in sequential test.
-- [x] Two independent SQL requests tested concurrently: one Chairman handover succeeded, the other was denied; exactly one active Chairman remained. This is request-level concurrency evidence, not a substitute for a repeatable multi-session stress test.
-- [ ] Duplicate active role, invalid membership transition and self-role changes rejected with explicit test evidence.
-- [x] Timestamp trigger verified in prior Union Test transaction-rolled-back test.
-- [x] Added indexes for the five previously reported unindexed foreign keys; latest performance advisor reports six unused-index informational findings in this empty test project.
+- [x] Idempotency key replay/conflict, queue claim, membership/role finalization, verified-email activation, replay denial, email mismatch, expiry, cancellation and audit transitions passed in prior rolled-back SQL simulations.
+- [x] Auth-user checkpoint and retry-to-finalize logic implemented in the review draft.
+- [x] Operational recovery procedure documented in [Phase 1 invitation recovery runbook](../docs/PHASE-1-INVITATION-RECOVERY-RUNBOOK.md).
+- [ ] Real Auth Admin email delivery and correct destination confirmed.
+- [ ] Real mismatched/unverified email rejection confirmed through Auth/API.
+- [ ] Provider failure, duplicate retry, cancellation/expiry, post-send DB failure, crash-before-checkpoint and recovery tested end-to-end.
+- [ ] Verify no invite tokens, raw provider responses, access tokens or secrets are logged/stored.
+- [ ] Verify Edge Function returns HTTP 429 at rate limits and fails closed with 503 if rate-limit RPC is unavailable.
 
-## Final evidence
-- [ ] Data API Exposed schemas screenshot/confirmation attached.
-- [ ] Capture real HTTP/API tests, Auth delivery tests, concurrency output and advisor results.
-- [ ] Review implementation, operational recovery runbook, and deploy configuration.
+## CORS / redirects / abuse controls
+
+- [x] Added database-backed limits: 5 invitation attempts/hour, 10 activation attempts/minute, 60 other privileged mutations/minute, per authenticated identity.
+- [x] Request body is capped at 16 KiB; non-JSON bodies are rejected.
+- [x] Requests with an Origin are rejected if the allowlist is absent or does not match.
+- [x] Invitation redirect must be HTTPS (localhost HTTP only for development), contain no embedded credentials, and have an origin listed in `ALLOWED_ORIGINS`.
+- [ ] Confirm production-like test `ALLOWED_ORIGINS` and `INVITE_REDIRECT_URL` values in function secrets; the function is intentionally undeployed.
+- [ ] Confirm `INVITE_REDIRECT_URL` is also allowed in Supabase Auth URL configuration.
+- [ ] Add/verify provider/gateway-level abuse controls and monitoring; per-identity rate limits do not throttle anonymous traffic before authentication.
+- [ ] Test CORS preflight and denied-origin responses against a deployed test-only endpoint before any release.
+
+## Roles / concurrency
+
+- [x] Suspend/restore/revoke transition and audit trail passed in prior rolled-back SQL test.
+- [x] Chairman handover serialized with transaction advisory lock and backed by unique active-Chairman index.
+- [x] Two independent SQL requests yielded one handover success and one denial; exactly one active Chairman remained. This is request-level concurrency evidence, not a repeatable multi-session stress test.
+- [x] Invalid Chairman successor, duplicate active Chairman assignment and invalid lifecycle/revocation transitions were rejected in prior SQL simulations.
+- [ ] Repeat handover race test with a controlled, repeatable multi-session harness and captured evidence.
+- [ ] Verify role-change authorization and existing JWT behavior with separate identities through the real endpoint.
+
+## Final review / release gate
+
+- [x] GitHub Actions non-deploying static-review workflow passed: Node syntax, Deno type-check, review-draft placement, and no production URL/service-role secret in the tested artifacts.
+- [x] Edge Function remains undeployed; PR #7 remains draft.
+- [ ] Independent human reviewer reviews SQL, Edge Function, rate limiter, and recovery runbook and records approval.
+- [ ] Attach Data API Exposed schemas confirmation and real HTTP/Auth integration evidence.
 - [ ] No production operation before separate explicit production migration approval.
-- [x] Edge Function remains undeployed while PR is draft.
