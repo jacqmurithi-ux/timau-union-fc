@@ -27,6 +27,7 @@ The Auth Admin call and database finalization are a distributed boundary, not a 
 - Negative check rejected an actor without an active Chairman role.
 - Transaction-rolled-back tests passed for invitation idempotency-key replay/conflict, timestamp trigger, suspend/restore/revoke transitions and audit, invitation queue claim, membership/role finalization, verified-email activation, replay denial, email mismatch, cancellation, expiry transition, and Chairman handover atomicity/single-Chairman invariant.
 - A two-request concurrent handover test on independent SQL calls produced one successful transfer and one denial; verification showed exactly one active Chairman, and temporary test users/records were then removed.
+- Additional rolled-back SQL checks passed for email mismatch, cancellation, and expiry state/audit transition. An Auth-user checkpoint was added so a retry can finalize the DB transaction without automatically resending an email once the checkpoint is saved.
 - Added indexes for the five previously reported foreign keys; remaining performance-advisor notices are currently unused-index informational findings in this empty test database.
 - All temporary SQL test identities/data were rolled back.
 - Security advisor returned no findings after workflow migration. Performance advisor reports five unindexed foreign keys (informational) and three currently unused indexes (informational); address index recommendations before production.
