@@ -91,8 +91,6 @@ Deno.serve(async (req) => {
     return response(200, { invitation_id: invitationId, state: finishState }, cors);
   }
 
-  const target = uuid(body.user_id);
-  if (!target) return response(400, { error: "invalid_user_id" }, cors);
   let rpcName: string;
   let args: Record<string, unknown>;
   if (action === "cancel_invitation") {
@@ -101,14 +99,20 @@ Deno.serve(async (req) => {
     rpcName = "club_admin_cancel_invitation";
     args = { _actor: actor.id, _invitation_id: invitationId };
   } else if (action === "suspend_membership" || action === "restore_membership" || action === "revoke_membership") {
+    const target = uuid(body.user_id);
+    if (!target) return response(400, { error: "invalid_user_id" }, cors);
     rpcName = "club_admin_manage_membership";
     args = { _actor: actor.id, _target_user_id: target, _action: action.replace("_membership", "") };
   } else if (action === "assign_role" || action === "revoke_role") {
+    const target = uuid(body.user_id);
+    if (!target) return response(400, { error: "invalid_user_id" }, cors);
     const role = typeof body.role === "string" ? body.role : "";
     if (!allowedRoles.has(role)) return response(400, { error: "invalid_role" }, cors);
     rpcName = "club_admin_change_role";
     args = { _actor: actor.id, _target_user_id: target, _role_key: role, _action: action === "assign_role" ? "assign" : "revoke", _note: cleanNote(body.note) };
   } else if (action === "chairman_handover") {
+    const target = uuid(body.user_id);
+    if (!target) return response(400, { error: "invalid_user_id" }, cors);
     rpcName = "club_admin_handover_chairman";
     args = { _actor: actor.id, _successor_user_id: target, _note: cleanNote(body.note) };
   } else {
