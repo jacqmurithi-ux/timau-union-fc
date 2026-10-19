@@ -8,6 +8,7 @@ DECLARE
   table_name text;
   privilege_name text;
   missing_tables text;
+  rpc_count integer;
   violation_count integer;
 BEGIN
   SELECT string_agg(t.table_name, ', ')
@@ -50,6 +51,16 @@ BEGIN
     END LOOP;
   END LOOP;
 
+  SELECT count(*) INTO rpc_count
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname LIKE 'club_admin_%';
+
+  IF rpc_count <> 9 THEN
+    RAISE EXCEPTION 'FAIL: expected 9 privileged RPCs, found %', rpc_count;
+  END IF;
+
   SELECT count(*) INTO violation_count
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -83,6 +94,6 @@ BEGIN
     NULL; -- Expected denial.
   END;
 
-  RAISE NOTICE 'PASS: RLS, effective table privileges, privileged RPC grants/search_path, and non-Chairman denial';
+  RAISE NOTICE 'PASS: RLS, effective table privileges, nine privileged RPCs, fixed search_path, and non-Chairman denial';
 END
 $test$;
