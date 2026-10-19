@@ -40,19 +40,15 @@ Deno.serve(async (req) => {
   const action = typeof body.action === "string" ? body.action : "";
   if (!allowedActions.has(action)) return response(400, { error: "unsupported_action" }, cors);
 
-  // Database-backed per-identity rate limits survive Edge Function cold starts.
-  // These are abuse controls, not a substitute for provider/gateway-wide rate limits.
-  const rateLimitBucket = action === "invite" ? "invite" : action === "activate_invitation" ? "activation" : "admin_mutation";
-  const { data: rateLimitAllowed, error: rateLimitError } = await admin.rpc("club_admin_consume_rate_limit", {
-    _actor: actor.id, _bucket: rateLimitBucket,
-  });
-  if (rateLimitError) return response(503, { error: "rate_limit_unavailable" }, cors);
-  if (rateLimitAllowed !== true) return response(429, { error: "rate_limit_exceeded" }, cors);
-
   // Activation is self-service only; the actor ID always comes from verified Auth.
   if (action === "activate_invitation") {
     const invitationId = uuid(body.invitation_id);
     if (!invitationId) return response(400, { error: "invalid_invitation_id" }, cors);
+    const { data: activationAllowed, error: activationRateError } = await admin.rpc("club_admin_consume_rate_limit", {
+      _actor: actor.id, _bucket: "activation",
+    });
+    if (activationRateError) return response(503, { error: "rate_limit_unavailable" }, cors);
+    if (activationAllowed !== true) return response(429, { error: "rate_limit_exceeded" }, cors);
     const { data, error } = await admin.rpc("club_admin_activate_invitation", { _actor: actor.id, _invitation_id: invitationId });
     if (error) return response(mapStatus(error.code), { error: safeError(error.message) }, cors);
     return response(200, { status: data }, cors);
@@ -65,6 +61,14 @@ Deno.serve(async (req) => {
   const { data: chairman, error: chairmanError } = await admin.from("role_assignments")
     .select("id").eq("membership_id", membership.id).eq("role_key", "chairman").is("revoked_at", null).maybeSingle();
   if (chairmanError || !chairman) return response(403, { error: "chairman_required" }, cors);
+
+  // Rate-limit only after current Chairman authority is established.
+  const rateLimitBucket = action === "invite" ? "invite" : "admin_mutation";
+  const { data: rateLimitAllowed, error: rateLimitError } = await admin.rpc("club_admin_consume_rate_limit", {
+    _actor: actor.id, _bucket: rateLimitBucket,
+  });
+  if (rateLimitError) return response(503, { error: "rate_limit_unavailable" }, cors);
+  if (rateLimitAllowed !== true) return response(429, { error: "rate_limit_exceeded" }, cors);
 
   if (action === "invite") {
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
