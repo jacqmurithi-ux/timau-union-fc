@@ -97,6 +97,17 @@ BEGIN
     NULL; -- Expected denial.
   END;
 
+  FOR i IN 1..5 LOOP
+    rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'invite');
+    IF NOT rate_allowed THEN
+      RAISE EXCEPTION 'FAIL: invite rate-limit denied request % before limit', i;
+    END IF;
+  END LOOP;
+  rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'invite');
+  IF rate_allowed THEN
+    RAISE EXCEPTION 'FAIL: invite rate-limit did not deny request 6';
+  END IF;
+
   FOR i IN 1..10 LOOP
     rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'activation');
     IF NOT rate_allowed THEN
@@ -107,8 +118,20 @@ BEGIN
   IF rate_allowed THEN
     RAISE EXCEPTION 'FAIL: activation rate-limit did not deny request 11';
   END IF;
+
+  FOR i IN 1..60 LOOP
+    rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'admin_mutation');
+    IF NOT rate_allowed THEN
+      RAISE EXCEPTION 'FAIL: admin mutation rate-limit denied request % before limit', i;
+    END IF;
+  END LOOP;
+  rate_allowed := public.club_admin_consume_rate_limit(rate_test_actor, 'admin_mutation');
+  IF rate_allowed THEN
+    RAISE EXCEPTION 'FAIL: admin mutation rate-limit did not deny request 61';
+  END IF;
+
   DELETE FROM private.api_rate_limit_counters WHERE actor_user_id = rate_test_actor;
 
-  RAISE NOTICE 'PASS: RLS, effective table privileges, ten privileged RPCs, fixed search_path, non-Chairman denial, and rate limit threshold';
+  RAISE NOTICE 'PASS: RLS, effective table privileges, ten privileged RPCs, fixed search_path, non-Chairman denial, all three rate-limit thresholds';
 END
 $test$;
