@@ -52,14 +52,14 @@ async function request({ path, jwt = anonKey, method = "GET", body }) {
   return { status: response.status, ok: response.ok, data, text };
 }
 function expectDenied(label, response) {
-  assert.ok(!response.ok, `${label}: expected HTTP denial, got ${response.status} ${response.text}`);
+  assert.ok([401, 403, 404].includes(response.status), `${label}: expected authorization denial (401/403/404), got ${response.status} ${response.text}`);
   console.log(`PASS ${label}: denied with HTTP ${response.status}`);
 }
 async function readProfile(label, fixture, expectedOwnRow) {
   const response = await request({ path: endpoint("user_profiles"), jwt: fixture.jwt });
   if (!response.ok) {
     if (expectedOwnRow) throw new Error(`${label}: active identity could not read own profile: HTTP ${response.status} ${response.text}`);
-    console.log(`PASS ${label}: protected profile read denied with HTTP ${response.status}`);
+    expectDenied(`${label} protected profile read`, response);
     return;
   }
   assert.ok(Array.isArray(response.data), `${label}: expected array response`);
@@ -101,6 +101,8 @@ for (const name of ["invited", "suspended", "revoked"]) {
     const result = await request({ path: endpoint(table, query), jwt: fixtures[name].jwt });
     if (result.ok) {
       assert.ok(Array.isArray(result.data) && result.data.length === 0, `${name} identity read ${table} rows`);
+    } else {
+      expectDenied(`${name} identity protected read on ${table}`, result);
     }
   }
 }
