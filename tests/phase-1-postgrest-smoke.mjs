@@ -93,12 +93,17 @@ assert.ok(chairmanAudit.ok, `Chairman audit read failed: HTTP ${chairmanAudit.st
 console.log("PASS Chairman audit endpoint is authorized");
 
 const sentinel = "00000000-0000-4000-8000-000000000099";
-const memberDelete = await request({
-  path: endpoint("user_profiles", `user_id=eq.${sentinel}`),
-  jwt: fixtures.member.jwt,
-  method: "DELETE",
-});
-expectDenied("authenticated member direct DELETE (sentinel UUID only)", memberDelete);
+const writeDenialCases = [
+  ["user_profiles", `user_id=eq.${sentinel}`],
+  ["club_memberships", `id=eq.${sentinel}`],
+  ["role_assignments", `id=eq.${sentinel}`],
+  ["invitation_requests", `id=eq.${sentinel}`],
+  ["audit_events", "id=eq.0"],
+];
+for (const [table, query] of writeDenialCases) {
+  const result = await request({ path: endpoint(table, query), jwt: fixtures.member.jwt, method: "DELETE" });
+  expectDenied(`authenticated member direct DELETE on ${table} (impossible sentinel only)`, result);
+}
 
 const anonRpc = await request({
   path: `${url}/rest/v1/rpc/club_admin_begin_invitation`,
