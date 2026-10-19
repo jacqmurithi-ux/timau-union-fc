@@ -17,7 +17,7 @@ create table public.invitation_requests (
  updated_at timestamptz not null default clock_timestamp(),
  check(expires_at>created_at),
  check((state='sent' and sent_at is not null) or state<>'sent'),
- check((state='accepted' and accepted_at is not null and auth_user_id is not null) or state<>'accepted'),
+ check((state='accepted' and accepted_at is not null) or state<>'accepted'),
  check((state='cancelled' and cancelled_at is not null) or state<>'cancelled')
 );
 create unique index invitation_one_open_email_idx on public.invitation_requests(invited_email) where state in ('queued','sending','sent');
