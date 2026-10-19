@@ -4,39 +4,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#104a29">
-  <meta name="description" content="The official public website of Timau Union FC, a community-owned football club in Timau, Meru County, Kenya.">
-  <title>Timau Union FC | One Community, One Club</title>
+  <meta name="theme-color" content="#c8102e">
+  <meta name="description" content="Discover Timau Union FC, a community-owned football club representing Timau, Meru County, Kenya. Follow club news, fixtures, results and opportunities to support the team.">
+  <meta name="color-scheme" content="light">
+  <title>Timau Union FC | Our Club. Our Community. Our Future.</title>
+
+  <link rel="icon" href="assets/club-crest.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
 </head>
+
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="#home" aria-label="Timau Union FC home">
-        <span class="brand-mark" aria-hidden="true">TU</span>
+        <img
+          class="brand-mark"
+          src="assets/club-crest.svg"
+          alt=""
+          width="48"
+          height="48"
+          fetchpriority="high"
+        >
         <span class="brand-copy">
-          <strong>Timau Union FC</strong>
-          <small>Community-owned football club</small>
+          <strong>TIMAU UNION FC</strong>
+          <small>Our club. Our community. Our future.</small>
         </span>
       </a>
 
-      <button class="menu-toggle" id="menu-toggle"
-        aria-controls="primary-nav" aria-expanded="false"
-        type="button">
+      <button
+        class="menu-toggle"
+        id="menu-toggle"
+        aria-controls="primary-nav"
+        aria-expanded="false"
+        type="button"
+      >
         <span class="menu-icon" aria-hidden="true">☰</span>
         <span class="menu-label">Menu</span>
       </button>
 
-      <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
+      <nav
+        class="primary-nav"
+        id="primary-nav"
+        aria-label="Main navigation"
+      >
         <a href="#fixtures">Fixtures</a>
-        <a href="#table">Table</a>
-        <a href="#squad">Squad</a>
+        <a href="#table">League table</a>
+        <a href="#squad">Our team</a>
         <a href="#news">News</a>
-        <a href="#sponsors">Sponsors</a>
-        <a href="#club">The Club</a>
+        <a href="#sponsors">Partners</a>
+        <a href="#club">Our club</a>
         <a href="#contact">Contact</a>
         <a class="nav-login" href="app/index.html">Member login</a>
       </nav>
@@ -44,210 +63,316 @@
   </header>
 
   <main id="main">
-    <section class="hero" id="home">
+    <!-- HERO -->
+    <section class="hero" id="home" aria-labelledby="hero-title">
       <div class="container hero-content">
         <p class="eyebrow">TIMAU · MERU COUNTY · KENYA</p>
-        <h1>One community.<br>One club. One ambition.</h1>
+
+        <p class="hero-kicker">COMMUNITY FOOTBALL. SHARED AMBITION.</p>
+
+        <h1 id="hero-title">
+          Our club.<br>
+          Our community.<br>
+          <span>Our future.</span>
+        </h1>
+
         <p class="hero-text">
           Proudly representing Timau through football, teamwork and
-          community spirit.
+          community spirit. Together, we are building a stronger future
+          for our club and our players.
         </p>
+
         <div class="hero-actions">
-          <a class="button button-gold" href="#fixtures">Fixtures &amp; results</a>
-          <a class="button button-outline" href="#club">Discover our club</a>
+          <a class="button button-gold" href="#fixtures">
+            Explore match centre
+          </a>
+          <a class="button button-outline" href="#sponsors">
+            Support our club
+          </a>
         </div>
-        <p class="hero-note">Together, we move the club forward.</p>
+
+        <div class="hero-note">
+          <span class="hero-note-mark" aria-hidden="true">◆</span>
+          One community. One club. One ambition.
+        </div>
+      </div>
+
+      <div class="hero-bottom" aria-hidden="true">
+        <span>TIMAU UNION FC</span>
+        <span>UNITED BY FOOTBALL</span>
       </div>
     </section>
 
-    <section class="section intro-section">
+    <!-- CLUB INTRODUCTION -->
+    <section class="section intro-section" id="club">
       <div class="container intro-grid">
         <div>
-          <p class="eyebrow eyebrow-green">OUR CLUB</p>
-          <h2>Built by the community</h2>
+          <p class="eyebrow eyebrow-green">WHO WE ARE</p>
+          <h2>Built by the community. Driven by ambition.</h2>
         </div>
-        <div>
+
+        <div class="intro-copy">
           <p>
-            Timau Union FC is a community-owned football club based in Timau,
-            Meru County. The club brings players, supporters, local businesses
-            and well-wishers together around a shared love of football.
+            Timau Union FC is a community-owned football club based in
+            Timau, Meru County, Kenya. Players, supporters, local businesses
+            and well-wishers share a commitment to growing football in
+            our community.
           </p>
+
           <p>
-            The team finished second in its zone and qualified for the
+            The club finished second in its zone and qualified for the
             playoffs in both the 2025 and 2026 editions of the Meru County
-            League. We continue to work towards a stronger and more sustainable
-            future for the club.
+            League. We aim to build on that progress through better
+            organisation, consistent preparation and community support.
           </p>
+
+          <a class="text-link" href="#squad">
+            Meet the team <span aria-hidden="true">→</span>
+          </a>
         </div>
       </div>
     </section>
 
-    <section class="section section-muted" id="fixtures">
+    <!-- MATCH CENTRE -->
+    <section
+      class="section section-muted match-section"
+      id="fixtures"
+      aria-labelledby="fixtures-title"
+    >
       <div class="container">
         <div class="section-heading">
           <div>
-            <p class="eyebrow eyebrow-green">MATCH CENTRE</p>
-            <h2>Fixtures &amp; results</h2>
+            <p class="eyebrow eyebrow-green">FOLLOW THE ACTION</p>
+            <h2 id="fixtures-title">Match centre</h2>
+            <p class="section-lead">
+              Fixtures, results and club match updates.
+            </p>
           </div>
-          <span class="status-label">Official updates to come</span>
+
+          <span class="status-label">Updates pending confirmation</span>
         </div>
 
-        <div class="notice">
-          Match dates, opponents, venues and scores will be published here
-          after they are confirmed by the club.
+        <div class="match-feature">
+          <div class="match-feature-heading">
+            <span class="match-label">FIXTURES &amp; RESULTS</span>
+            <span class="match-ball" aria-hidden="true">⚽</span>
+          </div>
+
+          <div class="match-feature-body">
+            <p class="match-status">OFFICIAL CLUB UPDATES</p>
+            <h3>Every match is part of our journey.</h3>
+            <p>
+              Confirmed match dates, opponents, venues and scores will
+              appear here after verification by club management.
+            </p>
+          </div>
+
+          <div class="match-feature-footer">
+            <span>Timau Union FC</span>
+            <span>Meru County, Kenya</span>
+          </div>
         </div>
 
-        <div class="empty-state">
-          <span class="empty-icon" aria-hidden="true">⚽</span>
-          <h3>Fixtures are being updated</h3>
-          <p>Please check back for confirmed match information.</p>
+        <div class="notice" role="status">
+          No unconfirmed fixtures, opponents or results are displayed.
+          Check back when official updates become available.
         </div>
       </div>
     </section>
 
-    <section class="section" id="table">
+    <!-- LEAGUE TABLE -->
+    <section
+      class="section table-section"
+      id="table"
+      aria-labelledby="table-title"
+    >
       <div class="container">
         <div class="section-heading">
           <div>
-            <p class="eyebrow eyebrow-green">LEAGUE PERFORMANCE</p>
-            <h2>League table</h2>
+            <p class="eyebrow eyebrow-green">THE COMPETITION</p>
+            <h2 id="table-title">League table</h2>
           </div>
-        </div>
-
-        <div class="notice">
-          The latest official league standings have not yet been added.
-          No current position or points total is displayed until verified.
         </div>
 
         <div class="table-placeholder" role="status">
           <span class="placeholder-symbol" aria-hidden="true">▤</span>
-          <p><strong>League standings coming soon</strong></p>
-          <p>Verified standings will be published here.</p>
+          <h3>Official standings coming soon</h3>
+          <p>
+            League positions, matches played and points will be published
+            when verified standings are available.
+          </p>
         </div>
       </div>
     </section>
 
-    <section class="section section-dark" id="squad">
+    <!-- SQUAD -->
+    <section
+      class="section section-dark"
+      id="squad"
+      aria-labelledby="squad-title"
+    >
       <div class="container">
-        <p class="eyebrow">THE TEAM</p>
-        <h2>Our squad</h2>
+        <p class="eyebrow">THE PEOPLE BEHIND THE BADGE</p>
+        <h2 id="squad-title">One team. One community.</h2>
+
         <p class="section-lead">
-          The players who represent Timau on the pitch deserve the support
-          of the whole community.
+          Our players, coaches, officials and supporters are at the heart
+          of Timau Union FC.
         </p>
+
         <div class="feature-grid">
           <article class="feature-card">
-            <span class="feature-number">01</span>
-            <h3>Players</h3>
+            <span class="feature-number" aria-hidden="true">01</span>
+            <h3>Our players</h3>
             <p>
-              The confirmed first-team squad and player profiles will be
-              published after the club approves the details.
+              The confirmed first-team squad and player profiles will
+              be published after club approval.
             </p>
           </article>
+
           <article class="feature-card">
-            <span class="feature-number">02</span>
+            <span class="feature-number" aria-hidden="true">02</span>
             <h3>Coaching team</h3>
             <p>
-              Official coaching staff information will be added once
-              confirmed by club management.
+              Meet the people responsible for preparing and developing
+              the team once official details are confirmed.
             </p>
           </article>
+
           <article class="feature-card">
-            <span class="feature-number">03</span>
-            <h3>Club officials</h3>
+            <span class="feature-number" aria-hidden="true">03</span>
+            <h3>Club leadership</h3>
             <p>
-              Approved public information about club leadership will
-              be shared here.
+              Approved public information about the club's leadership
+              and organisation will be shared here.
             </p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="news">
+    <!-- NEWS -->
+    <section
+      class="section news-section"
+      id="news"
+      aria-labelledby="news-title"
+    >
       <div class="container">
-        <p class="eyebrow eyebrow-green">FROM THE CLUB</p>
-        <h2>Latest news</h2>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow-green">FROM THE CLUB</p>
+            <h2 id="news-title">Latest news</h2>
+          </div>
+        </div>
+
         <div class="news-placeholder">
           <div class="news-placeholder-icon" aria-hidden="true">✦</div>
+
           <div>
-            <h3>Club updates coming soon</h3>
+            <h3>Our story continues</h3>
             <p>
-              Match reports, announcements, community activities and other
-              approved club news will appear here.
+              Official announcements, match reports, community activities
+              and club news will be published here after approval.
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section section-muted" id="sponsors">
+    <!-- SPONSORS AND SUPPORTERS -->
+    <section
+      class="section section-muted sponsor-section"
+      id="sponsors"
+      aria-labelledby="sponsors-title"
+    >
       <div class="container">
-        <p class="eyebrow eyebrow-green">OUR PARTNERS</p>
-        <h2>Sponsors &amp; supporters</h2>
+        <p class="eyebrow eyebrow-green">STANDING TOGETHER</p>
+        <h2 id="sponsors-title">Back the badge. Support the team.</h2>
+
         <p class="section-lead">
-          Local businesses, supporters and well-wishers can help the club
-          grow and give players a better football experience.
+          Community support can help improve training, transport and
+          match-day preparation, creating a stronger experience for
+          our players.
         </p>
+
         <div class="sponsor-placeholder">
-          <span aria-hidden="true">♡</span>
-          <h3>Support community football</h3>
+          <span class="sponsor-symbol" aria-hidden="true">♡</span>
+          <h3>Become part of our journey</h3>
           <p>
-            Sponsor names and logos will be displayed here only after
-            confirmation and permission to publish them.
+            Sponsor names, partner logos and official support opportunities
+            will be published once details and permissions are confirmed.
           </p>
+          <a class="button button-dark" href="#contact">
+            Contact the club
+          </a>
         </div>
       </div>
     </section>
 
-    <section class="section" id="club">
+    <!-- OUR ACHIEVEMENT -->
+    <section class="section achievement-section">
       <div class="container club-grid">
         <div>
-          <p class="eyebrow eyebrow-green">OUR STORY</p>
-          <h2>More than a football club</h2>
+          <p class="eyebrow eyebrow-green">OUR JOURNEY SO FAR</p>
+          <h2>Progress made together.</h2>
+
           <p>
-            Timau Union FC is rooted in the community. The club's progress
-            depends on committed players, responsible leadership, supporters
-            and partners working together.
+            Timau Union FC has demonstrated its competitive potential by
+            reaching the playoffs in consecutive Meru County League editions.
+            The next chapter depends on preparation, commitment and
+            continued support from our community.
           </p>
-          <p>
-            Our ambition is to build a competitive, organised and sustainable
-            club while creating opportunities for local football talent.
-          </p>
+
+          <a class="text-link" href="#contact">
+            Be part of the journey <span aria-hidden="true">→</span>
+          </a>
         </div>
+
         <aside class="achievement-card">
-          <p class="achievement-kicker">A milestone to celebrate</p>
-          <strong>2025 &amp; 2026</strong>
+          <p class="achievement-kicker">BACK-TO-BACK PLAYOFF QUALIFICATION</p>
+          <strong>2025 <span aria-hidden="true">&amp;</span> 2026</strong>
           <p>
             Second place in the zone and playoff qualification in both
-            Meru County League editions.
+            editions of the Meru County League.
           </p>
+          <span class="achievement-decoration" aria-hidden="true">TUFC</span>
         </aside>
       </div>
     </section>
 
-    <section class="section contact-section" id="contact">
+    <!-- CONTACT -->
+    <section
+      class="section contact-section"
+      id="contact"
+      aria-labelledby="contact-title"
+    >
       <div class="container contact-grid">
         <div>
-          <p class="eyebrow">BE PART OF THE JOURNEY</p>
-          <h2>Support Timau Union FC</h2>
+          <p class="eyebrow">THE NEXT CHAPTER STARTS TOGETHER</p>
+          <h2 id="contact-title">Support Timau Union FC.</h2>
+
           <p>
-            Interested in supporting the team, sponsoring the club or
-            sharing an official club update? Contact the club through its
-            confirmed official channels.
+            Interested in supporting the players, sponsoring the club
+            or sharing an official update? We welcome the community's
+            involvement in building a stronger club.
           </p>
         </div>
+
         <div class="contact-panel">
-          <h3>Club location</h3>
+          <h3>Our home</h3>
           <p>Timau, Meru County, Kenya</p>
+
           <div class="contact-divider"></div>
+
           <h3>Official contact</h3>
           <p>
-            Contact details will be added once verified by club management.
+            Contact information will be added after verification by
+            club management.
           </p>
+
           <p class="small-note">
-            No phone number, email address or social-media account is
-            published here until confirmed.
+            Phone numbers, email addresses and social-media links will
+            not be published until confirmed as official club channels.
           </p>
         </div>
       </div>
@@ -256,18 +381,35 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div>
-        <strong>Timau Union FC</strong>
-        <p>One community. One club. One ambition.</p>
+      <div class="footer-brand">
+        <a class="brand footer-brand-link" href="#home">
+          <img
+            class="brand-mark"
+            src="assets/club-crest.svg"
+            alt=""
+            width="40"
+            height="40"
+            loading="lazy"
+          >
+          <span class="brand-copy">
+            <strong>TIMAU UNION FC</strong>
+            <small>One community. One club. One ambition.</small>
+          </span>
+        </a>
       </div>
+
       <div class="footer-right">
         <a href="#home">Back to top ↑</a>
         <p>© <span id="current-year">2026</span> Timau Union FC</p>
       </div>
     </div>
+
     <div class="container footer-disclaimer">
       Public information only. Club details are subject to official
       confirmation.
+      <p>
+        <a href="app/index.html">Member login</a>
+      </p>
     </div>
   </footer>
 </body>
