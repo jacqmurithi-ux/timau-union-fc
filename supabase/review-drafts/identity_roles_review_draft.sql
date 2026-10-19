@@ -1,11 +1,19 @@
--- Timau Union FC — Phase 1 identity and role-governance schema (REVIEW DRAFT ONLY)
--- DO NOT APPLY to production. Review grants, ownership, RLS and tests first.
--- Intended for a disposable/test Supabase project after explicit review.
--- No service-role key or other secret belongs in the client.
+-- Timau Union FC — Phase 1 identity/role schema (REVIEW DRAFT ONLY)
+-- Target production project reference recorded by owner: owvvimydkjsjlrmnzvdi
+-- IMPORTANT: Do NOT run against production. No SQL has been approved or executed.
+-- First test only on a verified, disposable Supabase project with a clean schema.
+-- This is a review artifact, NOT a Supabase migration.
+-- Trusted invitation, activation, suspension, revocation, role assignment, handover,
+-- and audit writes are deliberately NOT implemented in this draft.
 
 begin;
 
-create table if not exists public.user_profiles (
+-- Fail rather than silently accepting pre-existing objects with unknown definitions.
+create schema private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create table public.user_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null check (length(btrim(display_name)) between 1 and 120),
   contact_email text,
@@ -13,23 +21,30 @@ create table if not exists public.user_profiles (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.club_memberships (
+create table public.club_memberships (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references auth.users(id) on delete cascade,
   status text not null default 'invited'
     check (status in ('invited','active','suspended','revoked')),
-  invited_email text not null,
+  invited_email text not null
+    check (invited_email = lower(btrim(invited_email))
+      and length(invited_email) between 3 and 320),
   invited_by uuid references auth.users(id) on delete set null,
   activated_at timestamptz,
   revoked_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint invited_email_lowercase check (invited_email = lower(btrim(invited_email)))
+  constraint membership_lifecycle_consistent check (
+    (status = 'invited' and activated_at is null and revoked_at is null)
+    or (status = 'active' and activated_at is not null and revoked_at is null)
+    or (status = 'suspended' and activated_at is not null and revoked_at is null)
+    or (status = 'revoked' and revoked_at is not null)
+  )
 );
 
-create table if not exists public.role_assignments (
+create table public.role_assignments (
   id uuid primary key default gen_random_uuid(),
-  membership_id uuid not null references public.club_memberships(id) on delete cascade,
+  membership_id uuid not null references public.club_memberships(id) on delete restrict,
   role_key text not null check (role_key in (
     'chairman','vice_chairman','secretary','team_manager','treasurer',
     'coach','sponsor_lead','media_team'
@@ -38,60 +53,69 @@ create table if not exists public.role_assignments (
   assigned_at timestamptz not null default now(),
   revoked_at timestamptz,
   revoked_by uuid references auth.users(id) on delete set null,
-  note text,
-  constraint role_assignment_active_unique unique (membership_id, role_key, assigned_at)
+  note text check (note is null or length(note) <= 500),
+  constraint role_revocation_consistent check (
+    (revoked_at is null and revoked_by is null)
+    or revoked_at is not null
+  )
 );
 
-create index if not exists role_assignments_membership_active_idx
+-- One active assignment of each role per membership.
+create unique index role_assignments_one_active_role_idx
   on public.role_assignments (membership_id, role_key)
   where revoked_at is null;
 
--- Prevent multiple simultaneously active assignments of the same role.
-create unique index if not exists role_assignments_one_active_role_idx
+-- Global invariant: at most one active Chairman, even under concurrent writes.
+-- A trusted handover must revoke the outgoing assignment and assign the incoming
+-- Chairman in one transaction. A partial unique index is the final race-safe guard.
+create unique index role_assignments_one_active_chairman_idx
+  on public.role_assignments (role_key)
+  where role_key = 'chairman' and revoked_at is null;
+
+create index role_assignments_membership_active_idx
   on public.role_assignments (membership_id, role_key)
   where revoked_at is null;
 
-create table if not exists public.audit_events (
+create table public.audit_events (
   id bigint generated always as identity primary key,
-  actor_user_id uuid, -- retain actor identifier even if the auth account is later deleted
+  actor_user_id uuid, -- intentionally no FK: preserve actor reference after account deletion
   action_key text not null check (length(btrim(action_key)) between 1 and 100),
   entity_type text not null check (length(btrim(entity_type)) between 1 and 100),
-  entity_id text,
+  entity_id text check (entity_id is null or length(entity_id) <= 200),
   outcome text not null default 'success'
     check (outcome in ('success','denied','failure')),
-  details jsonb not null default '{}'::jsonb,
+  details jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(details) = 'object'),
   created_at timestamptz not null default now()
 );
 
-create index if not exists audit_events_created_at_idx
-  on public.audit_events (created_at desc);
-create index if not exists audit_events_actor_created_at_idx
-  on public.audit_events (actor_user_id, created_at desc);
+create index audit_events_created_at_idx on public.audit_events (created_at desc);
+create index audit_events_actor_created_at_idx on public.audit_events (actor_user_id, created_at desc);
 
--- Enable RLS before any application use.
-alter table public.user_profiles enable row level security;
-alter table public.club_memberships enable row level security;
-alter table public.role_assignments enable row level security;
-alter table public.audit_events enable row level security;
+-- Maintain timestamps on every row update. Function is invoker-security, not SECURITY DEFINER.
+create function private.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$function$;
 
--- Remove broad table access. Specific grants and policies are deliberately narrow.
-revoke all on table public.user_profiles from anon, authenticated;
-revoke all on table public.club_memberships from anon, authenticated;
-revoke all on table public.role_assignments from anon, authenticated;
-revoke all on table public.audit_events from anon, authenticated;
+revoke all on function private.set_updated_at() from public, anon, authenticated;
+create trigger user_profiles_set_updated_at
+  before update on public.user_profiles
+  for each row execute function private.set_updated_at();
+create trigger club_memberships_set_updated_at
+  before update on public.club_memberships
+  for each row execute function private.set_updated_at();
 
-grant select on table public.user_profiles to authenticated;
-grant select on table public.club_memberships to authenticated;
-grant select on table public.role_assignments to authenticated;
-grant select on table public.audit_events to authenticated;
-
--- Keep SECURITY DEFINER helpers in a non-exposed schema, never public.
--- The migration executor must be a trusted database owner; verify ownership in review.
-create schema if not exists private;
-revoke all on schema private from public, anon;
-grant usage on schema private to authenticated;
-
-create or replace function private.has_active_club_role(_role_key text)
+-- SECURITY DEFINER functions are isolated in a non-exposed schema, fixed search_path,
+-- and explicitly check the caller identity. Function owner and grants MUST be verified
+-- on the disposable test project before this draft can be approved.
+create function private.has_active_club_role(_role_key text)
 returns boolean
 language sql
 stable
@@ -109,7 +133,7 @@ as $function$
   );
 $function$;
 
-create or replace function private.can_manage_club_roles()
+create function private.can_manage_club_roles()
 returns boolean
 language sql
 stable
@@ -125,45 +149,58 @@ revoke all on function private.can_manage_club_roles() from public, anon;
 grant execute on function private.has_active_club_role(text) to authenticated;
 grant execute on function private.can_manage_club_roles() to authenticated;
 
--- RLS policies grant read access only; no client-side role/membership mutations.
-drop policy if exists "profile_select_self_or_chairman" on public.user_profiles;
-create policy "profile_select_self_or_chairman"
+alter table public.user_profiles enable row level security;
+alter table public.club_memberships enable row level security;
+alter table public.role_assignments enable row level security;
+alter table public.audit_events enable row level security;
+
+-- Least-privilege read access only. No client write grants or write policies.
+revoke all on table public.user_profiles from anon, authenticated;
+revoke all on table public.club_memberships from anon, authenticated;
+revoke all on table public.role_assignments from anon, authenticated;
+revoke all on table public.audit_events from anon, authenticated;
+grant select on table public.user_profiles to authenticated;
+grant select on table public.club_memberships to authenticated;
+grant select on table public.role_assignments to authenticated;
+grant select on table public.audit_events to authenticated;
+
+create policy profile_select_active_self_or_chairman
   on public.user_profiles for select to authenticated
   using (
-    user_id = (select auth.uid())
+    (user_id = (select auth.uid()) and exists (
+      select 1 from public.club_memberships m
+      where m.user_id = (select auth.uid()) and m.status = 'active'
+    ))
     or (select private.can_manage_club_roles())
   );
 
-drop policy if exists "membership_select_self_or_chairman" on public.club_memberships;
-create policy "membership_select_self_or_chairman"
+create policy membership_select_active_self_or_chairman
   on public.club_memberships for select to authenticated
   using (
-    user_id = (select auth.uid())
+    (user_id = (select auth.uid()) and status = 'active')
     or (select private.can_manage_club_roles())
   );
 
-drop policy if exists "role_assignment_select_self_or_chairman" on public.role_assignments;
-create policy "role_assignment_select_self_or_chairman"
+create policy role_assignment_select_active_self_or_chairman
   on public.role_assignments for select to authenticated
   using (
-    exists (
+    (exists (
       select 1
       from public.club_memberships m
       where m.id = membership_id
         and m.user_id = (select auth.uid())
-    )
+        and m.status = 'active'
+    ))
     or (select private.can_manage_club_roles())
   );
 
--- Audit events are not readable by all authenticated users.
-drop policy if exists "audit_select_chairman_only" on public.audit_events;
-create policy "audit_select_chairman_only"
+create policy audit_select_chairman_only
   on public.audit_events for select to authenticated
   using ((select private.can_manage_club_roles()));
 
--- Intentionally no INSERT/UPDATE/DELETE policies on these tables.
--- Trusted server-side invitation/role/audit operations must be implemented separately.
--- Ordinary clients cannot write roles, membership state or audit history.
--- The Chairman read policy is not an invitation/role-write workflow.
+-- No INSERT/UPDATE/DELETE policies or grants for authenticated/anon on these tables.
+-- Privileged writes must use a separately reviewed trusted server-side workflow.
+-- Verify private is NOT in Supabase Data API exposed schemas; SQL cannot configure that.
+-- Verify function owner, table grants, RLS, and function grants after execution in test only.
 
 commit;
