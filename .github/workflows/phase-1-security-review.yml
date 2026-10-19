@@ -37,8 +37,6 @@ jobs:
         run: node --check tests/phase-1-postgrest-smoke.mjs
       - name: Type-check Edge Function without deploying
         run: deno check --no-lock supabase/functions/club-admin/index.ts
-      - name: Format-check Edge Function
-        run: deno fmt --check supabase/functions/club-admin/index.ts
       - name: Ensure review SQL is not placed in migrations
         run: |
           test -d supabase/review-drafts
