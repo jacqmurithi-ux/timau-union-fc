@@ -1,6 +1,6 @@
 -- Timau Union FC Phase 1 server-side rate-limit hardening — REVIEW DRAFT ONLY.
--- This is a separate additive migration draft. Apply only to disposable Union Test after review.
--- Never apply to production without separate explicit approval.
+-- This is a separate additive review draft. Requires the identity and transactional workflow drafts first.
+-- Apply only to disposable Union Test after review; never to production without separate explicit approval.
 
 begin;
 
