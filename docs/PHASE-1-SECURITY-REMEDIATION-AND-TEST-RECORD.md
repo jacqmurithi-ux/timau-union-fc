@@ -6,6 +6,7 @@ Status: **Draft implementation; not production-ready.** Work and all database ex
 - `supabase/review-drafts/identity_roles_review_draft.sql`: base identity schema/RLS draft.
 - `supabase/review-drafts/transactional_identity_workflows_review_draft.sql`: invitation outbox, idempotency, invitation finalization/activation/cancellation, membership suspend/restore/revoke, role assignment/revocation, and serialized Chairman handover.
 - `supabase/review-drafts/rate_limit_review_draft.sql`: database-backed per-identity rate limiting with an explicit deny-all policy on the private counter table.
+- `supabase/review-drafts/auth_user_deletion_archive_review_draft.sql`: additive account-deletion lifecycle fix that preserves membership/role and invitation/audit history, revokes access, and blocks deletion of an active Chairman until handover.
 - `supabase/functions/club-admin/index.ts`: review-only Edge Function routes; authenticates with Supabase Auth, resolves live membership/Chairman authority from database rows, bounds JSON request bodies to 16 KiB, validates invite redirect origin/scheme, enforces database-backed rate limits, and invokes service-only RPCs. **Do not deploy.**
 - `tests/phase-1-postgrest-smoke.mjs`: real HTTP/PostgREST test suite requiring disposable test JWTs/fixtures; syntax checked in CI but live execution is skipped until test-only secrets are configured.
 - `tests/phase-1-chairman-handover-concurrency.sh`: two-session psql race harness; syntax checked in CI, but live execution is skipped until the Union Test-only DB URL and project-ref variable are configured.
@@ -30,10 +31,12 @@ The Auth Admin call and database finalization are a distributed boundary, not a 
 - Anonymous SELECT is absent; authenticated users have SELECT only and no direct table writes; all ten privileged RPCs are not executable by `anon` or `authenticated`, and are executable by `service_role`, with fixed empty `search_path`.
 - Negative check rejected an actor without an active Chairman role.
 - Transaction-rolled-back tests passed for invitation idempotency-key replay/conflict, timestamp trigger, suspend/restore/revoke transitions and audit, invitation queue claim, membership/role finalization, verified-email activation, replay denial, email mismatch, cancellation, expiry transition, and Chairman handover atomicity/single-Chairman invariant.
-- A two-request concurrent handover test on independent SQL calls produced one successful transfer and one denial; verification showed exactly one active Chairman, and temporary test users/records were then removed.
+- Five rounds of paired independent SQL calls were launched concurrently. Every round produced one successful transfer and one denial; exactly one active Chairman remained after each round. Temporary test users/records were removed and verified absent.
 - Additional rolled-back SQL checks passed for email mismatch, cancellation, and expiry state/audit transition. An Auth-user checkpoint was added so a retry can finalize the DB transaction without automatically resending an email once the checkpoint is saved.
 - Added indexes for the five previously reported foreign keys; remaining performance-advisor notices are currently unused-index informational findings in this empty test database.
-- All temporary SQL test identities/data were rolled back.
+- Rolled-back invitation lifecycle simulation passed idempotent begin, claim, Auth-user checkpoint, finalization, verified activation, provider-failure state, cancellation and expiry.
+- Rolled-back account-deletion test verified active-Chairman deletion is blocked until handover; other deleted accounts have membership/roles archived and revoked, invitation/audit history retained, and no temporary rows left behind.
+- All temporary SQL test identities/data were rolled back or explicitly cleaned.
 - Latest Supabase security advisor returned no findings after adding an explicit deny-all policy to the private rate-limit counter table. Performance advisor currently reports six unused-index informational notices in the empty test project; these are not security findings and need workload-aware review before production.
 
 ## Release blockers / evidence still required
