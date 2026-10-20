@@ -9,7 +9,6 @@ declare
   v_email text := lower(btrim('REPLACE_WITH_ADMIN_EMAIL'));
   v_user_id uuid;
   v_display_name text;
-  v_old_status text;
   v_reason text := 'Initial Platform Admin bootstrap via Supabase SQL Editor by the authorized project owner; auth.uid() is not available in this context.';
 begin
   if v_email = '' or v_email = 'replace_with_admin_email' or position('@' in v_email) < 2 then
@@ -29,34 +28,16 @@ begin
     raise exception 'No email-verified Auth user exists for the supplied email. Create and verify the account first.';
   end if;
 
-  select aa.status into v_old_status
-  from private.account_access aa
-  where aa.user_id = v_user_id
-  for update;
-
   insert into private.user_profiles(user_id, display_name)
   values (v_user_id, left(v_display_name, 120))
   on conflict (user_id) do nothing;
-
-  insert into private.account_access(
-    user_id, status, requested_at, decided_at, decided_by, decision_reason
-  )
-  values (
-    v_user_id, 'approved', now(), now(), null, v_reason
-  )
-  on conflict (user_id) do update
-    set status = 'approved',
-        decided_at = now(),
-        decided_by = null,
-        decision_reason = v_reason;
 
   insert into private.platform_admins(user_id, active, created_by)
   values (v_user_id, true, null)
   on conflict (user_id) do update
     set active = true, disabled_at = null, disabled_by = null;
 
-  if v_old_status is distinct from 'approved' then
-    insert into private.audit_events(
+  insert into private.audit_events(
       actor_user_id, target_user_id, action_key, old_value, new_value, reason
     )
     values (
