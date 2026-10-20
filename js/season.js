@@ -273,6 +273,10 @@ document.addEventListener("DOMContentLoaded", () => {
     target.appendChild(metricCard("Ahead of third", team.points - third.points, "number", "points clear of third place"));
     target.appendChild(metricCard("Goals conceded rank", concededRank, "ordinal", team.goalsAgainst + " conceded"));
     target.appendChild(metricCard("Goals scored rank", scoredRank, "ordinal", team.goalsFor + " scored"));
+    const stats = data.timauUnion.seasonStats;
+    target.appendChild(metricCard("Clean sheets", stats.cleanSheets, "number", stats.homeCleanSheets + " home · " + stats.awayCleanSheets + " away"));
+    target.appendChild(metricCard("Failed to score", stats.matchesFailedToScore, "number", stats.homeMatchesFailedToScore + " home · " + stats.awayMatchesFailedToScore + " away"));
+    target.appendChild(metricCard("Largest home win", stats.largestHomeWin.score, "number", "vs " + stats.largestHomeWin.opponent));
     activateCounters(target);
 
     const discipline = document.getElementById("discipline-summary");
@@ -310,16 +314,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (note) {
       note.textContent = data.timauUnion.recentForm.orderConfirmed
         ? "Results are shown from oldest to newest."
-        : "The result sequence was supplied for this summary, but the exact match-by-match order has not been independently confirmed.";
+        : "Results are shown in the sequence displayed by FKF Leagues.";
     }
   }
 
   function renderFinalResult(data) {
     const target = document.getElementById("final-result-card");
     if (!target) return;
-    const match = data.timauUnion.finalMatch;
+    const match = data.timauUnion.featuredMatch;
     target.replaceChildren();
-    appendText(target, "p", "final-result-label", "FINAL MATCH");
+    appendText(target, "p", "final-result-label", "FEATURED RESULT");
     appendText(target, "p", "final-result-date", match.dateLabel || formatDate(match.date));
     const scoreline = element("div", "final-scoreline");
     appendText(scoreline, "span", "final-team final-home-team", match.homeTeam);
@@ -329,6 +333,19 @@ document.addEventListener("DOMContentLoaded", () => {
     appendText(scoreline, "span", "final-team final-away-team", match.awayTeam);
     target.appendChild(scoreline);
     appendText(target, "p", "final-result-venue", match.venue);
+  }
+
+  function renderTopScorers(data) {
+    const target = document.getElementById("season-top-scorers");
+    if (!target) return;
+    target.replaceChildren();
+    data.timauUnion.topScorers.forEach((player, index) => {
+      const item = element("li", "season-scorer-row");
+      appendText(item, "span", "season-scorer-rank", index + 1);
+      appendText(item, "span", "season-scorer-name", player.name);
+      appendText(item, "strong", "season-scorer-goals", player.goals + (player.goals === 1 ? " goal" : " goals"));
+      target.appendChild(item);
+    });
   }
 
   function showError() {
@@ -364,6 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderKeyStats(data, team);
       renderForm(data);
       renderFinalResult(data);
+      renderTopScorers(data);
       revealOnScroll();
     })
     .catch((error) => {
