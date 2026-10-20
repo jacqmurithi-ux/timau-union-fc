@@ -20,3 +20,10 @@ Chairman/Secretary: all record types and publication approval. Team Manager/Coac
 5. Run Supabase security advisors and verify grants, SECURITY DEFINER owners/search paths, and no unintended row changes.
 6. Obtain explicit Production migration approval and separate deployment approval before merging to main.
 No fixtures, players, scores, sponsors or contacts have been invented. Public placeholders remain until integration is reviewed.
+
+
+## Baseline security-advisor observations (before Phase 2 changes)
+- Production's current advisor reported private-schema tables with RLS but no policies (consistent with the existing private-schema / revoked-direct-access model; confirm grants remain revoked) and five SECURITY DEFINER public access RPCs executable by authenticated users but not anon. These RPCs need internal Platform Admin/identity checks; this branch does not change them.
+- Production also reported leaked-password protection disabled. This is an existing Auth configuration warning, not a Phase 2 migration result.
+- Union Test's advisor reported leaked-password protection disabled. No Phase 2 tables/functions were installed during this inspection.
+- These are baseline observations only. Re-run advisors after the reviewed test migration and investigate all findings before release.
