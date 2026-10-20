@@ -63,12 +63,12 @@ trap cleanup EXIT
 setup_started=1
 if [[ -z "$original_chair" ]]; then
   psqlq -c "insert into auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
-    values ('$chair'::uuid,'authenticated','authenticated','$email_chair',clock_timestamp(),'{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,clock_timestamp(),clock_timestamp());" >/dev/null
+    values ('$chair'::uuid,'authenticated','authenticated','$email_chair',clock_timestamp(),jsonb_build_object('provider','email','providers',jsonb_build_array('email')),'{}'::jsonb,clock_timestamp(),clock_timestamp());" >/dev/null
 fi
 psqlq -c "insert into auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
   values
-  ('$successor_a'::uuid,'authenticated','authenticated','$email_a',clock_timestamp(),'{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,clock_timestamp(),clock_timestamp()),
-  ('$successor_b'::uuid,'authenticated','authenticated','$email_b',clock_timestamp(),'{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,clock_timestamp(),clock_timestamp());
+  ('$successor_a'::uuid,'authenticated','authenticated','$email_a',clock_timestamp(),jsonb_build_object('provider','email','providers',jsonb_build_array('email')),'{}'::jsonb,clock_timestamp(),clock_timestamp()),
+  ('$successor_b'::uuid,'authenticated','authenticated','$email_b',clock_timestamp(),jsonb_build_object('provider','email','providers',jsonb_build_array('email')),'{}'::jsonb,clock_timestamp(),clock_timestamp());
   insert into public.club_memberships(user_id,status,invited_email,invited_by,activated_at)
   values
   ('$successor_a'::uuid,'active','$email_a','$chair'::uuid,clock_timestamp()),
