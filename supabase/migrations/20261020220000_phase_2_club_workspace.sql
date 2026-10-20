@@ -96,7 +96,7 @@ create function public.club_save_record(
 language plpgsql security definer
 set search_path = ''
 as $function$
-declare v_role text; v_id uuid; v_old_status text;
+declare v_role text; v_id uuid; v_old_status text; v_old_type text;
 begin
   if auth.uid() is null then raise exception 'Sign-in required'; end if;
   if _record_type not in ('player','fixture','news','sponsor','activity')
@@ -113,9 +113,17 @@ begin
   ) then raise exception 'Your role cannot edit this record type'; end if;
 
   if _record_id is not null then
-    select publication_status into v_old_status
+    select publication_status, record_type into v_old_status, v_old_type
     from private.club_records where id = _record_id for update;
     if not found then raise exception 'Record not found'; end if;
+    if not (
+      v_role in ('chairman','secretary')
+      or (v_old_type = 'player' and v_role in ('team_manager','coach'))
+      or (v_old_type = 'fixture' and v_role in ('team_manager','coach'))
+      or (v_old_type = 'news' and v_role = 'media_team')
+      or (v_old_type = 'sponsor' and v_role = 'sponsor_lead')
+      or (v_old_type = 'activity' and v_role in ('team_manager','coach'))
+    ) then raise exception 'Your role cannot edit this record'; end if;
     update private.club_records
        set record_type = _record_type, data = _data,
            publication_status = 'draft', approved_by = null, approved_at = null,
@@ -171,7 +179,25 @@ language sql stable security definer
 set search_path = ''
 as $function$
   select coalesce(jsonb_agg(jsonb_build_object(
-    'id',r.id,'record_type',r.record_type,'data',r.data,
+    'id',r.id,
+    'record_type',r.record_type,
+    'data',case r.record_type
+      when 'player' then jsonb_strip_nulls(jsonb_build_object(
+        'name',r.data->'name','position',r.data->'position',
+        'bio',r.data->'bio','squad_number',r.data->'squad_number'))
+      when 'fixture' then jsonb_strip_nulls(jsonb_build_object(
+        'opponent',r.data->'opponent','match_date',r.data->'match_date',
+        'venue',r.data->'venue','result',r.data->'result'))
+      when 'news' then jsonb_strip_nulls(jsonb_build_object(
+        'title',r.data->'title','summary',r.data->'summary',
+        'body',r.data->'body','category',r.data->'category'))
+      when 'sponsor' then jsonb_strip_nulls(jsonb_build_object(
+        'name',r.data->'name','support_type',r.data->'support_type',
+        'details',r.data->'details','website',r.data->'website'))
+      when 'activity' then jsonb_strip_nulls(jsonb_build_object(
+        'title',r.data->'title','date',r.data->'date',
+        'location',r.data->'location','details',r.data->'details'))
+    end,
     'approved_at',r.approved_at
   ) order by r.approved_at desc), '[]'::jsonb)
   from private.club_records r
