@@ -101,7 +101,7 @@ begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  v_is_admin:=private.is_active_platform_admin(auth.uid());
  if _new_status not in('approved','archived','draft') then raise exception 'Invalid publication status'; end if;
- if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Reason of at least 3 characters required'; end if;
+ if _reason is null or length(btrim(_reason))<3 or length(_reason)>1000 then raise exception 'Reason of 3 to 1000 characters required'; end if;
  select record_type into v_type from private.club_records where id=_record_id for update;
  if not found then raise exception 'Record not found'; end if;
  if not v_is_admin and not private.role_can_manage_record(private.current_club_roles(),v_type) then raise exception 'Your role cannot approve or change publication status for this record type'; end if;
