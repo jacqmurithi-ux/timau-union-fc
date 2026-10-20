@@ -42,13 +42,13 @@ begin
    raise exception 'Platform Admin access required' using errcode='42501';
  end if;
  with daily as (
-  select d::date day,count(e.id) filter(where e.event_type='install')::integer installs
-  from generate_series(v_today-29,v_today,interval '1 day') d
+  select d::date install_date,count(e.id) filter(where e.event_type='install')::integer installs
+  from generate_series(v_today-29,v_today,interval '1 install_date') d
   left join private.analytics_events e on e.event_type='install'
    and (e.created_at at time zone 'Africa/Nairobi')::date=d::date
   group by d::date
  ), series as (
-  select day,installs,sum(installs) over(order by day)::integer cumulative_30d from daily
+  select install_date,installs,sum(installs) over(order by install_date)::integer cumulative_30d from daily
  ), totals as (
   select count(*) filter(where event_type='install')::integer total_installs,
    count(*) filter(where event_type='install' and (created_at at time zone 'Africa/Nairobi')::date=v_today)::integer installs_today,
@@ -63,7 +63,7 @@ begin
   'total_installs',total_installs,'installs_today',installs_today,'installs_7d',installs_7d,'installs_30d',installs_30d,
   'active_installs_30d',active_installs_30d,'prompts_shown_30d',prompts_shown_30d,'prompts_accepted_30d',prompts_accepted_30d,
   'acceptance_rate_30d',case when prompts_shown_30d=0 then 0 else round(100.0*prompts_accepted_30d/prompts_shown_30d,1) end,
-  'daily',coalesce((select jsonb_agg(jsonb_build_object('date',to_char(day,'YYYY-MM-DD'),'installs',installs,'cumulative_30d',cumulative_30d) order by day) from series),'[]'::jsonb)
+  'daily',coalesce((select jsonb_agg(jsonb_build_object('date',to_char(install_date,'YYYY-MM-DD'),'installs',installs,'cumulative_30d',cumulative_30d) order by install_date) from series),'[]'::jsonb)
  ) into v_result from totals;
  return v_result;
 end; $$;
