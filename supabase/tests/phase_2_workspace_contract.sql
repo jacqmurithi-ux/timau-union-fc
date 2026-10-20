@@ -51,7 +51,7 @@ begin
     'public.get_published_club_content()'::regprocedure
   ] loop
     select p.proconfig into cfg from pg_proc p where p.oid=fn;
-    if not exists(select 1 from unnest(coalesce(cfg,array[]::text[])) x where x like 'search_path=%') then
+    if not exists(select 1 from unnest(coalesce(cfg,array[]::text[])) as settings(setting) where setting like 'search_path=%') then
       raise exception 'SECURITY DEFINER RPC lacks fixed search_path: %', fn;
     end if;
     if not (select prosecdef from pg_proc where oid=fn) then
