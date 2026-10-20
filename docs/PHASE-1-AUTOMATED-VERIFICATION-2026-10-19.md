@@ -1,4 +1,4 @@
-# Phase 1 automated verification — 2026-10-19
+# Phase 1 automated verification — updated 2026-10-20
 
 Status: **Partial verification passed; release blocked.** All live database checks in this record targeted Union Test `dzpquzfghapjodmrmavw` only. Production `owvvimydkjsjlrmnzvdi` was not queried or modified. No Edge Function was deployed.
 
