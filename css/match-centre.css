@@ -1,0 +1,112 @@
+/* Match centre result cards — reuses the club's existing red, black and gold palette. */
+.match-feature-live {
+  animation: match-centre-fade-in 420ms ease-out both;
+}
+.match-latest-body .match-competition {
+  margin: 0 0 4px;
+  color: var(--gold);
+  font-size: 0.83rem;
+  font-weight: 850;
+}
+.match-latest-body .match-stage {
+  margin: 0 0 18px;
+  color: rgba(255,255,255,.72);
+  font-size: .9rem;
+}
+.match-latest-body .matchup {
+  margin: 0 0 18px;
+  font-size: clamp(1.35rem, 5vw, 2.1rem);
+  overflow-wrap: anywhere;
+}
+.result-pill {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: .92rem;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+.result-w { background: #167344; }
+.result-d { color: #202020; background: #d7d7d7; }
+.result-l { background: #b42336; }
+.match-latest-body .match-score {
+  margin: 12px 0 8px;
+  color: var(--white);
+  font-size: clamp(2.6rem, 12vw, 4.4rem);
+  font-weight: 950;
+  letter-spacing: -.055em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.match-latest-body .match-date,
+.match-latest-body .match-venue {
+  margin: 12px 0 0;
+  color: rgba(255,255,255,.82);
+}
+.match-latest-body .match-respect-line {
+  padding-top: 14px;
+  margin-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.9);
+  font-size: .95rem;
+}
+.previous-results {
+  margin: 26px 0;
+}
+.previous-results > h3 {
+  margin-bottom: 12px;
+  font-size: 1.3rem;
+}
+.previous-results-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.previous-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+}
+.previous-result-row + .previous-result-row {
+  border-top: 1px solid var(--border);
+}
+.previous-result-details {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.previous-result-details strong {
+  overflow-wrap: anywhere;
+  font-size: .95rem;
+}
+.previous-result-details span {
+  color: var(--muted);
+  font-size: .78rem;
+  overflow-wrap: anywhere;
+}
+.previous-result-row .result-pill {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 5px 11px;
+  font-size: .82rem;
+}
+@keyframes match-centre-fade-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-feature-live { animation: none; }
+}
+@media (max-width: 420px) {
+  .previous-result-row { align-items: flex-start; gap: 8px; padding: 13px; }
+  .previous-result-row .result-pill { padding-inline: 9px; }
+}
