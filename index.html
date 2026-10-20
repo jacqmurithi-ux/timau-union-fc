@@ -11,6 +11,23 @@
 
   <link rel="icon" href="assets/club-crest.jpg" type="image/jpeg">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Recovery links sent with the public Site URL should still reach the
+    // private member-access page. Preserve Supabase's query/hash tokens.
+    (() => {
+      const query = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const isRecovery = query.get("type") === "recovery" ||
+        query.get("recovery") === "1" ||
+        hash.get("type") === "recovery";
+      if (!isRecovery) return;
+      const target = new URL("/app/index.html", window.location.origin);
+      query.set("recovery", "1");
+      target.search = query.toString();
+      target.hash = window.location.hash;
+      window.location.replace(target.toString());
+    })();
+  </script>
   <script src="script.js" defer></script>
 </head>
 
