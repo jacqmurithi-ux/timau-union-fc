@@ -65,10 +65,17 @@ jobs:
           SUPABASE_TEST_REVOKED_USER_ID: ${{ secrets.SUPABASE_TEST_REVOKED_USER_ID }}
           SUPABASE_TEST_CHAIRMAN_JWT: ${{ secrets.SUPABASE_TEST_CHAIRMAN_JWT }}
         run: |
-          if [ -z "$SUPABASE_TEST_URL" ] && [ -z "$SUPABASE_TEST_ANON_KEY" ] && [ -z "$SUPABASE_TEST_MEMBER_JWT" ]; then
-            echo "::notice::PostgREST integration tests skipped; configure Union Test fixture secrets to enable them."
+          if [ -z "$SUPABASE_TEST_URL" ] && [ -z "$SUPABASE_TEST_ANON_KEY" ] && \
+             [ -z "$SUPABASE_TEST_MEMBER_JWT" ] && [ -z "$SUPABASE_TEST_MEMBER_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_INVITED_JWT" ] && [ -z "$SUPABASE_TEST_INVITED_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_SUSPENDED_JWT" ] && [ -z "$SUPABASE_TEST_SUSPENDED_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_REVOKED_JWT" ] && [ -z "$SUPABASE_TEST_REVOKED_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_CHAIRMAN_JWT" ]; then
+            echo "::notice::PostgREST integration tests skipped because no Union Test HTTP fixture secrets are configured."
             exit 0
           fi
+          # If any fixture secret is configured, run the suite; its validation fails closed
+          # with the names of missing variables (never their values) when configuration is partial.
           node tests/phase-1-postgrest-smoke.mjs
       - name: Ensure review SQL is not placed in migrations
         run: |
