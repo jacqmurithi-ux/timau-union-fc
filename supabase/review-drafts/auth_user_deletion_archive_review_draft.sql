@@ -32,6 +32,15 @@ declare
   v_previous_status text;
   v_roles_revoked integer := 0;
 begin
+  if exists (
+    select 1
+    from public.club_memberships m
+    join public.role_assignments r on r.membership_id = m.id
+    where m.user_id = old.id and r.role_key = 'chairman' and r.revoked_at is null
+  ) then
+    raise exception using errcode='23514', message='chairman_handover_required';
+  end if;
+
   select m.id, m.status into v_membership_id, v_previous_status
   from public.club_memberships m
   where m.user_id = old.id
