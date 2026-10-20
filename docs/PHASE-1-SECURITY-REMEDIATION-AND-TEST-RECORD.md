@@ -26,7 +26,7 @@ Postgres cannot share one transaction with Supabase Auth email delivery. The flo
 The Auth Admin call and database finalization are a distributed boundary, not a single ACID transaction. Requests stuck in `sending` after a process crash still need an operational reconciliation/retry procedure before release. Do not claim exactly-once email delivery.
 
 ## Union Test evidence so far
-- Applied test-only migrations: `phase_1_identity_roles_review_test`, `phase_1_security_hardening_test`, `phase_1_transactional_identity_workflows_test`, and `phase_1_membership_transition_result_fix_test`.
+- Applied test-only migrations include `phase_1_identity_roles_review_test`, `phase_1_security_hardening_test`, `phase_1_transactional_identity_workflows_test`, `phase_1_membership_transition_result_fix_test`, the invitation compatibility/index hardening steps, `phase_1_rate_limit_private_deny_policy_test`, and `phase_1_auth_user_deletion_archive_test`. All were applied only to Union Test.
 - Five identity/workflow tables have RLS enabled.
 - Anonymous SELECT is absent; authenticated users have SELECT only and no direct table writes; all ten privileged RPCs are not executable by `anon` or `authenticated`, and are executable by `service_role`, with fixed empty `search_path`.
 - Negative check rejected an actor without an active Chairman role.
