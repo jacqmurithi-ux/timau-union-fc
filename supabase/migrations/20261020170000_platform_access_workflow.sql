@@ -212,7 +212,7 @@ begin
 
   return pg_catalog.jsonb_build_object(
     'email_verified', coalesce(v_email_verified, false),
-    'status', case when coalesce(v_is_admin, false) then coalesce(v_status, 'platform_admin') else coalesce(v_status, 'pending') end,
+    'status', case when coalesce(v_is_admin, false) then 'platform_admin' else coalesce(v_status, 'pending') end,
     'platform_admin', coalesce(v_is_admin, false),
     'role', case when v_status = 'approved' and v_email_verified then v_role else null end,
     'access_granted', coalesce(v_is_admin, false) or coalesce(v_status = 'approved' and v_email_verified and v_role is not null, false)
