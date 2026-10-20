@@ -48,7 +48,7 @@ begin
   if not public.club_platform_admin_is_authorized(_actor) then
     raise exception using errcode='42501', message='platform_admin_required';
   end if;
-  if _target_user_id is null or _role_key not in ('chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team') then
+  if _target_user_id is null or _target_user_id=_actor or _role_key is null or _role_key not in ('chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team') then
     raise exception using errcode='22023', message='invalid_platform_approval';
   end if;
   if _note is not null and length(_note)>500 then
@@ -110,9 +110,9 @@ begin
   if not public.club_platform_admin_is_authorized(_actor) then
     raise exception using errcode='42501', message='platform_admin_required';
   end if;
-  if _target_user_id is null
-    or _role_key not in ('chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team')
-    or _action not in ('assign','revoke')
+  if _target_user_id is null or _target_user_id=_actor
+    or _role_key is null or _role_key not in ('chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team')
+    or _action is null or _action not in ('assign','revoke')
     or (_note is not null and length(_note)>500) then
     raise exception using errcode='22023', message='invalid_role_change';
   end if;
