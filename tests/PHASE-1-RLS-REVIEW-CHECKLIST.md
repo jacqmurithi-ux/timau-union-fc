@@ -10,6 +10,7 @@ Run only against disposable Union Test. Never point this checklist at production
 - [x] Rate-limit counter table is in `private`, RLS-enabled, has an explicit deny-all policy, and has no direct table grants to anon/authenticated/service_role.
 - [x] Rate-limit SQL simulations passed all buckets: 5 invitations/hour (request 6 denied), 10 activations/minute (request 11 denied), and 60 admin mutations/minute (request 61 denied); temporary test counters were removed.
 - [x] Latest Supabase security advisor returns no findings.
+- [x] Auth-user deletion archival migration tested in Union Test: membership/role history retained and revoked; invitation/audit state retained; deleting an active Chairman is blocked pending handover.
 - [ ] Confirm in Supabase Dashboard that `private` is excluded from Data API Exposed schemas. SQL catalog checks cannot verify gateway configuration.
 - [ ] Run the real HTTP/PostgREST suite against the test project with separate fixtures; do not substitute SQL grants checks for API results.
 
@@ -29,7 +30,8 @@ Run only against disposable Union Test. Never point this checklist at production
 
 ## Invitation lifecycle
 
-- [x] Idempotency key replay/conflict, queue claim, membership/role finalization, verified-email activation, replay denial, email mismatch, expiry, cancellation and audit transitions passed in prior rolled-back SQL simulations.
+- [x] Idempotency key replay/conflict, queue claim, membership/role finalization, verified-email activation, replay denial, email mismatch, expiry, cancellation and audit transitions passed in rolled-back SQL simulations.
+- [x] Additional rolled-back lifecycle simulation passed idempotent begin, claim, Auth-user checkpoint, finalization, activation, provider-failure state, cancellation and expiry.
 - [x] Auth-user checkpoint and retry-to-finalize logic implemented in the review draft.
 - [x] Operational recovery procedure documented in [Phase 1 invitation recovery runbook](../docs/PHASE-1-INVITATION-RECOVERY-RUNBOOK.md).
 - [ ] Real Auth Admin email delivery and correct destination confirmed.
@@ -53,17 +55,18 @@ Run only against disposable Union Test. Never point this checklist at production
 
 - [x] Suspend/restore/revoke transition and audit trail passed in prior rolled-back SQL test.
 - [x] Chairman handover serialized with transaction advisory lock and backed by unique active-Chairman index.
-- [x] Two independent SQL requests yielded one handover success and one denial; exactly one active Chairman remained. This is request-level concurrency evidence, not a repeatable multi-session stress test.
+- [x] Five rounds of paired independent SQL requests were issued concurrently; every round yielded one handover success, one denial, and exactly one active Chairman. Temporary fixtures were removed.
+- [ ] Run the committed psql harness in CI with the Union Test-only DB URL to capture repeatable automated evidence.
 - [x] Invalid Chairman successor, duplicate active Chairman assignment and invalid lifecycle/revocation transitions were rejected in prior SQL simulations.
 - [x] Added a controlled two-session psql race harness; its shell syntax passes CI.
 - [ ] Execute the harness against Union Test with `SUPABASE_TEST_DB_URL` and `SUPABASE_TEST_PROJECT_REF` configured. Latest CI skipped execution because these settings are not configured.
-- [ ] Capture a clean race run and verify the original Chairman fixture is restored; a manual parallel probe returned one success and one denial, but follow-up fixture restoration was not reliable enough to count as a completed stress test.
+- [x] Manual concurrent test fixtures were cleaned and verified absent. The committed harness's live CI step still awaits test-only database credentials.
 - [ ] Verify role-change authorization and existing JWT behavior with separate identities through the real endpoint.
 
 ## Final review / release gate
 
 - [x] GitHub Actions non-deploying static-review workflow passed: Node syntax, Deno type-check, review-draft placement, and no production URL/service-role secret in the tested artifacts.
 - [x] Edge Function remains undeployed; PR #7 remains draft.
-- [ ] Independent human reviewer reviews SQL, Edge Function, rate limiter, and recovery runbook and records approval.
+- [ ] Independent human reviewer reviews SQL, Edge Function, rate limiter, Auth-user deletion archival migration, and recovery runbook and records approval.
 - [ ] Attach Data API Exposed schemas confirmation and real HTTP/Auth integration evidence.
 - [ ] No production operation before separate explicit production migration approval.
