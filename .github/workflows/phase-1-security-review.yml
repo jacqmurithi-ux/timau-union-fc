@@ -75,6 +75,7 @@ jobs:
           test -d supabase/review-drafts
           test ! -f supabase/migrations/phase_1_server_side_rate_limits_test.sql
           grep -q "REVIEW DRAFT ONLY" supabase/review-drafts/rate_limit_review_draft.sql
+          grep -q "REVIEW DRAFT ONLY" supabase/review-drafts/auth_user_deletion_archive_review_draft.sql
           grep -q "dzpquzfghapjodmrmavw.supabase.co" tests/phase-1-postgrest-smoke.mjs
       - name: Confirm no production URL or service key in browser/test artifacts
         run: |
