@@ -11,6 +11,7 @@
 
   <link rel="icon" href="assets/club-crest.jpg" type="image/jpeg">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/season.css">
   <script>
     // Recovery links sent with the public Site URL should still reach the
     // private member-access page. Preserve Supabase's query/hash tokens.
@@ -29,6 +30,7 @@
     })();
   </script>
   <script src="script.js" defer></script>
+  <script src="js/season.js" defer></script>
 </head>
 
 <body>
@@ -69,7 +71,8 @@
       >
         <a href="#fixtures">Fixtures</a>
         <a href="#table">League table</a>
-        <a href="#squad">Our team</a>
+        <a href="season.html">2025/26 Season</a>
+        <a href="players.html">Players</a>
         <a href="#news">News</a>
         <a href="#sponsors">Partners</a>
         <a href="#club">Our club</a>
@@ -141,10 +144,35 @@
             organisation, consistent preparation and community support.
           </p>
 
-          <a class="text-link" href="#squad">
-            Meet the team <span aria-hidden="true">→</span>
+          <a class="text-link" href="players.html">
+            Meet the players <span aria-hidden="true">→</span>
           </a>
         </div>
+      </div>
+    </section>
+
+    <section class="section season-preview-section" id="season-2025-26" aria-labelledby="season-preview-title" data-season-preview>
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow-green">MERU COUNTY LEAGUE · ZONE A</p>
+            <h2 id="season-preview-title">2025/26 Season</h2>
+            <p class="section-lead">A look back at our second-place finish and the season that brought the community together.</p>
+          </div>
+          <a class="text-link season-view-link" href="season.html">View full season <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="season-summary season-summary-compact" id="season-home-summary" aria-label="Timau Union FC season summary">
+          <p class="season-loading" role="status">Loading season statistics…</p>
+        </div>
+        <div class="season-home-table-wrap">
+          <table class="season-table season-table-compact">
+            <caption>Top five — Meru County League, Zone A</caption>
+            <thead><tr><th scope="col">Pos</th><th scope="col">Team</th><th scope="col">P</th><th scope="col">GD</th><th scope="col">Pts</th></tr></thead>
+            <tbody id="season-home-table"><tr><td colspan="5">Loading standings…</td></tr></tbody>
+          </table>
+        </div>
+        <p class="season-source-line" id="season-home-source"></p>
+        <p class="season-error" id="season-home-error" role="status" hidden>Season statistics could not be loaded. Please try again when the website is available.</p>
       </div>
     </section>
 
@@ -237,9 +265,9 @@
             <span class="feature-number" aria-hidden="true">01</span>
             <h3>Our players</h3>
             <p>
-              The confirmed first-team squad and player profiles will
-              be published after club approval.
+              Browse the players listed for the 2025/26 league season.
             </p>
+            <a class="text-link" href="players.html">View players <span aria-hidden="true">→</span></a>
           </article>
 
           <article class="feature-card">
