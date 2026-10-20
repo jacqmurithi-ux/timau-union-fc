@@ -244,12 +244,80 @@ async function loadAccess() {
     show($("workspace-link"), Boolean(status.access_granted && status.role));
     message("Access status refreshed from the production database.", "success");
     show(adminPanel, Boolean(status.platform_admin));
-    if (status.platform_admin) await loadAdminQueue();
+    if (status.platform_admin) { await loadAdminQueue(); await loadInstallStats(); }
   } catch (error) {
     show(authPanel, true); show(accountPanel, false); show(adminPanel, false);
     message(genericError(error, "The production access workflow is not available yet. Please try again later. No access has been granted by this page."), "error");
   }
 }
+
+let installStatsData = null;
+function installSummary(p) {
+  return [
+    "Timau Union FC — App install statistics",
+    `Total installs: ${p.total_installs ?? 0}`,
+    `Today: ${p.installs_today ?? 0}`,
+    `Last 7 days: ${p.installs_7d ?? 0}`,
+    `Last 30 days: ${p.installs_30d ?? 0}`,
+    `Active installs (30 days): ${p.active_installs_30d ?? 0}`,
+    `Prompts shown (30 days): ${p.prompts_shown_30d ?? 0}`,
+    `Prompts accepted (30 days): ${p.prompts_accepted_30d ?? 0}`,
+    `Acceptance rate: ${p.acceptance_rate_30d ?? 0}%`
+  ].join("\\n");
+}
+async function loadInstallStats() {
+  const status = $("install-stats-status");
+  const cards = $("install-stats-cards");
+  const daily = $("install-stats-daily");
+  const csvButton = $("export-install-stats");
+  const copyButton = $("copy-install-summary");
+  const shareButton = $("share-install-summary");
+  status.textContent = "Loading install statistics…";
+  cards.hidden = true;
+  daily.replaceChildren();
+  [csvButton, copyButton, shareButton].forEach(b => b.disabled = true);
+  try {
+    const result = await rpc("install_report");
+    if (!result || typeof result !== "object") throw new Error("The report returned no usable data.");
+    installStatsData = result;
+    const values = [
+      ["install-total", result.total_installs],
+      ["install-today", result.installs_today],
+      ["install-seven", result.installs_7d],
+      ["install-thirty", result.installs_30d],
+      ["install-active", result.active_installs_30d]
+    ];
+    values.forEach(([id, value]) => $(id).textContent = Number(value || 0).toLocaleString("en-KE"));
+    $("install-rate").textContent = Number(result.acceptance_rate_30d || 0).toFixed(1) + "%";
+    $("install-prompt-counts").textContent = `${Number(result.prompts_accepted_30d || 0)} accepted of ${Number(result.prompts_shown_30d || 0)} shown in 30 days`;
+    const rows = Array.isArray(result.daily) ? result.daily : [];
+    daily.replaceChildren(rows.length
+      ? table(["Date", "Installs", "Cumulative (30-day series)"], rows.map(r => [r.date, r.installs, r.cumulative_30d]))
+      : el("p", "No daily install data is available yet."));
+    cards.hidden = false;
+    status.textContent = "Install statistics loaded from the protected report function.";
+    [csvButton, copyButton, shareButton].forEach(b => b.disabled = false);
+  } catch (error) {
+    status.textContent = genericError(error, "Could not load install statistics. Confirm the Union Test migration and Platform Admin permissions.");
+  }
+}
+$("refresh-install-stats").addEventListener("click", loadInstallStats);
+$("export-install-stats").addEventListener("click", () => {
+  if (!installStatsData) return;
+  const rows = [["date", "installs", "cumulative_30d"], ...(installStatsData.daily || []).map(r => [r.date, r.installs, r.cumulative_30d])];
+  const csv = rows.map(row => row.map(value => '"' + String(value ?? "").replace(/"/g, '""') + '"').join(",")).join("\\r\\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = "timau-union-install-stats.csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+$("copy-install-summary").addEventListener("click", async () => {
+  if (!installStatsData) return;
+  try { await navigator.clipboard.writeText(installSummary(installStatsData)); $("install-stats-status").textContent = "Summary copied."; }
+  catch (_) { $("install-stats-status").textContent = "Clipboard access is unavailable in this browser."; }
+});
+$("share-install-summary").addEventListener("click", () => {
+  if (installStatsData) window.open("https://wa.me/?text=" + encodeURIComponent(installSummary(installStatsData)), "_blank", "noopener,noreferrer");
+});
 
 async function loadAdminQueue() {
   const container = $("request-list");
