@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const setMenuState = (isOpen, returnFocus = false) => {
       primaryNav.classList.toggle("is-open", isOpen);
-      menuToggle.setAttribute("aria-expanded", String(isOpen);
+      menuToggle.setAttribute("aria-expanded", String(isOpen));
       if (menuLabel) menuLabel.textContent = isOpen ? "Close" : "Menu";
       if (menuIcon) {
         menuIcon.textContent = isOpen ? "×" : "☰";
