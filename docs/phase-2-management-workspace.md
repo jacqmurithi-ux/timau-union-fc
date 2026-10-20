@@ -2,7 +2,7 @@
 **Isolated draft branch. The project status record reports application to Union Test on 2026-10-20; this document update does not independently verify the live database. Production and GitHub Pages are intended to remain unchanged.**
 
 ## Workspace
-Private `/app/workspace.html`: player register, fixtures/results, news, sponsors and activities. All writes use protected RPCs. New records are drafts; editing resets approval. Only an active Platform Admin can approve, return records to draft or archive, with a reason. Chairman and Secretary do not have publication approval authority unless separately authenticated as an active Platform Admin. Public RPC returns approved records only and allowlists public fields. Public website remains unchanged pending separate integration review.
+Private `/app/workspace.html`: player register, fixtures/results, news, sponsors and activities. All writes use protected RPCs. New records are drafts; editing resets approval. Publication approval follows the record-level permission map enforced by the database. Chairman and Secretary can approve any supported record type; Team Manager and Coach can approve players, fixtures/results and activities; Media Team can approve news; Sponsor Lead can approve sponsor records. Treasurer, Vice Chairman, Player and Supporter have no publication approval by default. An active Platform Admin retains system-wide override authority. Every decision requires a reason. Public RPC returns approved records only and allowlists public fields. Public website remains unchanged pending separate integration review.
 
 ## Live schema reconciliation
 Production `owvvimydkjsjlrmnzvdi`: `private.account_access` keyed by `user_id`; `private.role_assignments` keyed directly by `user_id` with `active`; profile/admin/audit tables in `private`.
@@ -10,7 +10,7 @@ Union Test `dzpquzfghapjodmrmavw`: `public.club_memberships` keyed by membership
 The shared RPC contract uses environment-specific mutually exclusive adapters in `supabase/environment-adapters/`. Production migration listing returned no records despite existing access tables, so Production migration history is unverified.
 
 ## Role boundaries
-Chairman/Secretary: all record types and publication approval. Team Manager/Coach: players, fixtures and activities. Media Team: news. Sponsor Lead: sponsors. Treasurer/Vice Chairman have no operational record type by default. Platform Admin stays separate and does not automatically gain club record permissions.
+Chairman/Secretary: create/edit and approve all supported record types. Team Manager/Coach: create/edit and approve players, fixtures/results and activities. Media Team: create/edit and approve news. Sponsor Lead: create/edit and approve sponsor records. Treasurer/Vice Chairman have no operational record type by default unless explicitly granted in the permission map. Platform Admin retains system-wide override authority, independent of club role.
 
 ## Release gates
 1. Union Test adapter `phase_2_union_test_role_adapter` and core migration `phase_2_workspace_core` applied successfully through Supabase migration tooling.
@@ -37,6 +37,6 @@ No fixtures, players, scores, sponsors or contacts were added; test save was rol
 
 
 ## Approval authority clarification
-- The Phase 2 core migration now calls the existing protected `private.is_active_platform_admin(auth.uid())` check for publication decisions.
-- The workspace bundle identifies active Platform Admin sessions and allows them to view/manage all workspace record types, even if they have no separate club role. Non-admin users retain their assigned record-editing scope and cannot publish.
+- The Phase 2 core migration now permits publication decisions for users whose active club role is authorized for that record type, using `private.role_can_manage_record(...)`; the existing protected `private.is_active_platform_admin(auth.uid())` check grants Platform Admin a system-wide override.
+- The workspace bundle identifies active Platform Admin sessions and allows them to view/manage all workspace record types, even if they have no separate club role. It returns a per-record `can_approve` value so the interface shows approval controls only where the user's role permits them. The database RPC independently enforces the same role/type boundary.
 - This change is code on the isolated draft branch only. It has not been applied to Union Test or Production and must be tested with an active Platform Admin, a Chairman/Secretary who is not a Platform Admin, and a pending/revoked user before release.
