@@ -15,12 +15,12 @@
    try{if(sessionStorage.getItem("tufc_app_open_sent")!=="1"){sessionStorage.setItem("tufc_app_open_sent","1");void send("app_open");}}catch(_){}
   }
   let deferred=null;
-  addEventListener("beforeinstallprompt",e=>{deferred=e;void send("install_prompt_shown");});
+  addEventListener("beforeinstallprompt",e=>{deferred=e;try{if(sessionStorage.getItem("tufc_prompt_shown")==="1")return;sessionStorage.setItem("tufc_prompt_shown","1");}catch(_){return;}void send("install_prompt_shown");});
   addEventListener("appinstalled",()=>{void send("install");deferred=null;});
   window.TimauPwaInstall={available:()=>Boolean(deferred),async prompt(){
    if(!deferred)return {outcome:"unavailable"};
    const event=deferred;deferred=null;
-   try{await event.prompt();const choice=await event.userChoice;if(choice?.outcome==="accepted")void send("install_prompt_accepted");return {outcome:choice?.outcome||"unknown"};}
+   try{await event.prompt();const choice=await event.userChoice;if(choice?.outcome==="accepted"){try{if(sessionStorage.getItem("tufc_prompt_accepted")==="1")return {outcome:choice.outcome};sessionStorage.setItem("tufc_prompt_accepted","1");}catch(_){return {outcome:choice.outcome};}void send("install_prompt_accepted");}return {outcome:choice?.outcome||"unknown"};}
    catch(_){return {outcome:"error"};}
   }};
  }).catch(()=>{});
