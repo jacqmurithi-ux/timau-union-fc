@@ -114,10 +114,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function metricCard(label, value, format = "number", detail = "") {
-    const card = element("article", "season-metric-card");
+    const card = element("article", "season-metric-card season-reveal");
     appendText(card, "span", "season-metric-label", label);
     const valueNode = element("strong", "season-metric-value");
-    counter(valueNode, value, format);
+    if (Number.isFinite(Number(value))) {
+      counter(valueNode, Number(value), format);
+    } else {
+      valueNode.textContent = String(value);
+    }
     card.appendChild(valueNode);
     if (detail) appendText(card, "span", "season-metric-detail", detail);
     return card;
@@ -178,6 +182,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!target) return;
     target.replaceChildren();
     teams.forEach((team) => target.appendChild(makeTableRow(team, compact)));
+  }
+
+  function revealOnScroll() {
+    const nodes = document.querySelectorAll(".season-reveal");
+    if (reducedMotion || !("IntersectionObserver" in window)) {
+      nodes.forEach((node) => node.classList.add("is-visible"));
+      return;
+    }
+    const observer = new IntersectionObserver((entries, activeObserver) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          activeObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    nodes.forEach((node) => observer.observe(node));
   }
 
   function formatDate(dateString) {
@@ -338,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderKeyStats(data, team);
       renderForm(data);
       renderFinalResult(data);
-      document.querySelectorAll(".season-reveal, .season-metric-card").forEach((node) => node.classList.add("is-visible"));
+      revealOnScroll();
     })
     .catch((error) => {
       console.warn("Unable to load season data.", error);
