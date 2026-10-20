@@ -20,7 +20,12 @@ async function checkCurrentMembership(user) {
  if (!roles || roles.length === 0) throw new Error("No active club role is assigned to this account. Contact the Chairman.");
 }
 async function routeIfAuthorised(user) {
- try { await checkCurrentMembership(user); window.location.replace("./dashboard.html"); }
+ try {
+  // A separately bootstrapped platform administrator does not need a club membership.
+  const { data: platformData, error: platformError } = await supabase.functions.invoke("club-admin", { body: { action: "platform_list_accounts" } });
+  if (!platformError && Array.isArray(platformData?.accounts)) { window.location.replace("./platform-admin.html"); return; }
+  await checkCurrentMembership(user); window.location.replace("./dashboard.html");
+ }
  catch (error) { await supabase.auth.signOut(); showStatus(error.message || "Access could not be verified. Please try again later.", "error"); switchMode("login"); }
 }
 showLoginButton.addEventListener("click", () => switchMode("login"));
@@ -55,7 +60,7 @@ signupForm.addEventListener("submit", async (event) => {
   // Never create a membership or assign a role from the public browser.
   if (data.session) await supabase.auth.signOut();
   signupForm.reset();
-  showStatus("Registration submitted. Check your email for a verification message if required. Your account does not yet have club membership or a role; contact the Chairman for approval.");
+  showStatus("Registration submitted. Check your email for a verification message if required. Your account does not yet have club membership or a role. A platform administrator must approve access and assign your role.");
  } catch (error) { showStatus(error.message || "Registration service unavailable. Please try again later.", "error"); }
  finally { setBusy(signupButton, false, "Create account"); }
 });
