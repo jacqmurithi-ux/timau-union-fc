@@ -4,7 +4,7 @@ Status: **Partial verification passed; release blocked.** All live database chec
 
 ## Automated checks run in Union Test
 
-The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). The repeatable two-session Chairman handover harness is [`tests/phase-1-chairman-handover-concurrency.sh`](../tests/phase-1-chairman-handover-concurrency.sh); CI syntax-checks it, but live execution is gated on a Union Test-only database URL. It was executed against Union Test and completed without a raised exception. The database-backed rate-limit function was tested across all buckets: 5 invitation requests were allowed and request 6 denied; 10 activation attempts were allowed and attempt 11 denied; 60 admin mutations were allowed and mutation 61 denied. The temporary test counters were removed. Separate catalog queries inspected function grants and RLS policies.
+The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog-assertions.sql`](../tests/phase-1-union-test-catalog-assertions.sql). The repeatable two-session Chairman handover harness is [`tests/phase-1-chairman-handover-concurrency.sh`](../tests/phase-1-chairman-handover-concurrency.sh); CI syntax-checks it, but its CI live step remains gated on a Union Test-only database URL. Separately, five rounds of paired independent SQL requests were issued concurrently against Union Test: every round produced one successful Chairman transfer, one denied competing transfer, and exactly one active Chairman. All temporary fixtures were removed. The database-backed rate-limit function was tested across all buckets: 5 invitation requests were allowed and request 6 denied; 10 activation attempts were allowed and attempt 11 denied; 60 admin mutations were allowed and mutation 61 denied. The temporary test counters were removed. Separate catalog queries inspected function grants and RLS policies.
 
 - [x] Exactly the five expected identity/workflow tables were found with RLS enabled: `user_profiles`, `club_memberships`, `role_assignments`, `audit_events`, `invitation_requests`.
 - [x] All ten `public.club_admin_*` privileged RPCs have `SECURITY DEFINER` and a fixed empty `search_path`.
@@ -13,7 +13,9 @@ The repeatable SQL smoke-test is committed at [`tests/phase-1-union-test-catalog
 - [x] Calling the invitation-begin RPC with a nonexistent/non-Chairman actor was rejected with insufficient privilege; no invitation was created.
 - [x] Inspected the five SELECT policies: profile/membership/role visibility is self-scoped for active members or Chairman-authorized; invitation and audit reads are Chairman-authorized.
 - [x] Confirmed schema-level SQL privileges show `anon` has no USAGE on `private`; `authenticated` has USAGE for policy helper calls. This does **not** prove the Supabase Data API Exposed schemas setting.
-- [x] Supabase security advisor returned no findings.
+- [x] Supabase security advisor returned no findings after the Auth-user deletion archival migration.
+- [x] Rolled-back invitation lifecycle simulation passed idempotency, claim, Auth-user checkpoint, finalization, verified activation, provider-failure state, cancellation, and expiry transitions.
+- [x] Rolled-back Auth-user deletion test verified active-Chairman deletion is blocked pending handover; ordinary account deletion archives/revokes membership and roles, retains invitation/audit history, and leaves no test rows.
 - [x] Performance advisor currently reports six unused-index informational notices in this empty test project. These are not security findings and are not proof that indexes are unnecessary under production workload.
 
 ## What this verification does not prove
@@ -27,7 +29,8 @@ These are still release blockers and must not be marked passed based on catalog/
 - [x] Added database-backed per-identity limits in the review draft: 5 invitations/hour, 10 activation attempts/minute, and 60 other privileged mutations/minute. SQL threshold simulation passed; Edge Function integration and provider/gateway-wide abuse controls still require runtime verification.
 - [ ] Verify configured `ALLOWED_ORIGINS` and `INVITE_REDIRECT_URL` in the target function environment and Supabase Auth redirect allowlist.
 - [x] Added `docs/PHASE-1-INVITATION-RECOVERY-RUNBOOK.md` for safe manual recovery when a request remains `sending`.
-- [ ] Independent review of the SQL and Edge Function, including the invitation delivery/checkpoint crash window and operational reconciliation runbook.
+- [x] Second-pass code review identified and fixed an Auth-user deletion/FK-history conflict in the Union Test-only additive draft: memberships/roles are archived and revoked, invitation/audit history is retained, and deletion of an active Chairman is blocked until handover.
+- [ ] Independent human review of the SQL and Edge Function, including the invitation delivery/checkpoint crash window and operational reconciliation runbook.
 - [x] GitHub Actions non-deploying static checks passed: Node syntax check for the HTTP smoke suite and Deno type-check for the Edge Function.
 - [ ] Full live HTTP/Auth integration suite and configured-runtime checks still require test identities and a deployed test-only endpoint.
 - [ ] Final reviewer approval before merge.
