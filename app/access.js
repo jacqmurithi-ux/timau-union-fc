@@ -97,11 +97,14 @@ signupForm.addEventListener("submit", async (event) => {
   const submit = signupForm.querySelector('button[type="submit"]');
   submit.disabled = true;
   try {
+    const emailRedirect = new URL(window.location.href);
+    emailRedirect.search = "";
+    emailRedirect.hash = "";
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: { display_name: name },
-        emailRedirectTo: window.location.origin + "/app/index.html"
+        emailRedirectTo: emailRedirect.toString()
       }
     });
     if (error) throw error;
