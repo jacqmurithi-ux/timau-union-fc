@@ -1,6 +1,6 @@
 # Phase 1 RLS and identity workflow test checklist
 
-Run only against disposable Union Test. Never point this checklist at production. Latest SQL evidence is recorded in [automated verification](../docs/PHASE-1-AUTOMATED-VERIFICATION-2026-10-19.md). The real API suite is prepared at [phase-1-postgrest-smoke.mjs](phase-1-postgrest-smoke.mjs) and requires separate disposable test identities/JWTs.
+Run only against disposable Union Test. Never point this checklist at production. Latest SQL evidence is recorded in [automated verification](../docs/PHASE-1-AUTOMATED-VERIFICATION-2026-10-19.md). The real API suite is prepared at [phase-1-postgrest-smoke.mjs](phase-1-postgrest-smoke.mjs) and requires separate disposable test identities/JWTs. The repeatable two-session Chairman race harness is [phase-1-chairman-handover-concurrency.sh](phase-1-chairman-handover-concurrency.sh) and requires a Union Test-only PostgreSQL URL.
 
 ## Catalog / grants — Union Test
 
@@ -16,7 +16,7 @@ Run only against disposable Union Test. Never point this checklist at production
 ## Identity authorization / API
 
 - [x] Negative SQL simulation: nonexistent/non-Chairman actor cannot create an invitation.
-- [x] Latest-head non-deploying CI passed Node syntax check for the PostgREST smoke suite and Deno type-check for the Edge Function (run 37, commit `5a4b2b2`).
+- [x] Latest-head non-deploying CI passed Node syntax check for the PostgREST smoke suite, Bash syntax check for the concurrency harness, and Deno type-check for the Edge Function (run 42, commit `f68054e`).
 - [ ] CI skipped the live PostgREST step because Union Test JWT fixture secrets are not configured; add them as repository secrets and rerun to obtain real API evidence.
 - [ ] Anonymous API SELECT denied through real HTTP.
 - [ ] Active member reads their own profile only through real HTTP.
@@ -55,7 +55,9 @@ Run only against disposable Union Test. Never point this checklist at production
 - [x] Chairman handover serialized with transaction advisory lock and backed by unique active-Chairman index.
 - [x] Two independent SQL requests yielded one handover success and one denial; exactly one active Chairman remained. This is request-level concurrency evidence, not a repeatable multi-session stress test.
 - [x] Invalid Chairman successor, duplicate active Chairman assignment and invalid lifecycle/revocation transitions were rejected in prior SQL simulations.
-- [ ] Repeat handover race test with a controlled, repeatable multi-session harness and captured evidence.
+- [x] Added a controlled two-session psql race harness; its shell syntax passes CI.
+- [ ] Execute the harness against Union Test with `SUPABASE_TEST_DB_URL` and `SUPABASE_TEST_PROJECT_REF` configured. Latest CI skipped execution because these settings are not configured.
+- [ ] Capture a clean race run and verify the original Chairman fixture is restored; a manual parallel probe returned one success and one denial, but follow-up fixture restoration was not reliable enough to count as a completed stress test.
 - [ ] Verify role-change authorization and existing JWT behavior with separate identities through the real endpoint.
 
 ## Final review / release gate
