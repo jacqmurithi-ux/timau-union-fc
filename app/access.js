@@ -151,12 +151,12 @@ async function loadAccess() {
     show(authPanel, false); show(accountPanel, true);
     const status = await rpc("get_my_access_status");
     const lines = [];
-    if (!status.email_verified) lines.push("Email verification is still required. Check your inbox and spam folder.");
+    if (status.platform_admin) lines.push("Platform Admin access is active. Use the protected approval dashboard below.");
+    else if (!status.email_verified) lines.push("Email verification is still required. Check your inbox and spam folder.");
     else if (status.status === "pending") lines.push("Your email is verified. Your access request is pending Platform Admin approval.");
     else if (status.status === "rejected") lines.push("Your access request was rejected. Contact the club through its published contact channels if you believe this is an error.");
     else if (status.status === "suspended") lines.push("Your club access is suspended. Private club data and operations are unavailable.");
     else if (status.status === "revoked") lines.push("Your club access has been revoked. Private club data and operations are unavailable.");
-    else if (status.platform_admin) lines.push("Platform Admin access is active. Use the protected approval dashboard below.");
     else if (status.status === "approved" && !status.role) lines.push("Your access is approved, but a club role has not yet been assigned. Club operations remain unavailable.");
     else if (status.access_granted) lines.push("Your account is approved and has an active role: " + status.role.replaceAll("_", " ") + ".");
     else lines.push("Your account does not currently have permission to use club management.");
