@@ -58,7 +58,20 @@
         <form id="signin-form" class="access-form">
           <label>Email address<input name="email" type="email" autocomplete="email" maxlength="320" required></label>
           <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
-          <div class="access-actions"><button class="button button-dark" type="submit">Sign in securely</button></div>
+          <div class="access-actions"><button class="button button-dark" type="submit">Sign in securely</button><button id="forgot-password" class="button button-dark" type="button">Forgot password?</button></div>
+        </form>
+        <form id="reset-request-form" class="access-form access-hidden">
+          <h2>Reset your password</h2>
+          <p class="access-small">Enter the email address associated with your account. If an account is associated with it, you’ll receive a reset link.</p>
+          <label>Email address<input name="email" type="email" autocomplete="email" maxlength="320" required></label>
+          <div class="access-actions"><button class="button button-dark" type="submit">Send reset link</button><button id="cancel-reset-request" class="button button-dark" type="button">Back to sign in</button></div>
+        </form>
+        <form id="update-password-form" class="access-form access-hidden">
+          <h2>Choose a new password</h2>
+          <p class="access-small">Use at least 12 characters. This form works only after opening a valid password-reset link from your email.</p>
+          <label>New password<input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
+          <label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" required></label>
+          <div class="access-actions"><button class="button button-dark" type="submit">Update password</button></div>
         </form>
         <form id="signup-form" class="access-form access-hidden">
           <label>Full name<input name="display_name" type="text" autocomplete="name" minlength="1" maxlength="120" required></label>
