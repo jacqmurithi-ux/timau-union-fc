@@ -71,11 +71,10 @@ jobs:
              [ -z "$SUPABASE_TEST_SUSPENDED_JWT" ] && [ -z "$SUPABASE_TEST_SUSPENDED_USER_ID" ] && \
              [ -z "$SUPABASE_TEST_REVOKED_JWT" ] && [ -z "$SUPABASE_TEST_REVOKED_USER_ID" ] && \
              [ -z "$SUPABASE_TEST_CHAIRMAN_JWT" ]; then
-            echo "::notice::PostgREST integration tests skipped because no Union Test HTTP fixture secrets are configured."
-            exit 0
+            echo "::error::Required Union Test HTTP fixture secrets are not configured; refusing to report a green security review with skipped authorization tests."
+            exit 1
           fi
-          # If any fixture secret is configured, run the suite; its validation fails closed
-          # with the names of missing variables (never their values) when configuration is partial.
+          # The smoke test validates every required variable and reports missing variable names only.
           node tests/phase-1-postgrest-smoke.mjs
       - name: Ensure review SQL is not placed in migrations
         run: |
