@@ -8,6 +8,7 @@
   <meta name="description" content="Timau Union FC member sign-in, email registration and protected access approval.">
   <title>Member Access | Timau Union FC</title>
   <link rel="icon" href="../assets/club-crest.jpg" type="image/jpeg">
+  <script src="/js/install-tracking.js" defer></script>
   <link rel="stylesheet" href="../styles.css">
   <style>
     .access-shell{max-width:760px;margin-inline:auto}
@@ -29,6 +30,11 @@
     .access-hidden{display:none!important}
     .access-actions .button{cursor:pointer}
     button:disabled{opacity:.55;cursor:not-allowed}
+    .install-chart{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:.4rem;align-items:end;min-height:150px;margin:1rem 0;padding:.75rem;border:1px solid var(--border);border-radius:10px}
+    .install-bar{display:flex;min-width:0;flex-direction:column;justify-content:end;align-items:center;gap:.25rem;height:130px;font-size:.7rem}
+    .install-bar-fill{width:70%;min-height:2px;background:var(--red);border-radius:4px 4px 0 0}
+    .install-bar-label{overflow:hidden;max-width:100%;white-space:nowrap}
+    @media(min-width:700px){.install-chart{grid-template-columns:repeat(15,minmax(0,1fr))}}
   </style>
 </head>
 <body>
@@ -93,6 +99,21 @@
       <section id="admin-panel" class="access-card access-hidden" aria-labelledby="admin-heading">
         <h2 id="admin-heading">Platform Admin dashboard</h2>
         <p class="access-small">Approval and role changes are sent to protected database functions. Browser-side fields cannot grant access or assign roles.</p>
+        <section id="install-stats-section" aria-labelledby="install-stats-heading">
+          <h3 id="install-stats-heading">App Install Statistics</h3>
+          <p class="access-small">Anonymous install and app-open activity. Visible only to an active Platform Admin.</p>
+          <div id="install-stats-status" class="access-status" role="status">Install statistics have not been loaded.</div>
+          <div id="install-stats-cards" class="feature-grid" hidden>
+            <article class="feature-card"><h4>Total installs</h4><p id="install-total">—</p></article>
+            <article class="feature-card"><h4>Today</h4><p id="install-today">—</p></article>
+            <article class="feature-card"><h4>Last 7 days</h4><p id="install-seven">—</p></article>
+            <article class="feature-card"><h4>Last 30 days</h4><p id="install-thirty">—</p></article>
+            <article class="feature-card"><h4>Active installs · 30 days</h4><p id="install-active">—</p></article>
+            <article class="feature-card"><h4>Prompt acceptance</h4><p id="install-rate">—</p><small id="install-prompt-counts"></small></article>
+          </div>
+          <div class="access-actions"><button id="refresh-install-stats" class="button button-dark" type="button">Refresh install statistics</button><button id="export-install-stats" class="button button-dark" type="button" disabled>Export daily CSV</button><button id="copy-install-summary" class="button button-dark" type="button" disabled>Copy summary</button><button id="share-install-summary" class="button button-dark" type="button" disabled>Share summary</button></div>
+          <div id="install-stats-chart" class="install-chart" role="img" aria-label="Daily app installs for the last 30 days"></div><div class="access-table-wrap" id="install-stats-daily"></div>
+        </section>
         <div class="access-actions"><button id="refresh-queue" class="button button-dark" type="button">Refresh requests</button><button id="show-audit" class="button button-dark" type="button">Load audit history</button></div>
         <div id="request-list" class="access-table-wrap"></div>
         <section id="audit-section" class="access-hidden">
