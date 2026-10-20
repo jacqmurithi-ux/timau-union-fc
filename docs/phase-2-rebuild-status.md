@@ -1,7 +1,8 @@
 # Phase 2 rebuild status
 
 - Source branch: `draft/phase-2-rebuild-20261020`
-- Review PR: https://github.com/jacqmurithi-ux/timau-union-fc/pull/12
+- Merged PR: https://github.com/jacqmurithi-ux/timau-union-fc/pull/12
+- Main merge commit: `81b2d5049ab0971d38e22740489ca23d181d523e`
 - Approval rule: publication decisions follow the active club role and record type; active Platform Admin has system-wide override.
 - Union Test (`dzpquzfghapjodmrmavw`): role adapter and core migration were previously recorded as applied. The role-scoped approval function update was applied as migration `20261020204607 / phase_2_role_scoped_approval_fix`; the environment-specific fail-closed Platform Admin adapter was applied as `phase_2_test_admin_fail_closed_adapter`. The expanded read-only catalog, grant, SECURITY DEFINER configuration, and role-map contract test passed after these updates.
 - Union Test contract checks: both private tables exist with RLS enabled; direct API-role table grants and direct internal helper execution are absent; expected RPC grants and fixed search paths are present; positive and negative role/type mapping assertions passed. A transaction-scoped function test using active Media Team and Chairman identities confirmed Media Team can approve news but cannot save a sponsor, Chairman can approve a sponsor, and test records/audit events were rolled back.
