@@ -1,11 +1,11 @@
 # PWA install analytics — review only
 
-This branch contains a draft migration and standalone files. It is not production-ready.
+This branch contains a draft migration and in-dashboard analytics integration. It is not production-ready. It is not production-ready.
 
 ## Files
 - `supabase/migrations/20261021100000_pwa_install_analytics.sql`: private event table, narrow ingestion RPC, admin-only report RPC.
 - `js/install-tracking.js`: anonymous tracking, DNT/GPC opt-out, install/prompt/standalone events.
-- `admin/installs.html`: admin report UI.
+- `app/index.html` and `app/access.js`: report embedded in the existing protected Platform Admin view.
 - `manifest.webmanifest` and `service-worker.js`: PWA prerequisites.
 
 ## Required integration
