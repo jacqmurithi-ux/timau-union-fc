@@ -43,7 +43,7 @@ begin
  end if;
  with daily as (
   select d::date install_date,count(e.id) filter(where e.event_type='install')::integer installs
-  from generate_series(v_today-29,v_today,interval '1 install_date') d
+  from generate_series(v_today-29,v_today,interval '1 day') d
   left join private.analytics_events e on e.event_type='install'
    and (e.created_at at time zone 'Africa/Nairobi')::date=d::date
   group by d::date
