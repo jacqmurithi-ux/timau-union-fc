@@ -13,6 +13,9 @@ const adminPanel = $("admin-panel");
 const notice = $("notice");
 const signinForm = $("signin-form");
 const signupForm = $("signup-form");
+const resetRequestForm = $("reset-request-form");
+const updatePasswordForm = $("update-password-form");
+let recoveryMode = false;
 const roleOptions = [
   ["chairman", "Chairman"], ["vice_chairman", "Vice Chairman"],
   ["secretary", "Secretary"], ["team_manager", "Team Manager"],
@@ -79,11 +82,71 @@ async function rpc(name, args) {
 function switchTab(tab) {
   const signup = tab === "signup";
   show(signinForm, !signup); show(signupForm, signup);
+  show(resetRequestForm, false); show(updatePasswordForm, false);
+  show($("tab-signin"), true); show($("tab-signup"), true);
   $("tab-signin").setAttribute("aria-pressed", String(!signup));
   $("tab-signup").setAttribute("aria-pressed", String(signup));
 }
+function showRecoveryForm() {
+  recoveryMode = true;
+  show(authPanel, true); show(accountPanel, false); show(adminPanel, false);
+  show(signinForm, false); show(signupForm, false); show(resetRequestForm, false);
+  show(updatePasswordForm, true);
+  show($("tab-signin"), false); show($("tab-signup"), false);
+  message("Password reset link accepted. Choose a new password below.", "success");
+}
 $("tab-signin").addEventListener("click", () => switchTab("signin"));
 $("tab-signup").addEventListener("click", () => switchTab("signup"));
+$("forgot-password").addEventListener("click", () => {
+  resetRequestForm.elements.email.value = signinForm.elements.email.value.trim().toLowerCase();
+  show(signinForm, false); show(signupForm, false); show(resetRequestForm, true); show(updatePasswordForm, false);
+  message("Enter your email address to request a password reset.");
+});
+$("cancel-reset-request").addEventListener("click", () => {
+  resetRequestForm.reset(); switchTab("signin");
+  message("Return to sign in when you're ready.");
+});
+
+resetRequestForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = String(new FormData(resetRequestForm).get("email") || "").trim().toLowerCase();
+  const submit = resetRequestForm.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    const redirect = new URL("./index.html", window.location.href);
+    redirect.search = "?recovery=1";
+    redirect.hash = "";
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirect.toString() });
+    if (error) throw error;
+    message("If an account is associated with that email, a password reset link will be sent. Check your inbox and spam folder.", "success");
+    resetRequestForm.reset();
+  } catch (error) {
+    message(genericError(error, "The reset request could not be sent. Check your connection and try again later."), "error");
+  } finally { submit.disabled = false; }
+});
+
+updatePasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fd = new FormData(updatePasswordForm);
+  const password = String(fd.get("password") || "");
+  const confirm = String(fd.get("confirm_password") || "");
+  if (password.length < 12) return message("Use a password of at least 12 characters.", "error");
+  if (password !== confirm) return message("The new passwords do not match.", "error");
+  const submit = updatePasswordForm.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    if (!recoveryMode) throw new Error("A valid password recovery session is required.");
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    recoveryMode = false;
+    updatePasswordForm.reset();
+    await supabase.auth.signOut();
+    switchTab("signin");
+    message("Password updated. Sign in using your new password.", "success");
+  } catch (error) {
+    message(genericError(error, "Password update failed. Reopen the latest reset link from your email and try again."), "error");
+  } finally { submit.disabled = false; }
+});
 
 signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -131,7 +194,7 @@ signinForm.addEventListener("submit", async (event) => {
     signinForm.reset();
     await loadAccess();
   } catch (error) {
-    message(genericError(error, "Sign-in could not be completed. Verify your email and check your credentials."), "error");
+    message(genericError(error, "Sign-in failed. Check your email and password, confirm your email is verified, and try again. If it continues, request a password reset."), "error");
   } finally { submit.disabled = false; }
 });
 
@@ -251,16 +314,21 @@ async function loadAudit() {
 }
 
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === "SIGNED_OUT" || !session) resetPanels();
-  else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-    queueMicrotask(() => loadAccess());
+  if (event === "PASSWORD_RECOVERY") {
+    queueMicrotask(() => showRecoveryForm());
+  } else if (event === "SIGNED_OUT" || !session) {
+    if (!recoveryMode) resetPanels();
+  } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+    if (!recoveryMode) queueMicrotask(() => loadAccess());
   }
 });
 
 (async () => {
   try {
     const session = await currentSession();
-    if (session) await loadAccess();
+    const recoveryRequested = new URLSearchParams(window.location.search).get("recovery") === "1";
+    if (recoveryRequested && session) showRecoveryForm();
+    else if (session) await loadAccess();
     else { resetPanels(); message("Sign in or create an account to continue."); }
   } catch {
     message("Could not connect to the access service. Check your connection and try again.", "error");
