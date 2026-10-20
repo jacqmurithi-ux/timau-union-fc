@@ -29,6 +29,9 @@ begin
      or has_function_privilege('anon','public.club_get_workspace_bundle()','execute') then
     raise exception 'anon can execute a private workspace RPC';
   end if;
+  if to_regprocedure('private.is_active_platform_admin(uuid)') is null then raise exception 'Missing environment-specific Platform Admin helper'; end if;
+  if has_function_privilege('anon','private.is_active_platform_admin(uuid)','execute')
+     or has_function_privilege('authenticated','private.is_active_platform_admin(uuid)','execute') then raise exception 'Internal Platform Admin helper is directly executable by an API role'; end if;
   if has_function_privilege('anon','private.current_club_roles()','execute')
      or has_function_privilege('authenticated','private.current_club_roles()','execute')
      or has_function_privilege('anon','private.role_can_manage_record(text[],text)','execute')
