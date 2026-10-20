@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .then((data) => {
       if (!data || !Array.isArray(data.players)) throw new Error("Roster data is invalid");
       players = data.players.filter((player) => player.status === "listed");
+      if (grid) grid.setAttribute("aria-busy", "false");
       render(players);
       const link = document.createElement("a");
       link.href = data.source.url;
@@ -72,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .catch(() => {
       if (error) error.hidden = false;
-      if (grid) grid.replaceChildren();
+      if (grid) { grid.replaceChildren(); grid.setAttribute("aria-busy", "false"); }
       if (count) count.textContent = "Roster unavailable";
     });
 });
