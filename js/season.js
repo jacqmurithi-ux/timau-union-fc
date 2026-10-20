@@ -117,7 +117,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const card = element("article", "season-metric-card season-reveal");
     appendText(card, "span", "season-metric-label", label);
     const valueNode = element("strong", "season-metric-value");
-    if (Number.isFinite(Number(value))) {
+    if (Array.isArray(value)) {
+      value.forEach((part, index) => {
+        if (index > 0) valueNode.append(" / ");
+        counter(valueNode, Number(part), "number");
+      });
+    } else if (Number.isFinite(Number(value))) {
       counter(valueNode, Number(value), format);
     } else {
       valueNode.textContent = String(value);
@@ -149,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
     record.appendChild(recordValue);
     metrics.appendChild(record);
     metrics.appendChild(metricCard("Points", team.points));
-    metrics.appendChild(metricCard("Goals for / against", team.goalsFor + " / " + team.goalsAgainst));
+    metrics.appendChild(metricCard("Goals for / against", [team.goalsFor, team.goalsAgainst]));
     metrics.appendChild(metricCard("Goal difference", team.goalDifference, "signed"));
     target.appendChild(metrics);
     if (!compact) target.classList.add("season-summary-full");
