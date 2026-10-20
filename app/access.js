@@ -87,13 +87,22 @@ function switchTab(tab) {
   $("tab-signin").setAttribute("aria-pressed", String(!signup));
   $("tab-signup").setAttribute("aria-pressed", String(signup));
 }
+function recoveryRequestedInUrl() {
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return search.get("recovery") === "1" ||
+    search.get("type") === "recovery" ||
+    hash.get("type") === "recovery" ||
+    hash.get("error_code") === "otp_expired" ||
+    hash.get("error") === "access_denied";
+}
 function showRecoveryForm() {
   recoveryMode = true;
   show(authPanel, true); show(accountPanel, false); show(adminPanel, false);
   show(signinForm, false); show(signupForm, false); show(resetRequestForm, false);
   show(updatePasswordForm, true);
   show($("tab-signin"), false); show($("tab-signup"), false);
-  message("Password reset link accepted. Choose a new password below.", "success");
+  message("Password recovery opened. If the link is expired or invalid, request a new reset email. Choose a new password below only after a valid recovery link has been accepted.", "success");
 }
 $("tab-signin").addEventListener("click", () => switchTab("signin"));
 $("tab-signup").addEventListener("click", () => switchTab("signup"));
@@ -330,12 +339,19 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 (async () => {
   try {
+    // Supabase processes recovery tokens from the URL during client startup.
+    // Yield briefly so its PASSWORD_RECOVERY event/session can be established
+    // before deciding whether to show the normal sign-in panel.
+    await new Promise(resolve => setTimeout(resolve, 250));
     const session = await currentSession();
-    const recoveryRequested = new URLSearchParams(window.location.search).get("recovery") === "1";
-    if (recoveryRequested && session) showRecoveryForm();
+    if (recoveryRequestedInUrl() && session) showRecoveryForm();
     else if (session) await loadAccess();
-    else { resetPanels(); message("Sign in or create an account to continue."); }
-  } catch {
+    else if (recoveryRequestedInUrl()) {
+      resetPanels();
+      message("This recovery link has not established a valid session. Open the newest reset email link again, and make sure it opens the /app member-access page.", "error");
+    } else { resetPanels(); message("Sign in or create an account to continue."); }
+  } catch (error) {
+    console.error("Timau Union FC access initialization failed:", error);
     message("Could not connect to the access service. Check your connection and try again.", "error");
   }
 })();
