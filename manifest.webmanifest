@@ -1,0 +1,17 @@
+{
+  "name": "Timau Union FC",
+  "short_name": "Timau Union",
+  "start_url": "/index.html?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#c8102e",
+  "icons": [
+    {
+      "src": "/assets/club-crest.jpg",
+      "sizes": "any",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
