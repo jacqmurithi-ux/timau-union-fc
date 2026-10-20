@@ -199,7 +199,7 @@ begin
   end if;
 
   select u.email_confirmed_at is not null, aa.status, ra.role_key,
-         private.is_active_platform_admin(v_uid)
+         (private.is_active_platform_admin(v_uid) and u.email_confirmed_at is not null)
     into v_email_verified, v_status, v_role, v_is_admin
   from auth.users u
   left join private.account_access aa on aa.user_id = u.id
@@ -279,6 +279,7 @@ declare
   v_actor uuid := auth.uid();
   v_old_status text;
   v_verified boolean;
+  v_old_roles jsonb;
 begin
   if v_actor is null or not private.is_active_platform_admin(v_actor) then
     raise exception 'Active Platform Admin required' using errcode = '42501';
@@ -313,6 +314,27 @@ begin
   set status = _new_status, decided_at = pg_catalog.now(),
       decided_by = v_actor, decision_reason = _reason
   where user_id = _target_user_id;
+
+  -- Rejection/revocation removes active club roles in the same transaction.
+  -- Suspension keeps the assignment for a deliberate reinstatement, but all access
+  -- remains blocked while the account status is suspended.
+  if _new_status in ('rejected', 'revoked') then
+    select coalesce(pg_catalog.jsonb_agg(role_key order by role_key), '[]'::jsonb)
+      into v_old_roles
+    from private.role_assignments
+    where user_id = _target_user_id and active;
+
+    update private.role_assignments
+    set active = false, revoked_at = pg_catalog.now(), revoked_by = v_actor
+    where user_id = _target_user_id and active;
+
+    if pg_catalog.jsonb_array_length(v_old_roles) > 0 then
+      insert into private.audit_events(actor_user_id, target_user_id, action_key, old_value, new_value, reason)
+      values (v_actor, _target_user_id, 'club_role_changed',
+              pg_catalog.jsonb_build_object('roles', v_old_roles),
+              pg_catalog.jsonb_build_object('roles', '[]'::jsonb), _reason);
+    end if;
+  end if;
 
   insert into private.audit_events(actor_user_id, target_user_id, action_key, old_value, new_value, reason)
   values (v_actor, _target_user_id, 'account_status_changed',
