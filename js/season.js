@@ -163,11 +163,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ? [team.position, team.team, team.played, team.goalDifference, team.points]
       : [team.position, team.team, team.played, team.wins, team.draws, team.losses, team.goalsFor, team.goalsAgainst, team.goalDifference, team.points];
     values.forEach((value, index) => {
-      const cell = element(index < 2 ? "th" : "td", "");
+      const cell = element(index === 1 ? "th" : "td", "");
       if (index === 0) {
-        cell.scope = "row";
         cell.classList.add("sticky-pos");
       } else if (index === 1) {
+        cell.scope = "row";
         cell.classList.add("sticky-team");
       } else if (index === values.length - 1) {
         cell.classList.add("season-points-cell");
