@@ -1,6 +1,6 @@
 "use strict";
 
-document.addEventListener("DOMContentLoaded", () => {
+function initializePage() {
   const menuToggle = document.getElementById("menu-toggle");
   const primaryNav = document.getElementById("primary-nav");
 
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setMenuState(false, true);
       }
     });
-    const desktopLayout = window.matchMedia("(min-width: 768px)");
+    const desktopLayout = window.matchMedia("(min-width: 900px)");
     const handleLayoutChange = (event) => {
       if (event.matches) setMenuState(false);
     };
@@ -45,7 +45,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (yearElement) yearElement.textContent = String(new Date().getFullYear());
 
   loadMatchCentre();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializePage, { once: true });
+} else {
+  initializePage();
+}
 
 async function loadMatchCentre() {
   const section = document.getElementById("fixtures");
