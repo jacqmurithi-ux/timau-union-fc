@@ -1,5 +1,5 @@
 # Phase 2 — Private operational workspace
-**Isolated draft branch. Applied to Union Test only on 2026-10-20; Production and GitHub Pages unchanged.**
+**Isolated draft branch. The project status record reports application to Union Test on 2026-10-20; this document update does not independently verify the live database. Production and GitHub Pages are intended to remain unchanged.**
 
 ## Workspace
 Private `/app/workspace.html`: player register, fixtures/results, news, sponsors and activities. All writes use protected RPCs. New records are drafts; editing resets approval. Chairman and Secretary can approve, return to draft or archive with a reason. Public RPC returns approved records only and allowlists public fields. Public website remains unchanged pending separate integration review.
@@ -28,3 +28,9 @@ No fixtures, players, scores, sponsors or contacts were added; test save was rol
 - Production also reported leaked-password protection disabled. This is an existing Auth configuration warning, not a Phase 2 migration result.
 - Union Test's post-migration advisor reports RLS enabled with no policies for the two private tables (intentional, but documented as an INFO finding); one anon-executable SECURITY DEFINER public-content RPC (intentional but must remain narrowly allowlisted); four authenticated-executable SECURITY DEFINER workspace RPCs (intended, protected by internal identity/role checks); and leaked-password protection disabled (existing Auth configuration warning).
 - Production remains unchanged; its leaked-password protection warning remains outstanding. Review SECURITY DEFINER owners and paths before any release, and decide whether to document/suppress expected advisor warnings or redesign the public RPC.
+
+
+## Follow-up review — 2026-10-20
+- Corrected the manual core rollback to drop `private.valid_club_record_data(text,jsonb)` before removing the workspace tables, and added a warning that rollback is destructive and does not remove the environment-specific `private.current_club_roles()` adapter.
+- The previously recorded Union Test catalog and Media Team smoke-test results are historical status claims. They are not a substitute for the remaining authenticated role/identity tests listed above.
+- **Release remains blocked** until the remaining checks below are executed against Union Test with controlled test identities and their actual results are recorded. Do not run these against Production.
