@@ -7,7 +7,8 @@ Status: **Draft implementation; not production-ready.** Work and all database ex
 - `supabase/review-drafts/transactional_identity_workflows_review_draft.sql`: invitation outbox, idempotency, invitation finalization/activation/cancellation, membership suspend/restore/revoke, role assignment/revocation, and serialized Chairman handover.
 - `supabase/review-drafts/rate_limit_review_draft.sql`: database-backed per-identity rate limiting with an explicit deny-all policy on the private counter table.
 - `supabase/functions/club-admin/index.ts`: review-only Edge Function routes; authenticates with Supabase Auth, resolves live membership/Chairman authority from database rows, bounds JSON request bodies to 16 KiB, validates invite redirect origin/scheme, enforces database-backed rate limits, and invokes service-only RPCs. **Do not deploy.**
-- `tests/phase-1-postgrest-smoke.mjs`: real HTTP/PostgREST test suite requiring disposable test JWTs/fixtures; syntax checked in CI but not run here.
+- `tests/phase-1-postgrest-smoke.mjs`: real HTTP/PostgREST test suite requiring disposable test JWTs/fixtures; syntax checked in CI but live execution is skipped until test-only secrets are configured.
+- `tests/phase-1-chairman-handover-concurrency.sh`: two-session psql race harness; syntax checked in CI, but live execution is skipped until the Union Test-only DB URL and project-ref variable are configured.
 - `docs/PHASE-1-INVITATION-RECOVERY-RUNBOOK.md`: manual recovery for requests stranded in `sending` without automatic duplicate email delivery.
 - PR #7 remains draft.
 
