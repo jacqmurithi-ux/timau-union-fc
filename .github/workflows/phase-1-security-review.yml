@@ -1,0 +1,93 @@
+name: Phase 1 security review checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/review-drafts/**"
+      - "supabase/functions/club-admin/**"
+      - "tests/phase-1-*.mjs"
+      - "tests/phase-1-*.sql"
+      - ".github/workflows/phase-1-security-review.yml"
+  push:
+    branches: ["phase-1/close-security-review-gaps"]
+    paths:
+      - "supabase/review-drafts/**"
+      - "supabase/functions/club-admin/**"
+      - "tests/phase-1-*.mjs"
+      - "tests/phase-1-*.sql"
+      - ".github/workflows/phase-1-security-review.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  static-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: "v2.x"
+      - name: Check PostgREST smoke test syntax
+        run: node --check tests/phase-1-postgrest-smoke.mjs
+      - name: Syntax-check multi-session concurrency harness
+        run: bash -n tests/phase-1-chairman-handover-concurrency.sh
+      - name: Run multi-session Chairman handover race when Union Test DB fixture is configured
+        env:
+          SUPABASE_TEST_DB_URL: ${{ secrets.SUPABASE_TEST_DB_URL }}
+          SUPABASE_TEST_PROJECT_REF: ${{ vars.SUPABASE_TEST_PROJECT_REF }}
+        run: |
+          if [ -z "$SUPABASE_TEST_DB_URL" ] && [ -z "$SUPABASE_TEST_PROJECT_REF" ]; then
+            echo "::notice::Multi-session database test skipped; configure Union Test DB URL and project-ref variable to enable it."
+            exit 0
+          fi
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          bash tests/phase-1-chairman-handover-concurrency.sh
+      - name: Type-check Edge Function without deploying
+        run: deno check --no-lock supabase/functions/club-admin/index.ts
+      - name: Run PostgREST integration tests when Union Test fixtures are configured
+        env:
+          SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ secrets.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_TEST_MEMBER_JWT: ${{ secrets.SUPABASE_TEST_MEMBER_JWT }}
+          SUPABASE_TEST_MEMBER_USER_ID: ${{ secrets.SUPABASE_TEST_MEMBER_USER_ID }}
+          SUPABASE_TEST_INVITED_JWT: ${{ secrets.SUPABASE_TEST_INVITED_JWT }}
+          SUPABASE_TEST_INVITED_USER_ID: ${{ secrets.SUPABASE_TEST_INVITED_USER_ID }}
+          SUPABASE_TEST_SUSPENDED_JWT: ${{ secrets.SUPABASE_TEST_SUSPENDED_JWT }}
+          SUPABASE_TEST_SUSPENDED_USER_ID: ${{ secrets.SUPABASE_TEST_SUSPENDED_USER_ID }}
+          SUPABASE_TEST_REVOKED_JWT: ${{ secrets.SUPABASE_TEST_REVOKED_JWT }}
+          SUPABASE_TEST_REVOKED_USER_ID: ${{ secrets.SUPABASE_TEST_REVOKED_USER_ID }}
+          SUPABASE_TEST_CHAIRMAN_JWT: ${{ secrets.SUPABASE_TEST_CHAIRMAN_JWT }}
+        run: |
+          if [ -z "$SUPABASE_TEST_URL" ] && [ -z "$SUPABASE_TEST_ANON_KEY" ] && \
+             [ -z "$SUPABASE_TEST_MEMBER_JWT" ] && [ -z "$SUPABASE_TEST_MEMBER_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_INVITED_JWT" ] && [ -z "$SUPABASE_TEST_INVITED_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_SUSPENDED_JWT" ] && [ -z "$SUPABASE_TEST_SUSPENDED_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_REVOKED_JWT" ] && [ -z "$SUPABASE_TEST_REVOKED_USER_ID" ] && \
+             [ -z "$SUPABASE_TEST_CHAIRMAN_JWT" ]; then
+            echo "::error::Required Union Test HTTP fixture secrets are not configured; refusing to report a green security review with skipped authorization tests."
+            exit 1
+          fi
+          # The smoke test validates every required variable and reports missing variable names only.
+          node tests/phase-1-postgrest-smoke.mjs
+      - name: Ensure review SQL is not placed in migrations
+        if: always()
+        run: |
+          test -d supabase/review-drafts
+          test ! -f supabase/migrations/phase_1_server_side_rate_limits_test.sql
+          grep -q "REVIEW DRAFT ONLY" supabase/review-drafts/rate_limit_review_draft.sql
+          grep -q "REVIEW DRAFT ONLY" supabase/review-drafts/auth_user_deletion_archive_review_draft.sql
+          grep -q "dzpquzfghapjodmrmavw.supabase.co" tests/phase-1-postgrest-smoke.mjs
+          grep -q "rollback;" tests/phase-1-lifecycle-assertions.sql
+          grep -q "REVIEW DRAFT ONLY" supabase/review-drafts/auth_user_deletion_archive_review_draft.sql
+      - name: Confirm no production URL or service key in browser/test artifacts
+        if: always()
+        run: |
+          ! grep -R -n "owvvimydkjsjlrmnzvdi\.supabase\.co" supabase/functions/club-admin tests/phase-1-postgrest-smoke.mjs
+          ! grep -R -n "SUPABASE_SERVICE_ROLE_KEY=" tests/phase-1-postgrest-smoke.mjs
