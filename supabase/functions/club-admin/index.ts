@@ -3,7 +3,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const allowedRoles = new Set(["vice_chairman", "secretary", "team_manager", "treasurer", "coach", "sponsor_lead", "media_team"]);
-const allowedActions = new Set(["invite", "activate_invitation", "cancel_invitation", "suspend_membership", "restore_membership", "revoke_membership", "assign_role", "revoke_role", "chairman_handover"]);
+const allowedActions = new Set(["invite", "activate_invitation", "cancel_invitation", "suspend_membership", "restore_membership", "revoke_membership", "assign_role", "revoke_role", "chairman_handover", "platform_list_accounts", "platform_approve_signup", "platform_assign_role", "platform_revoke_role"]);
+const platformRoles = new Set(["chairman", "vice_chairman", "secretary", "team_manager", "treasurer", "coach", "sponsor_lead", "media_team"]);
+const platformActions = new Set(["platform_list_accounts", "platform_approve_signup", "platform_assign_role", "platform_revoke_role"]);
 const originList = (Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const jsonHeaders = { "Content-Type": "application/json", "Vary": "Origin" };
 
@@ -50,6 +52,82 @@ Deno.serve(async (req) => {
     if (activationRateError) return response(503, { error: "rate_limit_unavailable" }, cors);
     if (activationAllowed !== true) return response(429, { error: "rate_limit_exceeded" }, cors);
     const { data, error } = await admin.rpc("club_admin_activate_invitation", { _actor: actor.id, _invitation_id: invitationId });
+    if (error) return response(mapStatus(error.code), { error: safeError(error.message) }, cors);
+    return response(200, { status: data }, cors);
+  }
+
+  // Platform administration is a separate authority from club Chairman permissions.
+  // The platform-admin allowlist is stored in a private table and can only be bootstrapped
+  // out-of-band by a database owner; browser requests cannot grant this authority.
+  if (platformActions.has(action)) {
+    const { data: platformAllowed, error: platformAuthError } = await admin.rpc("club_platform_admin_is_authorized", { _actor: actor.id });
+    if (platformAuthError) return response(503, { error: "platform_authorization_unavailable" }, cors);
+    if (platformAllowed !== true) return response(403, { error: "platform_admin_required" }, cors);
+
+    const { data: rateAllowed, error: rateError } = await admin.rpc("club_admin_consume_rate_limit", {
+      _actor: actor.id, _bucket: "admin_mutation",
+    });
+    if (rateError) return response(503, { error: "rate_limit_unavailable" }, cors);
+    if (rateAllowed !== true) return response(429, { error: "rate_limit_exceeded" }, cors);
+
+    if (action === "platform_list_accounts") {
+      const { data: usersPage, error: usersError } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      if (usersError) return response(502, { error: "account_list_unavailable" }, cors);
+      const users = usersPage.users ?? [];
+      const ids = users.map((u) => u.id);
+      if (ids.length === 0) return response(200, { accounts: [], truncated: false }, cors);
+      const [
+        { data: profiles, error: profilesError },
+        { data: memberships, error: membershipsError },
+        { data: roles, error: rolesError },
+      ] = await Promise.all([
+        admin.from("user_profiles").select("user_id,display_name").in("user_id", ids),
+        admin.from("club_memberships").select("id,user_id,status,invited_email,created_at,activated_at").in("user_id", ids),
+        admin.from("role_assignments").select("membership_id,role_key,revoked_at").is("revoked_at", null),
+      ]);
+      if (profilesError || membershipsError || rolesError) return response(503, { error: "account_review_data_unavailable" }, cors);
+      const profileById = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      const membershipByUser = new Map((memberships ?? []).filter((m) => m.user_id).map((m) => [m.user_id, m]));
+      const roleByMembership = new Map<string, string[]>();
+      for (const role of roles ?? []) {
+        const list = roleByMembership.get(role.membership_id) ?? [];
+        list.push(role.role_key);
+        roleByMembership.set(role.membership_id, list);
+      }
+      const accounts = users.map((u) => {
+        const membership = membershipByUser.get(u.id);
+        const status = u.id === actor.id ? "platform_admin" : membership?.status ?? "pending_approval";
+        return {
+          user_id: u.id,
+          email: u.email ?? "",
+          display_name: profileById.get(u.id)?.display_name ?? String(u.user_metadata?.display_name ?? u.user_metadata?.full_name ?? ""),
+          email_confirmed: Boolean(u.email_confirmed_at),
+          created_at: u.created_at,
+          membership_status: status,
+          roles: membership ? (roleByMembership.get(membership.id) ?? []) : [],
+        };
+      });
+      return response(200, { accounts, truncated: users.length === 200 }, cors);
+    }
+
+    const targetUserId = uuid(body.user_id);
+    const role = typeof body.role === "string" ? body.role : "";
+    const note = body.note === undefined || body.note === null ? null : body.note;
+    if (!targetUserId || !platformRoles.has(role) || (note !== null && (typeof note !== "string" || note.length > 500))) {
+      return response(400, { error: "invalid_platform_role_request" }, cors);
+    }
+    if (targetUserId === actor.id) return response(409, { error: "self_approval_or_assignment_not_allowed" }, cors);
+    if (action === "platform_approve_signup") {
+      const { data, error } = await admin.rpc("club_platform_admin_approve_signup", {
+        _actor: actor.id, _target_user_id: targetUserId, _role_key: role, _note: cleanNote(note),
+      });
+      if (error) return response(mapStatus(error.code), { error: safeError(error.message) }, cors);
+      return response(200, { status: "approved", result: data }, cors);
+    }
+    const { data, error } = await admin.rpc("club_platform_admin_change_role", {
+      _actor: actor.id, _target_user_id: targetUserId, _role_key: role,
+      _action: action === "platform_assign_role" ? "assign" : "revoke", _note: cleanNote(note),
+    });
     if (error) return response(mapStatus(error.code), { error: safeError(error.message) }, cors);
     return response(200, { status: data }, cors);
   }
@@ -181,7 +259,7 @@ function mapStatus(code?: string): number {
 }
 function safeError(message: string): string {
   const allowed = new Set([
-    "chairman_required", "invalid_invitation", "self_assignment_not_allowed", "idempotency_key_conflict",
+    "chairman_required", "platform_admin_required", "verified_signup_required", "membership_not_approvable", "invalid_platform_approval", "invalid_platform_role_request", "chairman_handover_required", "invalid_invitation", "self_assignment_not_allowed", "idempotency_key_conflict",
     "email_already_has_membership", "invitation_not_claimed", "invitation_not_activatable", "invitation_expired",
     "verified_invited_identity_required", "membership_not_activatable", "invitation_not_cancellable",
     "self_management_not_allowed", "membership_not_found", "invalid_membership_transition", "invalid_role_change",
