@@ -1,6 +1,6 @@
 # Phase 1 RLS and identity workflow test checklist
 
-Run only against disposable Union Test. Never point this checklist at production. Latest SQL evidence is recorded in [automated verification](../docs/PHASE-1-AUTOMATED-VERIFICATION-2026-10-19.md). The real API suite is prepared at [phase-1-postgrest-smoke.mjs](phase-1-postgrest-smoke.mjs) and requires separate disposable test identities/JWTs. The repeatable two-session Chairman race harness is [phase-1-chairman-handover-concurrency.sh](phase-1-chairman-handover-concurrency.sh) and requires a Union Test-only PostgreSQL URL.
+Run only against disposable Union Test. Never point this checklist at production. Latest SQL evidence is recorded in [automated verification](../docs/PHASE-1-AUTOMATED-VERIFICATION-2026-10-19.md). Rollback-safe invitation and account-deletion assertions are in [phase-1-lifecycle-assertions.sql](phase-1-lifecycle-assertions.sql). The real API suite is prepared at [phase-1-postgrest-smoke.mjs](phase-1-postgrest-smoke.mjs) and requires separate disposable test identities/JWTs. The repeatable two-session Chairman race harness is [phase-1-chairman-handover-concurrency.sh](phase-1-chairman-handover-concurrency.sh) and requires a Union Test-only PostgreSQL URL.
 
 ## Catalog / grants — Union Test
 
