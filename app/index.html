@@ -94,6 +94,21 @@
       <section id="admin-panel" class="access-card access-hidden" aria-labelledby="admin-heading">
         <h2 id="admin-heading">Platform Admin dashboard</h2>
         <p class="access-small">Approval and role changes are sent to protected database functions. Browser-side fields cannot grant access or assign roles.</p>
+        <section id="install-stats-section" aria-labelledby="install-stats-heading">
+          <h3 id="install-stats-heading">App Install Statistics</h3>
+          <p class="access-small">Anonymous install and app-open activity. Visible only to an active Platform Admin.</p>
+          <div id="install-stats-status" class="access-status" role="status">Install statistics have not been loaded.</div>
+          <div id="install-stats-cards" class="feature-grid" hidden>
+            <article class="feature-card"><h4>Total installs</h4><p id="install-total">—</p></article>
+            <article class="feature-card"><h4>Today</h4><p id="install-today">—</p></article>
+            <article class="feature-card"><h4>Last 7 days</h4><p id="install-seven">—</p></article>
+            <article class="feature-card"><h4>Last 30 days</h4><p id="install-thirty">—</p></article>
+            <article class="feature-card"><h4>Active installs · 30 days</h4><p id="install-active">—</p></article>
+            <article class="feature-card"><h4>Prompt acceptance</h4><p id="install-rate">—</p><small id="install-prompt-counts"></small></article>
+          </div>
+          <div class="access-actions"><button id="refresh-install-stats" class="button button-dark" type="button">Refresh install statistics</button><button id="export-install-stats" class="button button-dark" type="button" disabled>Export daily CSV</button><button id="copy-install-summary" class="button button-dark" type="button" disabled>Copy summary</button><button id="share-install-summary" class="button button-dark" type="button" disabled>Share summary</button></div>
+          <div class="access-table-wrap" id="install-stats-daily"></div>
+        </section>
         <div class="access-actions"><button id="refresh-queue" class="button button-dark" type="button">Refresh requests</button><button id="show-audit" class="button button-dark" type="button">Load audit history</button></div>
         <div id="request-list" class="access-table-wrap"></div>
         <section id="audit-section" class="access-hidden">
