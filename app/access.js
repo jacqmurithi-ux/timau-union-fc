@@ -290,9 +290,10 @@ async function loadAdminQueue() {
       actions.append(status, controls);
       if (item.status === "approved" && item.email_verified) actions.append(roleControls);
       const cell = el("div"); cell.append(actions);
-      return [item.display_name || "Member", item.email || "", item.email_verified ? "Verified" : "Not verified", item.requested_at ? new Date(item.requested_at).toLocaleString() : "—", item.role || "No role", cell];
+      const displayName = item.display_name && item.display_name !== "Member" ? item.display_name : "Name not provided";
+      return [displayName, item.email || "", item.email_verified ? "Verified" : "Not verified", item.requested_at ? new Date(item.requested_at).toLocaleString() : "—", item.role || "No role", cell];
     });
-    container.replaceChildren(table(["Name", "Email", "Email", "Requested", "Active role", "Admin actions"], rendered));
+    container.replaceChildren(table(["Name", "Email", "Email verification", "Requested", "Active role", "Admin actions"], rendered));
   } catch (error) {
     container.replaceChildren(el("p", genericError(error, "Could not load the request queue. Confirm Platform Admin access and migration status.")));
   }
