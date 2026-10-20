@@ -56,30 +56,32 @@ revoke all on function private.valid_club_record_data(text,jsonb) from public,an
 create or replace function public.club_get_workspace_bundle()
 returns jsonb language plpgsql stable security definer set search_path=''
 as $function$
-declare v_roles text[];
+declare v_roles text[]; v_is_admin boolean;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ v_is_admin:=private.is_active_platform_admin(auth.uid());
  v_roles:=private.current_club_roles();
- if coalesce(array_length(v_roles,1),0)=0 then raise exception 'Approved active club role required'; end if;
- return jsonb_build_object('roles',to_jsonb(v_roles),'can_approve',('chairman'=any(v_roles) or 'secretary'=any(v_roles)),
- 'records',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'record_type',r.record_type,'data',r.data,'publication_status',r.publication_status,'created_at',r.created_at,'updated_at',r.updated_at,'approved_at',r.approved_at) order by r.updated_at desc) from private.club_records r where private.role_can_manage_record(v_roles,r.record_type)),'[]'::jsonb));
+ if not v_is_admin and coalesce(array_length(v_roles,1),0)=0 then raise exception 'Approved active club role required'; end if;
+ return jsonb_build_object('roles',to_jsonb(v_roles),'is_platform_admin',v_is_admin,'can_approve',v_is_admin,
+ 'records',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'record_type',r.record_type,'data',r.data,'publication_status',r.publication_status,'created_at',r.created_at,'updated_at',r.updated_at,'approved_at',r.approved_at) order by r.updated_at desc) from private.club_records r where v_is_admin or private.role_can_manage_record(v_roles,r.record_type)),'[]'::jsonb));
 end $function$;
 revoke all on function public.club_get_workspace_bundle() from public,anon;
 grant execute on function public.club_get_workspace_bundle() to authenticated;
 create or replace function public.club_save_record(_record_id uuid,_record_type text,_data jsonb)
 returns uuid language plpgsql security definer set search_path=''
 as $function$
-declare v_roles text[]; v_id uuid; v_old_type text;
+declare v_roles text[]; v_is_admin boolean; v_id uuid; v_old_type text;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  if not private.valid_club_record_data(_record_type,_data) then raise exception 'Invalid record type or field values'; end if;
+ v_is_admin:=private.is_active_platform_admin(auth.uid());
  v_roles:=private.current_club_roles();
- if coalesce(array_length(v_roles,1),0)=0 then raise exception 'Approved active club role required'; end if;
- if not private.role_can_manage_record(v_roles,_record_type) then raise exception 'Your role cannot edit this record type'; end if;
+ if not v_is_admin and coalesce(array_length(v_roles,1),0)=0 then raise exception 'Approved active club role required'; end if;
+ if not v_is_admin and not private.role_can_manage_record(v_roles,_record_type) then raise exception 'Your role cannot edit this record type'; end if;
  if _record_id is not null then
   select record_type into v_old_type from private.club_records where id=_record_id for update;
   if not found then raise exception 'Record not found'; end if;
-  if not private.role_can_manage_record(v_roles,v_old_type) then raise exception 'Your role cannot edit this record'; end if;
+  if not v_is_admin and not private.role_can_manage_record(v_roles,v_old_type) then raise exception 'Your role cannot edit this record'; end if;
   update private.club_records set record_type=_record_type,data=_data,publication_status='draft',approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=_record_id;
   v_id:=_record_id;
   insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason) values(auth.uid(),v_id,_record_type,'record_updated','Saved as draft; approval reset');
@@ -94,11 +96,11 @@ grant execute on function public.club_save_record(uuid,text,jsonb) to authentica
 create or replace function public.club_set_publication_status(_record_id uuid,_new_status text,_reason text)
 returns boolean language plpgsql security definer set search_path=''
 as $function$
-declare v_roles text[]; v_type text;
+declare v_is_admin boolean; v_type text;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
- v_roles:=private.current_club_roles();
- if not ('chairman'=any(v_roles) or 'secretary'=any(v_roles)) then raise exception 'Chairman or Secretary approval required'; end if;
+ v_is_admin:=private.is_active_platform_admin(auth.uid());
+ if not v_is_admin then raise exception 'Active Platform Admin required for all publication decisions'; end if;
  if _new_status not in('approved','archived','draft') then raise exception 'Invalid publication status'; end if;
  if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Reason of at least 3 characters required'; end if;
  select record_type into v_type from private.club_records where id=_record_id for update;
