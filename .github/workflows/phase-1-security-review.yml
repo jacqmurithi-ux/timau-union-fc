@@ -35,6 +35,20 @@ jobs:
           deno-version: "v2.x"
       - name: Check PostgREST smoke test syntax
         run: node --check tests/phase-1-postgrest-smoke.mjs
+      - name: Syntax-check multi-session concurrency harness
+        run: bash -n tests/phase-1-chairman-handover-concurrency.sh
+      - name: Run multi-session Chairman handover race when Union Test DB fixture is configured
+        env:
+          SUPABASE_TEST_DB_URL: ${{ secrets.SUPABASE_TEST_DB_URL }}
+          SUPABASE_TEST_PROJECT_REF: ${{ vars.SUPABASE_TEST_PROJECT_REF }}
+        run: |
+          if [ -z "$SUPABASE_TEST_DB_URL" ] && [ -z "$SUPABASE_TEST_PROJECT_REF" ]; then
+            echo "::notice::Multi-session database test skipped; configure Union Test DB URL and project-ref variable to enable it."
+            exit 0
+          fi
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          bash tests/phase-1-chairman-handover-concurrency.sh
       - name: Type-check Edge Function without deploying
         run: deno check --no-lock supabase/functions/club-admin/index.ts
       - name: Run PostgREST integration tests when Union Test fixtures are configured
