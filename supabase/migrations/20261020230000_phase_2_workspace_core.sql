@@ -62,8 +62,8 @@ begin
  v_is_admin:=private.is_active_platform_admin(auth.uid());
  v_roles:=private.current_club_roles();
  if not v_is_admin and coalesce(array_length(v_roles,1),0)=0 then raise exception 'Approved active club role required'; end if;
- return jsonb_build_object('roles',to_jsonb(v_roles),'is_platform_admin',v_is_admin,'can_approve',v_is_admin,
- 'records',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'record_type',r.record_type,'data',r.data,'publication_status',r.publication_status,'created_at',r.created_at,'updated_at',r.updated_at,'approved_at',r.approved_at) order by r.updated_at desc) from private.club_records r where v_is_admin or private.role_can_manage_record(v_roles,r.record_type)),'[]'::jsonb));
+ return jsonb_build_object('roles',to_jsonb(v_roles),'is_platform_admin',v_is_admin,'can_approve',v_is_admin or coalesce(array_length(v_roles,1),0)>0,
+ 'records',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'record_type',r.record_type,'data',r.data,'publication_status',r.publication_status,'created_at',r.created_at,'updated_at',r.updated_at,'approved_at',r.approved_at,'can_approve',v_is_admin or private.role_can_manage_record(v_roles,r.record_type)) order by r.updated_at desc) from private.club_records r where v_is_admin or private.role_can_manage_record(v_roles,r.record_type)),'[]'::jsonb));
 end $function$;
 revoke all on function public.club_get_workspace_bundle() from public,anon;
 grant execute on function public.club_get_workspace_bundle() to authenticated;
@@ -100,11 +100,11 @@ declare v_is_admin boolean; v_type text;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  v_is_admin:=private.is_active_platform_admin(auth.uid());
- if not v_is_admin then raise exception 'Active Platform Admin required for all publication decisions'; end if;
  if _new_status not in('approved','archived','draft') then raise exception 'Invalid publication status'; end if;
  if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Reason of at least 3 characters required'; end if;
  select record_type into v_type from private.club_records where id=_record_id for update;
  if not found then raise exception 'Record not found'; end if;
+ if not v_is_admin and not private.role_can_manage_record(private.current_club_roles(),v_type) then raise exception 'Your role cannot approve or change publication status for this record type'; end if;
  update private.club_records set publication_status=_new_status,approved_by=case when _new_status='approved' then auth.uid() else null end,approved_at=case when _new_status='approved' then now() else null end,updated_by=auth.uid(),updated_at=now() where id=_record_id;
  insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason) values(auth.uid(),_record_id,v_type,'publication_'||_new_status,btrim(_reason));
  return true;
