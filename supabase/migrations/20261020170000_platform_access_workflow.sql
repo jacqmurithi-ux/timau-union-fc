@@ -187,13 +187,15 @@ declare
   v_status text;
   v_email_verified boolean;
   v_role text;
+  v_is_admin boolean;
 begin
   if v_uid is null then
     raise exception 'Authentication required' using errcode = '28000';
   end if;
 
-  select u.email_confirmed_at is not null, aa.status, ra.role_key
-    into v_email_verified, v_status, v_role
+  select u.email_confirmed_at is not null, aa.status, ra.role_key,
+         private.is_active_platform_admin(v_uid)
+    into v_email_verified, v_status, v_role, v_is_admin
   from auth.users u
   left join private.account_access aa on aa.user_id = u.id
   left join private.role_assignments ra on ra.user_id = u.id and ra.active
@@ -205,9 +207,10 @@ begin
 
   return pg_catalog.jsonb_build_object(
     'email_verified', coalesce(v_email_verified, false),
-    'status', coalesce(v_status, 'pending'),
+    'status', case when coalesce(v_is_admin, false) then coalesce(v_status, 'platform_admin') else coalesce(v_status, 'pending') end,
+    'platform_admin', coalesce(v_is_admin, false),
     'role', case when v_status = 'approved' and v_email_verified then v_role else null end,
-    'access_granted', coalesce(v_status = 'approved' and v_email_verified and v_role is not null, false)
+    'access_granted', coalesce(v_is_admin, false) or coalesce(v_status = 'approved' and v_email_verified and v_role is not null, false)
   );
 end;
 $function$;
