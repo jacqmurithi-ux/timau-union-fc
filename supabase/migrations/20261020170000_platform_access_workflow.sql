@@ -70,6 +70,11 @@ create table private.role_assignments (
 create unique index role_assignments_one_active_role_per_user
   on private.role_assignments(user_id) where active;
 
+-- Keep the club's top leadership singular even if two admins act concurrently.
+create unique index role_assignments_one_active_chairman
+  on private.role_assignments(role_key)
+  where active and role_key = 'chairman';
+
 create index account_access_status_requested_idx
   on private.account_access(status, requested_at);
 
