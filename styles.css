@@ -1051,3 +1051,115 @@ h3 {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* COMPACT, CLUB-FIRST MOBILE HEADER */
+@media (max-width: 899px) {
+  .site-header {
+    color: var(--white);
+    background: var(--red);
+    border-bottom: 0;
+    box-shadow: 0 3px 12px rgba(17, 17, 17, 0.12);
+  }
+
+  .header-inner {
+    position: relative;
+    min-height: 68px;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .brand {
+    justify-content: center;
+    gap: 8px;
+    color: var(--white);
+    text-align: left;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    padding: 2px;
+    background: var(--white);
+    border-radius: 50%;
+  }
+
+  .brand-copy strong {
+    color: var(--white);
+    font-size: 0.9rem;
+    letter-spacing: 0.035em;
+  }
+
+  .brand-copy small {
+    display: none;
+  }
+
+  .menu-toggle {
+    position: absolute;
+    left: 0;
+    display: inline-flex;
+    width: 42px;
+    min-height: 42px;
+    padding: 0;
+    color: var(--white);
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+  }
+
+  .menu-toggle:hover,
+  .menu-toggle:focus-visible {
+    background: rgba(255, 255, 255, 0.13);
+  }
+
+  .menu-icon {
+    font-size: 1.45rem;
+  }
+
+  .menu-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .primary-nav {
+    top: 100%;
+    max-height: calc(100dvh - 68px);
+    padding: 10px 18px 18px;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .primary-nav .nav-login {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .header-inner {
+    min-height: 62px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .brand-copy strong {
+    font-size: 0.82rem;
+  }
+
+  .menu-toggle {
+    width: 38px;
+    min-height: 38px;
+  }
+
+  .primary-nav {
+    max-height: calc(100dvh - 62px);
+  }
+}
