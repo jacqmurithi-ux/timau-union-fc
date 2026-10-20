@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function counter(parent, value, format = "number", className = "") {
-    const node = element("span", className, formatValue(value, format));
+    const node = element("span", className, reducedMotion ? formatValue(value, format) : "0");
     node.dataset.counter = String(value);
     node.dataset.counterFormat = format;
     parent.appendChild(node);
