@@ -28,6 +28,31 @@ as $function$
  or (_type='sponsor' and 'sponsor_lead'=any(_roles)),false)
 $function$;
 revoke all on function private.role_can_manage_record(text[],text) from public,anon,authenticated;
+
+create or replace function private.valid_club_record_data(_type text,_data jsonb)
+returns boolean language plpgsql immutable set search_path=''
+as $function$
+declare v_allowed text[]; v_required text; v_key text; v_value text;
+begin
+ if _data is null or jsonb_typeof(_data)<>'object' then return false; end if;
+ case _type
+  when 'player' then v_allowed:=array['name','position','bio','squad_number']; v_required:='name';
+  when 'fixture' then v_allowed:=array['opponent','match_date','venue','result']; v_required:='opponent';
+  when 'news' then v_allowed:=array['title','summary','body','category']; v_required:='title';
+  when 'sponsor' then v_allowed:=array['name','support_type','details','website']; v_required:='name';
+  when 'activity' then v_allowed:=array['title','date','location','details']; v_required:='title';
+  else return false;
+ end case;
+ if not (_data ? v_required) or jsonb_typeof(_data->v_required)<>'string' or length(btrim(_data->>v_required))=0 then return false; end if;
+ for v_key in select jsonb_object_keys(_data) loop
+  if not (v_key=any(v_allowed)) or jsonb_typeof(_data->v_key)<>'string' then return false; end if;
+  v_value:=_data->>v_key;
+  if length(v_value)>3000 then return false; end if;
+ end loop;
+ return true;
+end
+$function$;
+revoke all on function private.valid_club_record_data(text,jsonb) from public,anon,authenticated;
 create or replace function public.club_get_workspace_bundle()
 returns jsonb language plpgsql stable security definer set search_path=''
 as $function$
@@ -47,7 +72,7 @@ as $function$
 declare v_roles text[]; v_id uuid; v_old_type text;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
- if _record_type not in('player','fixture','news','sponsor','activity') or _data is null or jsonb_typeof(_data)<>'object' then raise exception 'Invalid record'; end if;
+ if not private.valid_club_record_data(_record_type,_data) then raise exception 'Invalid record type or field values'; end if;
  v_roles:=private.current_club_roles();
  if coalesce(array_length(v_roles,1),0)=0 then raise exception 'Approved active club role required'; end if;
  if not private.role_can_manage_record(v_roles,_record_type) then raise exception 'Your role cannot edit this record type'; end if;
