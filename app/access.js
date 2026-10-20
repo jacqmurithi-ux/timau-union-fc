@@ -121,7 +121,12 @@ resetRequestForm.addEventListener("submit", async (event) => {
     message("If an account is associated with that email, a password reset link will be sent. Check your inbox and spam folder.", "success");
     resetRequestForm.reset();
   } catch (error) {
-    message(genericError(error, "The reset request could not be sent. Check your connection and try again later."), "error");
+    console.error("Timau Union FC password-reset request failed:", error);
+    const detail = error && typeof error.message === "string" ? error.message.trim() : "";
+    const status = error && Number.isFinite(error.status) ? ` (HTTP ${error.status})` : "";
+    const code = error && typeof error.code === "string" ? ` [${error.code}]` : "";
+    const safeDetail = detail && detail.length <= 220 ? detail : "";
+    message(safeDetail ? `Password reset failed${status}${code}: ${safeDetail}` : genericError(error, "Password reset failed. Check Supabase Auth email delivery settings and allowed redirect URLs, then try again."), "error");
   } finally { submit.disabled = false; }
 });
 
