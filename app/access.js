@@ -291,6 +291,20 @@ async function loadInstallStats() {
     $("install-rate").textContent = Number(result.acceptance_rate_30d || 0).toFixed(1) + "%";
     $("install-prompt-counts").textContent = `${Number(result.prompts_accepted_30d || 0)} accepted of ${Number(result.prompts_shown_30d || 0)} shown in 30 days`;
     const rows = Array.isArray(result.daily) ? result.daily : [];
+    const chart = $("install-stats-chart");
+    chart.replaceChildren();
+    const maxInstalls = Math.max(1, ...rows.map(r => Number(r.installs || 0)));
+    rows.forEach(r => {
+      const bar = el("div", null, "install-bar");
+      const count = el("span", String(Number(r.installs || 0)));
+      const fill = el("div", null, "install-bar-fill");
+      fill.style.height = Math.max(2, (Number(r.installs || 0) / maxInstalls) * 88) + "px";
+      fill.title = `${r.date}: ${Number(r.installs || 0)} installs`;
+      const label = el("span", String(r.date || "").slice(5), "install-bar-label");
+      bar.append(count, fill, label);
+      chart.append(bar);
+    });
+    chart.setAttribute("aria-label", `Daily installs over the last 30 days; maximum daily installs ${maxInstalls}`);
     daily.replaceChildren(rows.length
       ? table(["Date", "Installs", "Cumulative (30-day series)"], rows.map(r => [r.date, r.installs, r.cumulative_30d]))
       : el("p", "No daily install data is available yet."));
