@@ -420,3 +420,12 @@
     transition: none !important;
   }
 }
+
+
+/* Season scorer list */
+.season-scorers-block { margin-top: 2rem; }
+.season-top-scorers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: .65rem; padding: 0; margin: 1rem 0 0; list-style: none; }
+.season-scorer-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .85rem 1rem; border: 1px solid var(--border-color, #e3e8e4); border-radius: .75rem; background: var(--surface, #fff); }
+.season-scorer-rank { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--club-red, #c8102e); color: #fff; font-weight: 700; }
+.season-scorer-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.season-scorer-goals { white-space: nowrap; font-size: .9rem; color: var(--text-muted, #5c665f); }
