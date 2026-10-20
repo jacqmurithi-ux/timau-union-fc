@@ -171,8 +171,14 @@ security definer
 set search_path = ''
 as $function$
   select _user_id is not null and exists (
-    select 1 from private.platform_admins pa
-    where pa.user_id = _user_id and pa.active
+    select 1
+    from private.platform_admins pa
+    join auth.users u on u.id = pa.user_id
+    join private.account_access aa on aa.user_id = pa.user_id
+    where pa.user_id = _user_id
+      and pa.active
+      and u.email_confirmed_at is not null
+      and aa.status = 'approved'
   );
 $function$;
 
