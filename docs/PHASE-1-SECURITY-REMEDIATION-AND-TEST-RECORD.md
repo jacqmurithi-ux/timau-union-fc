@@ -9,6 +9,7 @@ Status: **Draft implementation; not production-ready.** Work and all database ex
 - `supabase/review-drafts/auth_user_deletion_archive_review_draft.sql`: additive account-deletion lifecycle fix that preserves membership/role and invitation/audit history, revokes access, and blocks deletion of an active Chairman until handover.
 - `supabase/functions/club-admin/index.ts`: review-only Edge Function routes; authenticates with Supabase Auth, resolves live membership/Chairman authority from database rows, bounds JSON request bodies to 16 KiB, validates invite redirect origin/scheme, enforces database-backed rate limits, and invokes service-only RPCs. **Do not deploy.**
 - `tests/phase-1-postgrest-smoke.mjs`: real HTTP/PostgREST test suite requiring disposable test JWTs/fixtures; syntax checked in CI but live execution is skipped until test-only secrets are configured.
+- `tests/phase-1-lifecycle-assertions.sql`: rollback-safe invitation lifecycle and Auth-user deletion archival assertions; the scenarios passed against Union Test and the file is guarded by static CI checks.
 - `tests/phase-1-chairman-handover-concurrency.sh`: two-session psql race harness; syntax checked in CI, but live execution is skipped until the Union Test-only DB URL and project-ref variable are configured.
 - `docs/PHASE-1-INVITATION-RECOVERY-RUNBOOK.md`: manual recovery for requests stranded in `sending` without automatic duplicate email delivery.
 - PR #7 remains draft.
