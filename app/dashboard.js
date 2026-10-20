@@ -10,6 +10,8 @@ signOutButton.addEventListener("click", async () => { signOutButton.disabled = t
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !sessionData.session?.user) { window.location.replace("./index.html"); return; }
   const user = sessionData.session.user;
+  const { data: platformData, error: platformError } = await supabase.functions.invoke("club-admin", { body: { action: "platform_list_accounts" } });
+  if (!platformError && Array.isArray(platformData?.accounts)) { window.location.replace("./platform-admin.html"); return; }
   const { data: membership, error: membershipError } = await supabase.from("club_memberships").select("id,status").eq("user_id", user.id).maybeSingle();
   if (membershipError) return await signOutAndReturn("Club membership could not be verified. Access denied.");
   if (!membership || membership.status !== "active") return await signOutAndReturn("Your club membership is not active. Access denied.");
