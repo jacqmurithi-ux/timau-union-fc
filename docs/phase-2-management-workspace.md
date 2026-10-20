@@ -2,7 +2,7 @@
 **Isolated draft branch. The project status record reports application to Union Test on 2026-10-20; this document update does not independently verify the live database. Production and GitHub Pages are intended to remain unchanged.**
 
 ## Workspace
-Private `/app/workspace.html`: player register, fixtures/results, news, sponsors and activities. All writes use protected RPCs. New records are drafts; editing resets approval. Chairman and Secretary can approve, return to draft or archive with a reason. Public RPC returns approved records only and allowlists public fields. Public website remains unchanged pending separate integration review.
+Private `/app/workspace.html`: player register, fixtures/results, news, sponsors and activities. All writes use protected RPCs. New records are drafts; editing resets approval. Only an active Platform Admin can approve, return records to draft or archive, with a reason. Chairman and Secretary do not have publication approval authority unless separately authenticated as an active Platform Admin. Public RPC returns approved records only and allowlists public fields. Public website remains unchanged pending separate integration review.
 
 ## Live schema reconciliation
 Production `owvvimydkjsjlrmnzvdi`: `private.account_access` keyed by `user_id`; `private.role_assignments` keyed directly by `user_id` with `active`; profile/admin/audit tables in `private`.
@@ -34,3 +34,9 @@ No fixtures, players, scores, sponsors or contacts were added; test save was rol
 - Corrected the manual core rollback to drop `private.valid_club_record_data(text,jsonb)` before removing the workspace tables, and added a warning that rollback is destructive and does not remove the environment-specific `private.current_club_roles()` adapter.
 - The previously recorded Union Test catalog and Media Team smoke-test results are historical status claims. They are not a substitute for the remaining authenticated role/identity tests listed above.
 - **Release remains blocked** until the remaining checks below are executed against Union Test with controlled test identities and their actual results are recorded. Do not run these against Production.
+
+
+## Approval authority clarification
+- The Phase 2 core migration now calls the existing protected `private.is_active_platform_admin(auth.uid())` check for publication decisions.
+- The workspace bundle identifies active Platform Admin sessions and allows them to view/manage all workspace record types, even if they have no separate club role. Non-admin users retain their assigned record-editing scope and cannot publish.
+- This change is code on the isolated draft branch only. It has not been applied to Union Test or Production and must be tested with an active Platform Admin, a Chairman/Secretary who is not a Platform Admin, and a pending/revoked user before release.
