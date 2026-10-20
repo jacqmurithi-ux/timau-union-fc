@@ -13,15 +13,15 @@ Hosting: GitHub Pages only; no Vercel.
 - Supabase-managed `auth`, `storage`, `realtime`, and `vault` schemas contain platform-owned objects. Do not alter these platform schemas.
 - `supabase/review-drafts/identity_roles_review_draft.sql` exists as a review-only SQL artifact. It is not a migration and must not be run directly in production.
 - PR #7 remains draft and unmerged. Its security and live-test blockers remain release blockers.
-- The encrypted production backup workflow has not yet produced a verified encrypted artifact.
+- Production backup run #39366115632 completed successfully on 2026-10-20. The encrypted artifact `timau-union-production-backup-39366115632-1` exists (artifact ID `12239312757`; expires 2026-11-19). The workflow successfully ran `pg_restore --list` and found 403 archive objects. This validates archive readability/listing, **not** decryption or a real restore. The user has downloaded the artifact; restore rehearsal remains open.
 
 An empty `public` schema is not permission to apply unreviewed SQL. Keep the production database unchanged until the backup gate and review gates below are satisfied.
 
 ## Required gates before the first production migration
 
-1. **Backup gate:** run `union-backup` workflow successfully and confirm the encrypted `.dump.gpg` artifact exists, has a plausible non-zero size, and can be decrypted/restored in a disposable environment. Never commit or share the passphrase.
-2. **Baseline gate:** capture a read-only inventory of schemas, tables, extensions, grants, RLS state, policies, functions, triggers, and Data API exposed schemas. Confirm no application objects conflict with the migration.
-3. **Test environment gate:** use a dedicated disposable Supabase test project, not production. Keep test data fictional.
+1. **Backup gate:** an encrypted `.dump.gpg` artifact has been produced and downloaded; `pg_restore --list` passed with 403 archive objects. Still required: decrypt and perform a restore rehearsal in a disposable environment, then validate restored objects. Never commit or share the passphrase. Do not restore into either existing Timau Union Supabase project.
+2. **Baseline gate:** read-only production inventory on 2026-10-20 confirmed platform-managed schemas (`auth`, `extensions`, `graphql`, `graphql_public`, `realtime`, `storage`, `vault`) and no tables in `public` or `private`. Complete the remaining inventory of extensions, grants, RLS state, policies, functions, triggers, and Data API exposed schemas before migration. Do not alter platform schemas.
+3. **Test environment gate:** a separate Supabase project cannot currently be created because the account is at its two-active-free-project limit. Preserve both `Timau Union FC` production (`owvvimydkjsjlrmnzvdi`) and `Union Test` (`dzpquzfghapjodmrmavw`); do not pause, delete, reset, or restore over either project. First evaluate an isolated ephemeral restore/test environment that cannot write to either project; do not treat `Union Test` as disposable.
 4. **Migration review gate:** convert the identity/role review draft into a timestamped migration only after it has been exercised and independently reviewed. Review every privilege, RLS policy, function owner, SECURITY DEFINER function, fixed search_path, trigger, and rollback implication.
 5. **Automated verification gate:** run SQL assertions, real HTTP/PostgREST tests with separate anonymous/member/invited/suspended/revoked/Chairman fixtures, invitation provider/recovery tests, and the two-session Chairman handover concurrency harness. A skipped CI step is not a pass.
 6. **Human approval gate:** obtain an independent reviewer’s approval and explicit production migration approval. Keep PR #7 draft until all blockers are evidenced.
@@ -94,4 +94,4 @@ An empty `public` schema is not permission to apply unreviewed SQL. Keep the pro
 
 ## Current next action
 
-Fix `PROD_DB_URL` in the private `union-backup` repository, rerun the manual backup workflow, and verify the encrypted artifact. Then complete the read-only baseline and continue the Phase A tests in the disposable test project. No production schema changes have been made by this runbook.
+Next: complete a restore rehearsal without touching either existing Supabase project. The production backup artifact is available at https://github.com/jacqmurithi-ux/union-backup/actions/runs/39366115632/artifacts/12239312757 and expires 2026-11-19. The dump has passed archive-list validation, but decryption/restore is not yet proven. Continue the read-only baseline. Do not begin Phase A migrations until a safe test environment and all review gates are satisfied. No production schema changes have been made by this runbook.
