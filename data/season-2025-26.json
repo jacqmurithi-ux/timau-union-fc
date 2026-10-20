@@ -5,7 +5,7 @@
   "lastUpdated": "2026-10-21",
   "source": {
     "label": "FKF Leagues",
-    "url": "https://fkfleagues.co.ke/standings/meru2526a"
+    "url": "https://www.fkfleagues.co.ke/standings/meru2526a"
   },
   "standings": [
     {
@@ -162,18 +162,75 @@
         "L",
         "W",
         "W",
+        "W",
+        "W",
+        "W",
+        "L",
+        "D",
+        "L",
+        "W",
+        "D",
+        "L",
+        "D",
+        "D",
         "W"
       ],
-      "orderConfirmed": false,
-      "displayOrder": "provided-order"
+      "orderConfirmed": true,
+      "displayOrder": "oldest-to-newest-as-shown-by-source"
     },
-    "finalMatch": {
+    "seasonStats": {
+      "cleanSheets": 11,
+      "homeCleanSheets": 8,
+      "awayCleanSheets": 3,
+      "matchesFailedToScore": 4,
+      "homeMatchesFailedToScore": 1,
+      "awayMatchesFailedToScore": 3,
+      "largestHomeWin": {
+        "score": "4–0",
+        "opponent": "Naari Maziwa"
+      }
+    },
+    "topScorers": [
+      {
+        "name": "Dickson Miano",
+        "goals": 2
+      },
+      {
+        "name": "Reagan Murimi",
+        "goals": 2
+      },
+      {
+        "name": "Reuben Wairiuko",
+        "goals": 2
+      },
+      {
+        "name": "Amos Muiruri",
+        "goals": 1
+      },
+      {
+        "name": "Christopher Mwangi",
+        "goals": 1
+      },
+      {
+        "name": "Dennis Kinyua",
+        "goals": 1
+      },
+      {
+        "name": "Duncan Kiogora",
+        "goals": 1
+      },
+      {
+        "name": "Munene Morris",
+        "goals": 1
+      }
+    ],
+    "featuredMatch": {
       "homeTeam": "Timau Union FC",
       "homeScore": 1,
       "awayTeam": "Gachanka FC",
       "awayScore": 0,
-      "date": "9 Aug",
-      "dateLabel": "9 Aug",
+      "date": "2026-08-09",
+      "dateLabel": "9 August 2026",
       "venue": "Timau Stadium"
     }
   }
