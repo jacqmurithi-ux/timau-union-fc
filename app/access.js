@@ -241,6 +241,7 @@ async function loadAccess() {
     else if (status.access_granted) lines.push("Your account is approved and has an active role: " + status.role.replaceAll("_", " ") + ".");
     else lines.push("Your account does not currently have permission to use club management.");
     $("account-summary").textContent = lines.join(" ");
+    show($("workspace-link"), Boolean(status.access_granted && status.role));
     message("Access status refreshed from the production database.", "success");
     show(adminPanel, Boolean(status.platform_admin));
     if (status.platform_admin) await loadAdminQueue();
