@@ -45,18 +45,29 @@ cleanup() {
       return 0
     fi
   fi
-  # If there was no Chairman before the test, these fixtures are disposable and can be removed.
-  # If there was one, restore it before deleting the temporary successors.
-  if [[ -n "$original_chair" && "$current_chair" != "$original_chair" ]]; then
-    echo "WARNING: preserving fixtures because original Chairman restoration is unverified." >&2
-    return 0
+  # Never delete or rewrite the original Chairman's account, membership, profile, role, or history.
+  # Keep test audit events attributed to the original Chairman; remove only temporary successor
+  # audit events and disposable successor identities after restoration is verified.
+  if [[ -n "$original_chair" ]]; then
+    if [[ "$current_chair" != "$original_chair" ]]; then
+      echo "WARNING: preserving fixtures because original Chairman restoration is unverified." >&2
+      return 0
+    fi
+    psqlq -c "delete from public.audit_events where actor_user_id in ('$successor_a'::uuid,'$successor_b'::uuid);
+      delete from public.role_assignments where membership_id in (select id from public.club_memberships where user_id in ('$successor_a'::uuid,'$successor_b'::uuid));
+      delete from public.user_profiles where user_id in ('$successor_a'::uuid,'$successor_b'::uuid);
+      delete from public.club_memberships where user_id in ('$successor_a'::uuid,'$successor_b'::uuid);
+      delete from auth.users where id in ('$successor_a'::uuid,'$successor_b'::uuid);
+      delete from private.api_rate_limit_counters where actor_user_id in ('$successor_a'::uuid,'$successor_b'::uuid);" >/dev/null
+  else
+    # The harness created the temporary Chairman itself, so all three test identities are disposable.
+    psqlq -c "delete from public.audit_events where actor_user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
+      delete from public.role_assignments where membership_id in (select id from public.club_memberships where user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid));
+      delete from public.user_profiles where user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
+      delete from public.club_memberships where user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
+      delete from auth.users where id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
+      delete from private.api_rate_limit_counters where actor_user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);" >/dev/null
   fi
-  psqlq -c "delete from public.audit_events where actor_user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
-    delete from public.role_assignments where membership_id in (select id from public.club_memberships where user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid));
-    delete from public.user_profiles where user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
-    delete from public.club_memberships where user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
-    delete from auth.users where id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);
-    delete from private.api_rate_limit_counters where actor_user_id in ('$chair'::uuid,'$successor_a'::uuid,'$successor_b'::uuid);" >/dev/null
 }
 trap cleanup EXIT
 
