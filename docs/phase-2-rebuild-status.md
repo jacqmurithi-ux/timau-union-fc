@@ -1,12 +1,14 @@
 # Phase 2 rebuild status
 
-- Isolated branch: `draft/phase-2-rebuild-20261020`
-- Draft PR: https://github.com/jacqmurithi-ux/timau-union-fc/pull/12
-- Union Test only: prior status record reports the role adapter and workspace core migration applied successfully; this record has not independently re-queried the live database.
-- Verification: catalog/grant checks passed; Media Team bundle and rollback-only draft-save smoke tests passed; unauthorised sponsor write, publication approval by Media Team, and direct table SELECT were rejected; public anonymous content read returned an empty array.
-- Data integrity: zero workspace records and zero audit rows after rollback-only test.
-- Production: unchanged; Phase 2 tables and RPCs confirmed absent.
-- GitHub Pages/main: unchanged. No Vercel deployment.
-- Follow-up: corrected the manual rollback to remove the internal validator helper; rollback remains destructive and must be tested only in a disposable environment.
-- Not release-ready: authenticated tests for the corrected role-scoped approval map (Chairman/Secretary all supported record types; Team Manager/Coach players, fixtures/results and activities; Media Team news; Sponsor Lead sponsors; Platform Admin system-wide override), pending/revoked/unconfirmed identities, unknown IDs, malformed/oversized inputs, direct writes, function owners/search_path and actual PostgREST behavior remain outstanding. Re-run security advisors and record outputs.
-- Production and public deployment remain separately gated. Do not merge or deploy until all test evidence is recorded and reviewed.
+- Source branch: `draft/phase-2-rebuild-20261020`
+- Review PR: https://github.com/jacqmurithi-ux/timau-union-fc/pull/12
+- Approval rule: publication decisions follow the active club role and record type; active Platform Admin has system-wide override.
+- Union Test (`dzpquzfghapjodmrmavw`): role adapter and core migration were previously recorded as applied. The role-scoped approval function update was applied as migration `20261020204607 / phase_2_role_scoped_approval_fix`. The expanded read-only catalog, grant, SECURITY DEFINER configuration, and role-map contract test passed after this update.
+- Union Test contract checks: both private tables exist with RLS enabled; direct API-role table grants and direct internal helper execution are absent; expected RPC grants and fixed search paths are present; positive and negative role/type mapping assertions passed.
+- Production (`owvvimydkjsjlrmnzvdi`): migration `20261020204746 / phase_2_production_workspace` applied successfully. Supabase security advisor now sees the workspace tables/RPCs and reports expected private-table RLS-without-policy INFO findings. Production SQL contract query was denied by connector permissions, so production's full catalog contract and authenticated PostgREST behavior are not independently verified.
+- Production migration history before this change was empty even though Phase 1 access objects existed. Do not use a blanket `supabase db push` until migration history is reconciled; environment-specific adapter/history differences are documented.
+- Security advisor: the public approved-content RPC is intentionally callable by anon and authenticated because it returns allowlisted fields only. Existing warnings remain for the Phase 1 authenticated SECURITY DEFINER access RPCs and disabled leaked-password protection. Do not remove required RPC execute grants merely to silence the linter; each RPC contains its own authorization checks.
+- No real player, fixture, score, sponsor or contact records were added by these changes. Workspace content remains empty unless separately entered by authorized club users.
+- Production source code is not yet merged to `main` in this status snapshot. GitHub Pages remains the only intended deployment path; no Vercel deployment.
+- Remaining verification limitation: actual JWT-backed HTTP/PostgREST tests for Chairman/Secretary, Team Manager/Coach, Media Team, Sponsor Lead, Platform Admin override, pending/revoked/unverified accounts, malformed payloads, and direct writes could not all be run in this session. The SQL contract test is not a substitute for those end-to-end checks.
+- Rollback script is destructive and must only be tested against a disposable environment. It does not remove the environment-specific role adapter.
