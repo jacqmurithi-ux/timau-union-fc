@@ -239,25 +239,25 @@ insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('club-financial-receipts','club-financial-receipts',false,10485760,array['image/jpeg','image/png','image/webp','application/pdf'])
 on conflict(id) do update set public=false,file_size_limit=10485760,allowed_mime_types=array['image/jpeg','image/png','image/webp','application/pdf'];
 
-create or replace function public.treasurer_receipt_access(_owner uuid,_upload boolean default false)
+create or replace function public.treasurer_receipt_access(_owner text,_upload boolean default false)
 returns boolean language plpgsql stable security definer set search_path=''
 as $
 declare r text[]; uid uuid; adm boolean;
 begin
  uid:=auth.uid(); if uid is null then return false; end if;
  r:=private.current_club_roles(); adm:=private.is_active_platform_admin(uid);
- if _upload then return _owner=uid and (adm or r && array['chairman','treasurer','team_manager','coach','secretary','vice_chairman','player_welfare','sponsor_lead']::text[]); end if;
- return _owner=uid or adm or r && array['chairman','treasurer','secretary']::text[];
+ if _upload then return _owner=uid::text and (adm or r && array['chairman','treasurer','team_manager','coach','secretary','vice_chairman','player_welfare','sponsor_lead']::text[]); end if;
+ return _owner=uid::text or adm or r && array['chairman','treasurer','secretary']::text[];
 end $;
-revoke all on function public.treasurer_receipt_access(uuid,boolean) from public,anon;
+revoke all on function public.treasurer_receipt_access(text,boolean) from public,anon;
 grant execute on function public.treasurer_receipt_access(uuid,boolean) to authenticated;
 
 drop policy if exists treasurer_receipts_read on storage.objects;
 create policy treasurer_receipts_read on storage.objects for select to authenticated
-using(bucket_id='club-financial-receipts' and public.treasurer_receipt_access(((storage.foldername(name))[1])::uuid,false));
+using(bucket_id='club-financial-receipts' and public.treasurer_receipt_access((storage.foldername(name))[1],false));
 drop policy if exists treasurer_receipts_upload on storage.objects;
 create policy treasurer_receipts_upload on storage.objects for insert to authenticated
-with check(bucket_id='club-financial-receipts' and public.treasurer_receipt_access(((storage.foldername(name))[1])::uuid,true));
+with check(bucket_id='club-financial-receipts' and public.treasurer_receipt_access((storage.foldername(name))[1],true));
 drop policy if exists treasurer_receipts_update on storage.objects;
 create policy treasurer_receipts_update on storage.objects for update to authenticated
 using(bucket_id='club-financial-receipts' and public.treasurer_receipt_access(((storage.foldername(name))[1])::uuid,true))
