@@ -39,7 +39,7 @@ else {
       const s=data[i], slide=document.createElement("article");
       slide.className="hero-slide"; slide.hidden=true;
       const image=document.createElement("img"); image.alt=s.alt_text; image.loading=i===0?"eager":"lazy"; image.fetchPriority=i===0?"high":"auto";
-      const {data:publicData}=db.storage.from("homepage-hero").getPublicUrl(s.image_path); image.src=publicData.publicUrl;
+      const {data:imageBlob,error:imageError}=await db.storage.from("homepage-hero").download(s.image_path); if(imageError||!imageBlob) continue; image.src=URL.createObjectURL(imageBlob);
       const caption=document.createElement("div"); caption.className="hero-slide-caption";
       const h=document.createElement("h1"); h.textContent=s.caption; caption.append(h);
       if (s.link_url) { const href=safeLink(s.link_url); if(href){const a=document.createElement("a");a.className="hero-caption-link";a.href=href;a.textContent="Read more";a.setAttribute("aria-label","Read more: "+s.caption);caption.append(a);slide.classList.add("hero-slide-linked");slide.addEventListener("click",e=>{if(e.target.closest("a"))return;location.href=href;});slide.tabIndex=0;slide.setAttribute("role","link");slide.addEventListener("keydown",e=>{if(e.target===slide&&(e.key==="Enter"||e.key===" ")){e.preventDefault();location.href=href;}});}}
