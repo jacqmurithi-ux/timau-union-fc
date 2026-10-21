@@ -81,7 +81,7 @@ declare r text[]; adm boolean; chair boolean; treas boolean; uid uuid;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  uid:=auth.uid(); adm:=private.is_active_platform_admin(uid); r:=private.current_club_roles();
- chair:='chairman'=any(r); treas:='treasurer'=any(r);
+ chair:=coalesce('chairman'=any(r),false); treas:=coalesce('treasurer'=any(r),false);
  if not (adm or chair or treas or 'secretary'=any(r) or 'vice_chairman'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
  return jsonb_build_object(
   'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',treas,'can_override',adm or chair,
@@ -114,7 +114,7 @@ as $$
 declare r text[]; adm boolean; treas boolean; chair boolean; old private.treasurer_records%rowtype; rid uuid; oldj jsonb; newj jsonb;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
- r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid()); treas:='treasurer'=any(r); chair:='chairman'=any(r);
+ r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid()); treas:=coalesce('treasurer'=any(r),false); chair:=coalesce('chairman'=any(r),false);
  if _id is null and not treas then raise exception 'Only the Treasurer may create finance records'; end if;
  if _id is not null and not treas then raise exception 'Only the Treasurer may edit finance records; Chairman/Admin may override decisions only'; end if;
  if _record_type not in('income','expense','transport_approval','budget','sponsor_fund','member_contribution','receipt','financial_report') then raise exception 'Unsupported Treasurer record type'; end if;
@@ -162,7 +162,7 @@ as $$
 declare r text[]; adm boolean; treas boolean; chair boolean; old private.treasurer_records%rowtype; ledger_type text; amount numeric;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
- r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid()); treas:='treasurer'=any(r); chair:='chairman'=any(r);
+ r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid()); treas:=coalesce('treasurer'=any(r),false); chair:=coalesce('chairman'=any(r),false);
  if not(adm or treas or chair) then raise exception 'Treasurer, Chairman or Platform Admin required'; end if;
  if _decision not in('approved','rejected','queried','published') or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Decision and reason (minimum 3 characters) required'; end if;
  select * into old from private.treasurer_records where id=_id for update;
