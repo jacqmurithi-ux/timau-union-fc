@@ -7,22 +7,22 @@
 - Audit records contain actor, timestamp, caption and action only. They do not contain image bytes, URLs, or image paths.
 
 ## Current rollout status
-- [x] Corrected the malformed SQL migration and applied it to the **Union Test** Supabase project only.
-- [x] Applied `20261022173000_homepage_hero_capacity_guard.sql` to Union Test; a rollback-only SQL test confirmed that a fourth active slide is rejected.
-- [x] Applied `20261022180000_homepage_hero_link_validation_and_audit.sql` to Union Test; rollback-only SQL checks rejected backslash-based link URLs and accepted an internal path.
-- [x] Added GitHub Actions syntax and security-contract checks for the hero code and migrations.
-- [x] Deployed `expire-homepage-hero` to Union Test with JWT verification enabled.
-- [x] Verified the slide table and guarded RPCs exist, the bucket is private, five hero RLS policies exist, there are no active slides, unauthenticated management checks return false, anonymous execution of the save RPC is denied, and the audit table stores metadata only.
-- [ ] Scheduled expiry is **not active yet**: the Union Test Vault does not currently contain `project_url` and `service_role_key`. Before relying on automatic expiry, a project administrator must configure these secrets securely; never commit the service-role key.
-- [x] GitHub Actions homepage hero validation passed on the latest implementation revision; the subsequent commit only updated this checklist. Treasurer workspace validation also passed.
-- [ ] Browser tests and a real upload/delete/expiry lifecycle test remain outstanding.
+- [x] Applied all four homepage hero migrations to the **Timau Union FC Production** Supabase project.
+- [x] Confirmed the slides table has RLS, the Storage bucket is private, the three-active-slide database trigger exists, and safe-link validation is installed.
+- [x] Confirmed there are currently zero active hero slides; no live content was invented or added.
+- [x] Deployed `expire-homepage-hero` to Production. Gateway JWT verification is disabled intentionally because the function validates a separate high-entropy token against Supabase Vault through a service-role-only RPC.
+- [x] Configured a random `homepage_hero_cron_token` in Vault without exposing its value, configured the public project URL in Vault, and activated `expire-homepage-hero-slides` on a 15-minute schedule.
+- [x] Invoked the function through the same Vault-token authorization path used by the schedule; it returned HTTP 200 with `processed: 0` because no expired slides or orphan uploads existed.
+- [x] Confirmed the cron authorization RPC denies `anon`, grants execution to `service_role`, and rejects an invalid token.
+- [x] GitHub Actions homepage hero validation and Treasurer workspace validation passed before the production-only activation changes.
+- [ ] Authenticated browser tests and an actual image upload/replacement/reorder/removal/expiry lifecycle test remain outstanding.
+- [ ] Public website deployment could not be independently fetched from this execution environment. Verify the live site after GitHub Pages finishes publishing the current `main` revision.
 
-## Deployment prerequisites
-1. The two migrations `20261022170000_homepage_hero_slides.sql` and `20261022173000_homepage_hero_capacity_guard.sql` have already been applied to Union Test during this implementation pass. Do not blindly apply them a second time; review and apply them through the normal migration workflow when preparing another environment.
-2. Deploy `supabase/functions/expire-homepage-hero` using the Supabase CLI. The function is already deployed to Union Test during this implementation pass.
-3. In Union Test Supabase Vault, set secrets named `project_url` (the project HTTPS URL) and `service_role_key` (the service-role key). Never put the service-role key in frontend code or commit it to Git.
-4. Re-run the scheduling block at the end of the migration after setting Vault secrets, or schedule the function through the Supabase Dashboard. Confirm `expire-homepage-hero-slides` exists in `cron.job`.
-5. Verify the Edge Function is invoked on schedule and check function logs. Expiry removes the Storage object first; the row is hard-deleted only after Storage deletion succeeds.
+## Deployment notes
+1. Production migrations recorded: `homepage_hero_slides`, `homepage_hero_capacity_guard`, `homepage_hero_link_validation_and_audit`, and `homepage_hero_cron_token`.
+2. The expiry Edge Function is deployed in Production as `expire-homepage-hero` with gateway JWT verification disabled; the function checks the dedicated Vault token before any cleanup.
+3. The database scheduler reads `project_url` and `homepage_hero_cron_token` from Vault. The service-role key is never stored as a cron secret or placed in Git.
+4. The scheduled invocation path was manually verified with HTTP 200. The full real-slide lifecycle still needs authenticated browser testing. Storage is deleted before an expired database row is hard-deleted; failed Storage deletions retain the row for retry.
 
 ## Functional checklist
 - [ ] Header red is exactly `#c8102e`; crest is left; white/contrast-safe search and hamburger controls are right.
@@ -41,9 +41,9 @@
 - [ ] Other roles cannot manage slides through UI, table policies, Storage policies or RPCs.
 - [ ] Replacing an image removes the prior Storage object.
 - [ ] Manual removal deletes the image and hard-deletes the record.
-- [ ] Expired slides are checked when the workspace loads and by the scheduled Edge Function.
+- [x] Expired slides are checked when the workspace loads and by the scheduled Edge Function; scheduled endpoint authorization returned HTTP 200 in Production.
 - [ ] If Storage deletion fails, expiry retains the row so cleanup can retry.
-- [ ] No orphaned objects remain in `homepage-hero` after removal, replacement or expiry.
+- [ ] Verify no orphaned objects remain in `homepage-hero` after a real upload/replacement/removal/expiry lifecycle.
 - [ ] Audit rows contain only actor, timestamp, caption and action; no image data/path/URL.
 - [ ] Existing header navigation, all other homepage sections, Media Team posts/calendar/stats/gallery and other role workflows still work.
 
