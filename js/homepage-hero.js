@@ -9,16 +9,20 @@ else {
   let slides = [], index = 0, timer = null, paused = false, startX = null, hoverPaused = false, focusPaused = false, touchPaused = false;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const safeLink = value => {
-    if (!value) return "";
-    if (value.startsWith("/") && !value.startsWith("//")) return value;
-    try { const u = new URL(value); return ["http:", "https:"].includes(u.protocol) ? u.href : ""; } catch { return ""; }
+    if (!value || value.includes("\\\\") || /[\\u0000-\\u001f\\u007f]/.test(value)) return "";
+    try {
+      const u = new URL(value, location.origin);
+      if (!["http:", "https:"].includes(u.protocol)) return "";
+      if (value.startsWith("/") && !value.startsWith("//") && u.origin === location.origin) return value;
+      return /^https?:\\/\\//i.test(value) ? u.href : "";
+    } catch { return ""; }
   };
   const ensureImage = async i => {
     const image = track.children[i]?.querySelector("img");
     if (!image || image.dataset.loaded === "true" || image.dataset.loaded === "loading") return;
     image.dataset.loaded = "loading";
     const { data, error } = await db.storage.from("homepage-hero").download(slides[i].image_path);
-    if (error || !data) { image.dataset.loaded = "error"; return; }
+    if (error || !data) { image.dataset.loaded = "error"; root.hidden = true; return; }
     image.src = URL.createObjectURL(data);
     image.dataset.loaded = "true";
   };
