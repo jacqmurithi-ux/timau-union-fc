@@ -23,11 +23,22 @@ Deno.serve(async (req) => {
   const { data: rows } = await db.from("homepage_hero_slides").select("image_path");
   const referenced = new Set((rows || []).map((row) => row.image_path));
   const cutoff = Date.now() - 60 * 60 * 1000;
-  const { data: folders } = await db.storage.from("homepage-hero").list("", { limit: 1000 });
-  for (const folder of folders || []) {
+  const listAll = async (prefix: string) => {
+    const items: any[] = [];
+    for (let offset = 0; offset < 100000; offset += 1000) {
+      const { data, error: listError } = await db.storage.from("homepage-hero")
+        .list(prefix, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+      if (listError || !data?.length) break;
+      items.push(...data);
+      if (data.length < 1000) break;
+    }
+    return items;
+  };
+  const folders = await listAll("");
+  for (const folder of folders) {
     if (!folder.id) {
-      const { data: objects } = await db.storage.from("homepage-hero").list(folder.name, { limit: 1000 });
-      const orphanPaths = (objects || []).filter((obj) => {
+      const objects = await listAll(folder.name);
+      const orphanPaths = objects.filter((obj) => {
         if (!obj.id) return false;
         const path = folder.name + "/" + obj.name;
         const created = Date.parse(obj.created_at || obj.updated_at || "");
