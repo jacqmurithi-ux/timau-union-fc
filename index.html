@@ -13,7 +13,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="css/season.css">
-  <link rel="stylesheet" href="css/fans-gallery.css">
+  <link rel="stylesheet" href="css/fans-gallery.css">\n  <link rel="stylesheet" href="css/homepage-hero.css">
   <script>
     // Recovery links sent with the public Site URL should still reach the
     // private member-access page. Preserve Supabase's query/hash tokens.
@@ -31,7 +31,7 @@
       window.location.replace(target.toString());
     })();
   </script>
-  <script src="script.js?v=20261021-menu-fix-2" defer></script>
+  <script src="script.js?v=20261021-menu-fix-2" defer></script>\n  <script type="module" src="js/homepage-hero.js"></script>
   <script src="/js/install-tracking.js" defer></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
@@ -61,16 +61,23 @@
         </span>
       </a>
 
-      <button
-        class="menu-toggle"
-        id="menu-toggle"
-        aria-controls="primary-nav"
-        aria-expanded="false"
-        type="button"
-      >
-        <span class="menu-icon" aria-hidden="true">☰</span>
-        <span class="menu-label">Menu</span>
-      </button>
+      <div class="header-actions">
+        <button class="header-icon-button" id="site-search-toggle" type="button" aria-label="Search the site" aria-expanded="false" aria-controls="site-search-panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+        </button>
+        <button class="header-icon-button menu-toggle" id="menu-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" type="button">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+          <span class="menu-label" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Menu</span>
+        </button>
+      </div>
+      <div class="search-panel" id="site-search-panel" hidden>
+        <form id="site-search-form" role="search">
+          <label for="site-search-input" class="skip-link" style="top:auto;left:-9999px">Search news, fixtures and players</label>
+          <input id="site-search-input" type="search" placeholder="Search news, fixtures and players" autocomplete="off">
+          <button class="button button-dark" type="submit">Search</button>
+        </form>
+        <div id="site-search-results" class="search-results" aria-live="polite"></div>
+      </div>
 
       <nav
         class="primary-nav"
@@ -90,7 +97,7 @@
     </div>
   </header>
 
-  <main id="main">
+  <section id="homepage-hero" hidden aria-label="Club highlights" aria-roledescription="carousel">\n    <div class="hero-slider-viewport" data-hero-track></div>\n    <div class="hero-progress" data-hero-progress role="group" aria-label="Choose a homepage highlight"></div>\n  </section>\n\n  <main id="main">
     <section class="section achievement-section">
       <div class="container club-grid">
         <div>
