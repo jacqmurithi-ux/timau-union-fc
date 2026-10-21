@@ -260,8 +260,8 @@ create policy treasurer_receipts_upload on storage.objects for insert to authent
 with check(bucket_id='club-financial-receipts' and public.treasurer_receipt_access((storage.foldername(name))[1],true));
 drop policy if exists treasurer_receipts_update on storage.objects;
 create policy treasurer_receipts_update on storage.objects for update to authenticated
-using(bucket_id='club-financial-receipts' and public.treasurer_receipt_access(((storage.foldername(name))[1])::uuid,true))
-with check(bucket_id='club-financial-receipts' and public.treasurer_receipt_access(((storage.foldername(name))[1])::uuid,true));
+using(bucket_id='club-financial-receipts' and public.treasurer_receipt_access((storage.foldername(name))[1],true))
+with check(bucket_id='club-financial-receipts' and public.treasurer_receipt_access((storage.foldername(name))[1],true));
 drop policy if exists treasurer_receipts_delete on storage.objects;
 create policy treasurer_receipts_delete on storage.objects for delete to authenticated using(false);
 
