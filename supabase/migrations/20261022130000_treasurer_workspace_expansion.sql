@@ -282,7 +282,7 @@ as $transport$
 declare r text[]; adm boolean; treas boolean; chair boolean; old private.tm_records%rowtype; rid uuid; amt numeric; payload jsonb;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
- r:=private.current_club_roles();adm:=private.is_active_platform_admin(auth.uid());treas:='treasurer'=any(r);chair:='chairman'=any(r);
+ r:=private.current_club_roles();adm:=private.is_active_platform_admin(auth.uid());treas:=coalesce('treasurer'=any(r),false);chair:=coalesce('chairman'=any(r),false);
  if not(adm or treas or chair) then raise exception 'Treasurer, Chairman or Platform Admin required'; end if;
  if _decision not in('approved','rejected','queried') or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Decision and reason required'; end if;
  select * into old from private.tm_records where id=_id and section_key='transport_logistics' for update;
