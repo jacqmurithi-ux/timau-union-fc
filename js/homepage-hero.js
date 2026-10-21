@@ -32,7 +32,7 @@ else {
     timer = setInterval(() => setActive(index + 1), 6000);
   };
   async function load() {
-    const { data, error } = await db.from("homepage_hero_slides").select("id,image_path,caption,link_url,alt_text,order_index,ends_at").or("ends_at.is.null,ends_at.gt." + new Date().toISOString()).order("order_index").limit(3);
+    const { data, error } = await db.from("homepage_hero_slides").select("id,image_path,caption,link_url,alt_text,order_index,ends_at").order("order_index").limit(3);
     if (error || !data?.length) { root.hidden = true; return; }
     slides = data;
     for (let i=0; i<data.length; i++) {
