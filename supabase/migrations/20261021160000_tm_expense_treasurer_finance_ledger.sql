@@ -104,8 +104,7 @@ begin
   if oldrow.status='approved' and not(adm or 'chairman'=any(r)) then raise exception 'Approved expenses are locked for financial integrity'; end if;
   if oldrow.status='approved' then
    insert into private.club_financial_ledger(entry_type,amount_kes,description,source_expense_id,actor_user_id,approved_by)
-   values('expense_reversal',abs(oldrow.amount_kes),'Admin correction reversal: '||oldrow.description,oldrow.id,auth.uid(),auth.uid())
-
+   values('expense_reversal',abs(oldrow.amount_kes),'Admin correction reversal: '||oldrow.description,oldrow.id,auth.uid(),auth.uid());
   end if;
   oldj:=jsonb_build_object('category',oldrow.category,'description',oldrow.description,'amount_kes',oldrow.amount_kes::text,'expense_date',oldrow.expense_date::text);
   update private.club_financial_expenses set category=cat,description=descr,amount_kes=amt,expense_date=d,status='pending',reviewed_by=null,reviewed_at=null,review_reason=null,approved_ledger_entry_id=null,updated_by=auth.uid(),updated_at=now() where id=_expense_id;
