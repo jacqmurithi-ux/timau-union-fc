@@ -1,0 +1,250 @@
+-- Secretary workspace expansion. Review and apply only after Union Test verification.
+begin;
+
+create table if not exists private.secretary_records (
+  id uuid primary key default gen_random_uuid(),
+  section_key text not null check (section_key = any (array[
+    'meeting','correspondence','registration','membership','document','notice','election','report'
+  ]::text[])),
+  data jsonb not null default '{}'::jsonb check (jsonb_typeof(data) = 'object'),
+  publication_status text not null default 'draft' check (publication_status in ('draft','approved','archived')),
+  created_by uuid not null references auth.users(id),
+  updated_by uuid not null references auth.users(id),
+  approved_by uuid references auth.users(id),
+  approved_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists secretary_records_section_status_idx
+  on private.secretary_records(section_key, publication_status, updated_at desc);
+alter table private.secretary_records enable row level security;
+revoke all on private.secretary_records from public, anon, authenticated;
+drop policy if exists secretary_records_no_direct_access on private.secretary_records;
+create policy secretary_records_no_direct_access on private.secretary_records
+  for all to anon, authenticated using (false) with check (false);
+
+create table if not exists private.secretary_record_audit (
+  id bigint generated always as identity primary key,
+  record_id uuid,
+  section_key text not null,
+  actor_user_id uuid not null references auth.users(id),
+  action_key text not null,
+  old_data jsonb not null default '{}'::jsonb,
+  new_data jsonb not null default '{}'::jsonb,
+  old_status text,
+  new_status text,
+  is_admin_override boolean not null default false,
+  reason text,
+  created_at timestamptz not null default now()
+);
+alter table private.secretary_record_audit enable row level security;
+revoke all on private.secretary_record_audit from public, anon, authenticated;
+create index if not exists secretary_audit_record_created_idx
+  on private.secretary_record_audit(record_id, created_at desc);
+
+create or replace function private.secretary_actor_can_manage()
+returns boolean language sql stable security definer set search_path=''
+as $$
+ select auth.uid() is not null and (
+   private.is_active_platform_admin(auth.uid()) or
+   'chairman' = any(private.current_club_roles()) or
+   'secretary' = any(private.current_club_roles())
+ )
+$$;
+revoke all on function private.secretary_actor_can_manage() from public, anon;
+grant execute on function private.secretary_actor_can_manage() to authenticated;
+
+create or replace function public.secretary_get_workspace()
+returns jsonb language plpgsql stable security definer set search_path=''
+as $$
+declare r text[]; adm boolean; secretary boolean;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required' using errcode='42501'; end if;
+ r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid());
+ secretary:=coalesce('secretary'=any(r),false);
+ if not (adm or 'chairman'=any(r) or secretary) then raise exception 'Secretary workspace access required' using errcode='42501'; end if;
+ return jsonb_build_object(
+  'roles',to_jsonb(coalesce(r,array[]::text[])), 'is_admin',adm,
+  'records',coalesce((select jsonb_agg(jsonb_build_object(
+    'id',s.id,'section_key',s.section_key,'data',s.data,'publication_status',s.publication_status,
+    'created_by',s.created_by,'updated_by',s.updated_by,'approved_by',s.approved_by,
+    'approved_at',s.approved_at,'created_at',s.created_at,'updated_at',s.updated_at)
+    order by s.updated_at desc)
+    from private.secretary_records s
+    where (adm or 'chairman'=any(r) or secretary)
+      and (s.section_key not in ('registration','membership') or adm or 'chairman'=any(r) or secretary)
+  ),'[]'::jsonb),
+  'finance_summary',case when adm or 'chairman'=any(r) or secretary then
+   jsonb_build_object(
+    'income_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where entry_type='income'),0),
+    'expenses_kes',coalesce(-(select sum(amount_kes) from private.club_financial_ledger where entry_type='expense'),0)
+      -coalesce((select sum(amount_kes) from private.club_financial_ledger where entry_type='expense_reversal'),0),
+    'balance_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger),0),
+    'pending_requisitions',coalesce((select count(*) from private.treasurer_records where record_type='requisition' and submitted_by=auth.uid() and status in ('pending','queried')),0)
+   ) else null end,
+  'own_requisitions',coalesce((select jsonb_agg(jsonb_build_object('id',f.id,'title',f.title,'amount_kes',f.amount_kes,
+     'status',f.status,'review_reason',f.review_reason,'created_at',f.created_at)
+     order by f.created_at desc) from private.treasurer_records f
+     where f.record_type='requisition' and f.submitted_by=auth.uid()),'[]'::jsonb)
+ );
+end $$;
+revoke all on function public.secretary_get_workspace() from public, anon;
+grant execute on function public.secretary_get_workspace() to authenticated;
+
+create or replace function public.secretary_save_record(_id uuid, _section_key text, _data jsonb)
+returns uuid language plpgsql security definer set search_path=''
+as $$
+declare adm boolean; sec boolean; old private.secretary_records%rowtype; rid uuid;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required' using errcode='42501'; end if;
+ adm:=private.is_active_platform_admin(auth.uid());
+ sec:='secretary'=any(private.current_club_roles());
+ if not (adm or 'chairman'=any(private.current_club_roles()) or sec) then raise exception 'Secretary or admin required' using errcode='42501'; end if;
+ if _section_key not in ('meeting','correspondence','registration','membership','document','notice','election','report') then raise exception 'Unsupported Secretary record type'; end if;
+ if jsonb_typeof(coalesce(_data,'{}'::jsonb))<>'object' then raise exception 'Record data must be an object'; end if;
+ if length(btrim(coalesce(_data->>'title',_data->>'name',_data->>'subject',''))) < 2 then raise exception 'A title, name or subject is required'; end if;
+ if _id is null then
+  insert into private.secretary_records(section_key,data,publication_status,created_by,updated_by)
+  values(_section_key,_data,'draft',auth.uid(),auth.uid()) returning id into rid;
+  insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,new_data,new_status,is_admin_override)
+  values(rid,_section_key,auth.uid(),'record_created',_data,'draft',adm or 'chairman'=any(private.current_club_roles()));
+ else
+  select * into old from private.secretary_records where id=_id for update;
+  if not found then raise exception 'Secretary record not found'; end if;
+  if not (adm or 'chairman'=any(private.current_club_roles()) or (sec and old.created_by=auth.uid())) then
+   raise exception 'Only the Secretary who created this record or an admin may edit it' using errcode='42501';
+  end if;
+  if old.publication_status='approved' and not (adm or 'chairman'=any(private.current_club_roles())) then
+   raise exception 'Approved records require admin override; create a correction draft instead' using errcode='42501';
+  end if;
+  update private.secretary_records set section_key=_section_key,data=_data,publication_status='draft',
+    approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=_id;
+  rid:=_id;
+  insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+  values(rid,_section_key,auth.uid(),'record_updated',old.data,_data,old.publication_status,'draft',adm or 'chairman'=any(private.current_club_roles()),
+    case when adm or 'chairman'=any(private.current_club_roles()) then 'Admin/Chairman override; changes saved as draft' else null end);
+ end if;
+ return rid;
+end $$;
+revoke all on function public.secretary_save_record(uuid,text,jsonb) from public, anon;
+grant execute on function public.secretary_save_record(uuid,text,jsonb) to authenticated;
+
+create or replace function public.secretary_set_status(_id uuid,_status text,_reason text)
+returns boolean language plpgsql security definer set search_path=''
+as $$
+declare adm boolean; sec boolean; old private.secretary_records%rowtype;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required' using errcode='42501'; end if;
+ adm:=private.is_active_platform_admin(auth.uid()); sec:='secretary'=any(private.current_club_roles());
+ if not (adm or 'chairman'=any(private.current_club_roles()) or sec) then raise exception 'Secretary or admin required' using errcode='42501'; end if;
+ if _status not in ('approved','draft','archived') or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Valid status and reason required'; end if;
+ select * into old from private.secretary_records where id=_id for update;
+ if not found then raise exception 'Secretary record not found'; end if;
+ if not (adm or 'chairman'=any(private.current_club_roles()) or (sec and old.created_by=auth.uid())) then raise exception 'Not permitted to review this record' using errcode='42501'; end if;
+ if _status='approved' and not (adm or 'chairman'=any(private.current_club_roles())) then
+  raise exception 'Secretary records must be approved by Chairman or admin' using errcode='42501';
+ end if;
+ update private.secretary_records set publication_status=_status,
+  approved_by=case when _status='approved' then auth.uid() else null end,
+  approved_at=case when _status='approved' then now() else null end,
+  updated_by=auth.uid(),updated_at=now() where id=_id;
+ insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ values(old.id,old.section_key,auth.uid(),'publication_'||_status,old.data,old.data,old.publication_status,_status,adm or 'chairman'=any(private.current_club_roles()),btrim(_reason));
+ return true;
+end $$;
+revoke all on function public.secretary_set_status(uuid,text,text) from public, anon;
+grant execute on function public.secretary_set_status(uuid,text,text) to authenticated;
+
+-- A Secretary must never create/edit expense or ledger records. Requisition submissions
+-- continue only through the existing treasurer_submit_requisition RPC and own records
+-- remain scoped in treasurer_get_dashboard/secretary_get_workspace.
+-- Add a private, non-destructive likely-duplicate matcher for player approval/import review.
+create or replace function private.secretary_edit_distance(a text,b text)
+returns integer language plpgsql immutable set search_path=''
+as $$
+declare i integer; j integer; ca integer; cb integer; prev integer[]; curr integer[]; cost integer; n integer; m integer;
+begin
+ a:=lower(regexp_replace(coalesce(a,''),'[^a-z0-9]','','g'));
+ b:=lower(regexp_replace(coalesce(b,''),'[^a-z0-9]','','g'));
+ n:=length(a); m:=length(b);
+ if n=0 then return m; end if; if m=0 then return n; end if;
+ prev:=array(select generate_series(0,m));
+ for i in 1..n loop
+  curr:=array_fill(0,array[m+1]); curr[1]:=i;
+  for j in 1..m loop
+   cost:=case when substr(a,i,1)=substr(b,j,1) then 0 else 1 end;
+   curr[j+1]:=least(curr[j]+1,prev[j+1]+1,prev[j]+cost);
+  end loop;
+  prev:=curr;
+ end loop;
+ return prev[m+1];
+end $$;
+revoke all on function private.secretary_edit_distance(text,text) from public,anon,authenticated;
+
+create or replace function public.secretary_find_player_duplicates(_name text,_date_of_birth date default null,_fkf_number text default null)
+returns jsonb language plpgsql stable security definer set search_path=''
+as $$
+declare adm boolean; r text[]; result jsonb;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required' using errcode='42501'; end if;
+ r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid());
+ if not (adm or 'chairman'=any(r) or 'secretary'=any(r) or 'team_manager'=any(r)) then raise exception 'Player register access required' using errcode='42501'; end if;
+ if length(btrim(coalesce(_name,'')))<2 then raise exception 'Player name is required'; end if;
+ select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',p.data->>'name','date_of_birth',p.data->>'date_of_birth','fkf_number',p.data->>'fkf_number','status',p.publication_status,'score',
+  case when nullif(_fkf_number,'') is not null and p.data->>'fkf_number'=_fkf_number then 1.0
+       when _date_of_birth is not null and (p.data->>'date_of_birth')::date=_date_of_birth then 0.95
+       else greatest(0.0,1.0-(private.secretary_edit_distance(_name,p.data->>'name')::numeric/greatest(length(_name),length(p.data->>'name'),1))) end)
+  order by p.created_at desc),'[]'::jsonb)
+ into result from private.club_records p where p.record_type='player'
+ and ( (nullif(_fkf_number,'') is not null and p.data->>'fkf_number'=_fkf_number)
+   or (_date_of_birth is not null and p.data->>'date_of_birth' is not null and (p.data->>'date_of_birth')::date=_date_of_birth)
+   or (private.secretary_edit_distance(_name,p.data->>'name') <= greatest(1,ceil(length(_name)*0.22)::int)
+       and ( _date_of_birth is not null or nullif(_fkf_number,'') is not null)));
+ return result;
+end $$;
+revoke all on function public.secretary_find_player_duplicates(text,date,text) from public,anon;
+grant execute on function public.secretary_find_player_duplicates(text,date,text) to authenticated;
+
+create or replace function public.secretary_merge_player_records(_keep_id uuid,_duplicate_id uuid,_reason text)
+returns boolean language plpgsql security definer set search_path=''
+as $$
+declare r text[]; adm boolean; keep private.club_records%rowtype; dup private.club_records%rowtype; merged jsonb;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid());
+ if not (adm or 'chairman'=any(r) or 'secretary'=any(r)) then raise exception 'Secretary or admin required'; end if;
+ if _keep_id=_duplicate_id or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Choose two different records and provide a reason'; end if;
+ select * into keep from private.club_records where id=_keep_id and record_type='player' for update;
+ select * into dup from private.club_records where id=_duplicate_id and record_type='player' for update;
+ if keep.id is null or dup.id is null then raise exception 'Both player records must exist'; end if;
+ merged:=dup.data||keep.data;
+ update private.club_records set data=merged,publication_status='draft',approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=keep.id;
+ update private.club_records set publication_status='archived',updated_by=auth.uid(),updated_at=now() where id=dup.id;
+ insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason)
+ values(auth.uid(),keep.id,'player','duplicate_merge_kept',btrim(_reason)),(auth.uid(),dup.id,'player','duplicate_merge_archived_into_'||keep.id::text,btrim(_reason));
+ insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ values(keep.id,'membership',auth.uid(),'player_duplicate_merge',jsonb_build_object('data',keep.data),jsonb_build_object('data',merged,'duplicate_id',dup.id),keep.publication_status,'draft',adm or 'chairman'=any(r),btrim(_reason));
+ return true;
+end $$;
+revoke all on function public.secretary_merge_player_records(uuid,uuid,text) from public,anon;
+grant execute on function public.secretary_merge_player_records(uuid,uuid,text) to authenticated;
+
+-- Private supporting documents (IDs and under-18 consent forms) are never public.
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+values ('secretary-restricted-documents','secretary-restricted-documents',false,10485760,array['application/pdf','image/jpeg','image/png'])
+on conflict (id) do update set public=false,file_size_limit=10485760,allowed_mime_types=excluded.allowed_mime_types;
+drop policy if exists secretary_restricted_docs_select on storage.objects;
+create policy secretary_restricted_docs_select on storage.objects for select to authenticated
+using (bucket_id='secretary-restricted-documents' and (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
+drop policy if exists secretary_restricted_docs_insert on storage.objects;
+create policy secretary_restricted_docs_insert on storage.objects for insert to authenticated
+with check (bucket_id='secretary-restricted-documents' and (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())) and (storage.foldername(name))[1]=auth.uid()::text);
+drop policy if exists secretary_restricted_docs_update on storage.objects;
+create policy secretary_restricted_docs_update on storage.objects for update to authenticated
+using (bucket_id='secretary-restricted-documents' and (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())))
+with check (bucket_id='secretary-restricted-documents' and (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
+drop policy if exists secretary_restricted_docs_delete on storage.objects;
+create policy secretary_restricted_docs_delete on storage.objects for delete to authenticated
+using (bucket_id='secretary-restricted-documents' and (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
+
+commit;
