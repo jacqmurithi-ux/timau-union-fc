@@ -19,8 +19,8 @@ Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-tea
 ## Expense and Treasurer financial workflow
 - [ ] As TM, submit transport, refreshments, kit/equipment, medical/first aid, venue/pitch, and other expense entries with category, description/payee/reference, amount (KES), and date. Submission is pending; no ledger total changes yet.
 - [ ] As TM, edit a pending/rejected expense; it returns to pending and requires Treasurer review again. TM cannot edit an approved expense.
-- [ ] As Treasurer, view pending submissions, approve one with a reason, and verify exactly one negative expense entry is posted to `private.club_financial_ledger` and the club financial summary updates. Reject another with a reason and verify no ledger entry is posted.
-- [ ] Verify non-Treasurer/non-admin roles cannot approve/reject; direct authenticated table access is denied; anonymous users cannot call expense RPCs.
+- [ ] As Chairperson, Secretary, and Treasurer in separate sessions, each approve another person's pending expense with a reason; verify exactly one negative expense entry is posted to `private.club_financial_ledger` and the club financial summary updates. Each may reject another person's expense with a reason and no ledger entry is posted.
+- [ ] Verify roles outside Chairperson/Secretary/Treasurer/Platform Admin cannot approve/reject; direct authenticated table access is denied; anonymous users cannot call expense RPCs.
 - [ ] As Platform Admin/Chairman, correct an approved expense with a reason; verify the compensating reversal, re-submission as pending, and old/new values in `private.club_financial_audit`.
 - [ ] Verify every active club role can read the summary RPC, while only TM/Treasurer/Chairman/Platform Admin can see expense records. Treasurer cannot edit TM submissions.
 - [ ] Confirm financial summary states are based only on posted ledger transactions; do not enter estimated income or opening balances to make totals look complete.
@@ -30,5 +30,14 @@ Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-tea
 - [ ] Sign in with each active club role and confirm the Expenses & club finances tab is available.
 - [ ] Each role can submit an expense linked in its description to the role, duty/activity, payee and receipt/reference; submission remains pending until Treasurer approval.
 - [ ] Ordinary roles can see and edit their own pending/rejected expenses only; they cannot see other roles' expense records or edit another submitter's record.
-- [ ] Treasurer, Chairman and Platform Admin can view all submissions; only Treasurer/Chairman/Platform Admin can approve or reject. Approval posts to the shared ledger; no one can directly write ledger rows from the client.
+- [ ] Treasurer, Chairman and Platform Admin can view all submissions; only Chairperson/Secretary/Treasurer/Platform Admin can approve or reject; Chairperson, Secretary, Treasurer and Platform Admin must each be denied when reviewing an expense they personally submitted. Approval posts to the shared ledger; no one can directly write ledger rows from the client.
 - [ ] All active club roles can read the same financial summary, and the summary changes only after ledger transactions are posted.
+
+
+## Mandatory expense self-approval and audit tests
+- [ ] Submit one pending expense as Chairperson; verify Chairperson cannot approve or reject it, but Secretary or Treasurer can.
+- [ ] Submit one pending expense as Secretary; verify Secretary cannot approve or reject it, but Chairperson or Treasurer can.
+- [ ] Submit one pending expense as Treasurer; verify Treasurer cannot approve or reject it, but Chairperson or Secretary can.
+- [ ] Attempt self-review through the UI and direct authenticated RPC for all three roles; all attempts fail without ledger or status changes.
+- [ ] Verify successful approval audit action identifies the actual reviewing role, actor, timestamp, reason, old/new status; Platform Admin override is explicitly marked.
+- [ ] Verify duplicate/concurrent review requests create at most one ledger entry and only one successful status transition.
