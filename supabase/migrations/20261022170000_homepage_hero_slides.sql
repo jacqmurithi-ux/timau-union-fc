@@ -136,7 +136,7 @@ begin
   if coalesce(current_setting('request.jwt.claim.role', true),'') <> 'service_role' then raise exception 'Service role required'; end if;
   select * into v from public.homepage_hero_slides where id=_slide_id and ends_at is not null and ends_at<=now() for update;
   if not found then return false; end if;
-  insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(v.updated_by,v.id,v.caption,'expired');
+  insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(null,v.id,v.caption,'expired');
   delete from public.homepage_hero_slides where id=v.id;
   return true;
 end
