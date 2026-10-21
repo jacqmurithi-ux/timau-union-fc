@@ -62,6 +62,10 @@ create policy treasurer_opening_balance_no_direct_access on private.treasurer_op
 
 -- Reuse the existing canonical ledger and finance audit tables; extend them with
 -- links to the expanded Treasurer records rather than creating parallel ledgers.
+alter table private.club_financial_ledger enable row level security;
+revoke all on private.club_financial_ledger from public,anon,authenticated;
+alter table private.club_financial_audit enable row level security;
+revoke all on private.club_financial_audit from public,anon,authenticated;
 alter table private.club_financial_ledger add column if not exists source_treasurer_record_id uuid references private.treasurer_records(id);
 alter table private.club_financial_ledger alter column amount_kes type numeric(14,2);
 alter table private.club_financial_ledger drop constraint if exists club_financial_ledger_entry_type_check;
