@@ -209,6 +209,7 @@ begin
  if _amount_kes is null or _amount_kes<0 or _amount_kes>100000000000 or length(btrim(coalesce(_note,'')))<3 then raise exception 'Valid opening balance and explanation required'; end if;
  select * into old from private.treasurer_opening_balance where id=true for update;
  if found and old.locked_at is not null and not adm then raise exception 'Opening balance is locked; Platform Admin override required'; end if;
+ if found and old.locked_at is not null and adm and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Platform Admin override reason required'; end if;
  if _confirm_as='treasurer' and ('treasurer'=any(r) or adm) then
   insert into private.treasurer_opening_balance(id,amount_kes,note,treasurer_confirmed_by,treasurer_confirmed_at,updated_by)
   values(true,_amount_kes,btrim(_note),auth.uid(),now(),auth.uid())
@@ -218,6 +219,9 @@ begin
   if old.amount_kes<>_amount_kes then raise exception 'Chairman confirmation amount must match the Treasurer-confirmed amount'; end if;
   update private.treasurer_opening_balance set chairman_confirmed_by=auth.uid(),chairman_confirmed_at=now(),updated_by=auth.uid(),updated_at=now() where id=true;
  else raise exception 'Matching Treasurer or Chairman role required'; end if;
+ if found and old.locked_at is not null and adm and _amount_kes<>old.amount_kes then
+  insert into private.treasurer_ledger(entry_type,amount_kes,description,actor_user_id,approved_by) values('adjustment',_amount_kes-old.amount_kes,'Platform Admin opening-balance override: '||btrim(_reason),auth.uid(),auth.uid());
+ end if;
  update private.treasurer_opening_balance set locked_at=coalesce(locked_at,now()) where id=true and treasurer_confirmed_at is not null and chairman_confirmed_at is not null;
  insert into private.treasurer_audit(actor_user_id,action_key,old_data,new_data,reason,is_admin_override)
  values(auth.uid(),'opening_balance_'||_confirm_as||'_confirmation',case when found then jsonb_build_object('amount_kes',old.amount_kes::text,'locked_at',old.locked_at) else '{}'::jsonb end,
@@ -292,6 +296,7 @@ begin
  select * into old from private.tm_records where id=_id and section_key='transport_logistics' for update;
  if not found then raise exception 'Team Manager transport plan not found'; end if;
  if old.created_by=auth.uid() then raise exception 'Cannot approve your own transport plan'; end if;
+ if old.publication_status='approved' then raise exception 'Transport plan is already approved; submit an adjustment instead'; end if;
  if _decision='approved' then
   if _approved_amount_kes is null or _approved_amount_kes<=0 or _approved_amount_kes>100000000000 then raise exception 'Enter the explicitly approved total fare in KES'; end if;
   amt:=_approved_amount_kes;
