@@ -111,7 +111,7 @@ begin
  else
   select * into old from private.secretary_records where id=_id for update;
   if not found then raise exception 'Secretary record not found'; end if;
-  if not (adm or 'chairman'=any(private.current_club_roles()) or (sec and old.created_by=auth.uid())) then
+  if not (adm or 'chairman'=any(private.current_club_roles()) or sec) then
    raise exception 'Only the Secretary who created this record or an admin may edit it' using errcode='42501';
   end if;
   if old.publication_status='approved' and not (adm or 'chairman'=any(private.current_club_roles())) then
@@ -246,5 +246,60 @@ with check (bucket_id='secretary-restricted-documents' and (private.is_active_pl
 drop policy if exists secretary_restricted_docs_delete on storage.objects;
 create policy secretary_restricted_docs_delete on storage.objects for delete to authenticated
 using (bucket_id='secretary-restricted-documents' and (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
+
+
+create or replace function public.secretary_log_duplicate_decision(_record_id uuid,_match_id uuid,_resolution text,_reason text)
+returns boolean language plpgsql security definer set search_path=''
+as $
+declare r text[]; adm boolean; p private.club_records%rowtype; m private.club_records%rowtype;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid());
+ if not (adm or 'chairman'=any(r) or 'secretary'=any(r) or 'team_manager'=any(r)) then raise exception 'Player register access required'; end if;
+ if _resolution not in ('not_duplicate') or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Resolution and reason required'; end if;
+ select * into p from private.club_records where id=_record_id and record_type='player';
+ if not found then raise exception 'Player record not found'; end if;
+ if _match_id is not null then
+  select * into m from private.club_records where id=_match_id and record_type='player';
+  if not found then raise exception 'Matching player record not found'; end if;
+ end if;
+ insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ values(_record_id,'membership',auth.uid(),'player_duplicate_marked_not_duplicate',
+  jsonb_build_object('name',p.data->>'name','matched_record_id',_match_id),
+  jsonb_build_object('resolution',_resolution,'match_name',m.data->>'name'),p.publication_status,p.publication_status,adm or 'chairman'=any(r),btrim(_reason));
+ return true;
+end $;
+revoke all on function public.secretary_log_duplicate_decision(uuid,uuid,text,text) from public,anon;
+grant execute on function public.secretary_log_duplicate_decision(uuid,uuid,text,text) to authenticated;
+
+-- Keep the Treasurer as the only reader of the detailed ledger/opening balance
+-- through the Treasurer dashboard. Secretary sees approved reports and own requisitions only.
+create or replace function public.treasurer_get_dashboard()
+returns jsonb language plpgsql stable security definer set search_path=''
+as $
+declare r text[]; adm boolean; chair boolean; treas boolean; uid uuid;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ uid:=auth.uid(); adm:=private.is_active_platform_admin(uid); r:=private.current_club_roles();
+ chair:=coalesce('chairman'=any(r),false); treas:=coalesce('treasurer'=any(r),false);
+ if not (adm or chair or treas or 'secretary'=any(r) or 'vice_chairman'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
+ return jsonb_build_object(
+  'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',treas,'can_override',adm or chair,
+  'transport_plans',case when adm or chair or treas then coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'data',t.data,'created_by',t.created_by,'created_at',t.created_at,'treasurer_status',t.treasurer_status,'treasurer_review_reason',t.treasurer_review_reason) order by t.created_at desc) from private.tm_records t where t.section_key='transport_logistics' and t.treasurer_status in('pending','queried','rejected')),'[]'::jsonb) else '[]'::jsonb end,
+  'records',coalesce((select jsonb_agg(jsonb_build_object(
+    'id',f.id,'record_type',f.record_type,'title',f.title,'amount_kes',f.amount_kes::text,'record_date',f.record_date,'category',f.category,'source',f.source,'receipt_reference',f.receipt_reference,
+    'payload',f.payload,'status',f.status,'created_by',f.created_by,'submitted_by',f.submitted_by,'sponsor_user_id',f.sponsor_user_id,'reviewed_by',f.reviewed_by,'reviewed_at',f.reviewed_at,
+    'review_reason',f.review_reason,'created_at',f.created_at,'published_at',f.published_at)
+    order by f.created_at desc) from private.treasurer_records f
+    where (adm or chair or treas or ('sponsor'=any(r) and f.sponsor_user_id=uid)
+      or (r && array['secretary','vice_chairman']::text[] and f.record_type='financial_report' and f.status in('approved','published'))
+      or (f.record_type='requisition' and f.submitted_by=uid)), '[]'::jsonb),
+  'opening_balance',case when adm or chair or treas then (select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true) else null end,
+  'ledger',case when adm or chair or treas then coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'record_id',coalesce(l.source_treasurer_record_id,l.source_expense_id),'created_at',l.created_at) order by l.created_at desc) from (select * from private.club_financial_ledger order by created_at desc limit 100) l),'[]'::jsonb) else '[]'::jsonb end,
+  'audit',case when adm or chair or treas then coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'record_id',a.treasurer_record_id,'actor_user_id',a.actor_user_id,'action_key',a.action_key,'old_data',a.old_data,'new_data',a.new_data,'reason',a.reason,'is_admin_override',a.is_admin_override,'created_at',a.created_at) order by a.created_at desc) from (select * from private.club_financial_audit order by created_at desc limit 100) a),'[]'::jsonb) else '[]'::jsonb end
+ );
+end $;
+revoke all on function public.treasurer_get_dashboard() from public,anon;
+grant execute on function public.treasurer_get_dashboard() to authenticated;
 
 commit;
