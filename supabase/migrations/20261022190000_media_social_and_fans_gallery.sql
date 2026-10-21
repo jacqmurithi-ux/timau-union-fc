@@ -236,7 +236,7 @@ begin
   return true;
 end $function$;
 revoke all on function public.media_save_social_stats(uuid,bigint,bigint,bigint,bigint,bigint,bigint,bigint,bigint,date,text,text) from public, anon;
-grant execute on function public.media_save_social_stats(uuid,bigint,bigint,bigint,bigint,bigint,bigint,bigint,bigint,text,text) to authenticated;
+grant execute on function public.media_save_social_stats(uuid,bigint,bigint,bigint,bigint,bigint,bigint,bigint,bigint,date,text,text) to authenticated;
 
 create or replace function public.media_save_fan_photo(
   _record_id uuid,_image_path text,_caption text,_fixture_url text,_photo_date date,_alt_text text,
