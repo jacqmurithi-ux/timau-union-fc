@@ -342,4 +342,27 @@ revoke all on function public.treasurer_get_period_summary(date,date) from publi
 grant execute on function public.treasurer_get_period_summary(date,date) to authenticated;
 
 
+create or replace function public.treasurer_create_adjustment(_record_id uuid,_amount_kes numeric,_reason text)
+returns uuid language plpgsql security definer set search_path=''
+as $adjust$
+declare r text[]; adm boolean; chair boolean; treas boolean; old private.treasurer_records%rowtype; led uuid;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ r:=private.current_club_roles();adm:=private.is_active_platform_admin(auth.uid());treas:=coalesce('treasurer'=any(r),false);chair:=coalesce('chairman'=any(r),false);
+ if not(adm or chair or treas) then raise exception 'Treasurer, Chairman or Platform Admin required'; end if;
+ if _amount_kes is null or _amount_kes=0 or abs(_amount_kes)>100000000000 or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Non-zero adjustment amount and reason are required'; end if;
+ select * into old from private.treasurer_records where id=_record_id for update;
+ if not found then raise exception 'Finance record not found'; end if;
+ if old.status<>'approved' then raise exception 'Adjustments are only for approved records'; end if;
+ insert into private.club_financial_ledger(entry_type,amount_kes,description,source_treasurer_record_id,actor_user_id,approved_by,transaction_date)
+ values('adjustment',_amount_kes,'Adjustment for '||old.title||': '||btrim(_reason),old.id,auth.uid(),auth.uid(),current_date) returning id into led;
+ insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,old_data,new_data,reason,is_admin_override)
+ values(auth.uid(),old.id,'approved_record_adjustment',jsonb_build_object('title',old.title,'amount_kes',old.amount_kes::text,'status',old.status),
+ jsonb_build_object('adjustment_amount_kes',_amount_kes::text,'ledger_entry_id',led,'status_unchanged',true),btrim(_reason),adm or chair);
+ return led;
+end $adjust$;
+revoke all on function public.treasurer_create_adjustment(uuid,numeric,text) from public,anon;
+grant execute on function public.treasurer_create_adjustment(uuid,numeric,text) to authenticated;
+
+
 commit;
