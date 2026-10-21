@@ -85,10 +85,10 @@ begin
 
  -- Explicit allowlist only; never expose restricted welfare notes to Coach.
  select coalesce(jsonb_agg(jsonb_build_object('player_name',t.data->'player_name',
-  'status',coalesce(t.data->>'availability_status',t.data->>'fitness_status',t.data->>'case_type_follow_up'),
+  'status',coalesce(t.data->>'availability_status',t.data->>'fitness_status'),
   'return_status',t.data->'return_status')),'[]'::jsonb) into fitness
  from private.tm_records t where t.section_key='discipline_welfare'
- and (t.data ? 'availability_status' or t.data ? 'fitness_status' or t.data ? 'case_type_follow_up');
+ and (t.data ? 'availability_status' or t.data ? 'fitness_status');
 
  select coalesce(jsonb_agg(jsonb_build_object('player_name',t.data->'player_name',
   'cards',t.data->'cards','suspension_status',t.data->'suspension_status',
