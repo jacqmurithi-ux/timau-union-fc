@@ -429,3 +429,79 @@
 .season-scorer-rank { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--club-red, #c8102e); color: #fff; font-weight: 700; }
 .season-scorer-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .season-scorer-goals { white-space: nowrap; font-size: .9rem; color: var(--text-muted, #5c665f); }
+
+/* Mobile standings: show every statistics column within the viewport. */
+@media (max-width: 560px) {
+  .season-home-table-wrap,
+  .season-table-wrap {
+    overflow-x: hidden;
+  }
+
+  .season-table,
+  .season-table-compact {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    font-size: .66rem;
+    white-space: nowrap;
+  }
+
+  .season-table caption {
+    padding: 10px 8px;
+    font-size: .72rem;
+  }
+
+  .season-table th,
+  .season-table td,
+  .season-table-compact th,
+  .season-table-compact td {
+    padding: 8px 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .season-table .sticky-pos,
+  .season-table-compact .sticky-pos {
+    position: static;
+    width: 26px;
+    min-width: 26px;
+    text-align: center;
+  }
+
+  .season-table .sticky-team,
+  .season-table-compact .sticky-team {
+    position: static;
+    left: auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    box-shadow: none;
+    text-align: left;
+  }
+
+  .season-table th:nth-child(2),
+  .season-table td:nth-child(2) {
+    width: 31%;
+  }
+
+  .season-table thead th {
+    font-size: .62rem;
+    letter-spacing: 0;
+  }
+
+  .season-table-compact th:nth-child(2),
+  .season-table-compact td:nth-child(2) {
+    width: 40%;
+  }
+
+  .season-table-compact thead th {
+    font-size: .65rem;
+  }
+
+  .season-table tbody tr.is-timau .sticky-pos,
+  .season-table tbody tr.is-timau .sticky-team,
+  .season-table tbody tr:nth-child(even) .sticky-pos,
+  .season-table tbody tr:nth-child(even) .sticky-team {
+    background: inherit;
+  }
+}
