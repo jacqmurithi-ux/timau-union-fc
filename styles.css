@@ -1172,6 +1172,14 @@ h3 {
     overscroll-behavior: contain;
   }
 
+  /* Explicit open-state rules for portrait and narrow mobile viewports. */
+  .primary-nav.is-open {
+    display: grid !important;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .primary-nav .nav-login {
     margin-top: 8px;
   }
