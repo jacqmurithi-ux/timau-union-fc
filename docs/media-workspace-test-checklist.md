@@ -1,7 +1,7 @@
 # Media Team, Social Calendar and Fans Gallery — Test Checklist
 
 ## Scope and environment
-- [ ] Apply \`supabase/migrations/20261022190000_media_social_and_fans_gallery.sql\` to **Union Test first**; do not apply to Production until review and role-based verification pass.
+- [ ] Apply `supabase/migrations/20261022190000_media_social_and_fans_gallery.sql` and `supabase/migrations/20261022193000_media_gallery_child_consent_guard.sql\` to **Union Test first**; do not apply to Production until review and role-based verification pass.
 - [ ] Use a confirmed, active \`media_team\` test account, a Platform Admin account, a non-media club role, and an anonymous browser.
 - [ ] Use only clearly labelled synthetic test posts and consenting test photos. Do not add real fan or child images without the required permissions.
 - [ ] Confirm the existing News workflow remains unchanged; social-post approval uses the new dedicated RPC and must not call the News publication workflow.
@@ -38,6 +38,8 @@
 - [ ] New photo is private/draft until explicitly approved.
 - [ ] Consent checkbox text is exactly: “Fans are aware or photo was taken in a public matchday setting”. Approval fails if unchecked.
 - [ ] When identifiable children under 18 are flagged, approval fails until child-consent confirmation is checked. Do not approve identifiable children without consent.
+- [ ] Call the approval RPC directly with `_identifiable_children=false` for an already flagged photo; approval must still fail unless child consent is confirmed.
+- [ ] A non-admin cannot clear an existing identifiable-children flag through the edit RPC; Platform Admin needs an audited reason to clear it.
 - [ ] Media Team can edit, reorder, approve, unapprove and remove gallery photos; editing resets approval and consent confirmations.
 - [ ] Platform Admin can override another user's photo and the audit entry records actor, reason, old/new data and override flag.
 - [ ] An unapproved photo's image path cannot be read by an anonymous visitor, including through the Storage API.
