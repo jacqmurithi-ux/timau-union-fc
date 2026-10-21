@@ -13,6 +13,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="css/season.css">
+  <link rel="stylesheet" href="css/fans-gallery.css">
   <script>
     // Recovery links sent with the public Site URL should still reach the
     // private member-access page. Preserve Supabase's query/hash tokens.
@@ -80,6 +81,7 @@
         <a href="season.html">2025/26 Season</a>
         <a href="players.html">Players</a>
         <a href="#news">News</a>
+        <a href="#fans-gallery">Fans Gallery</a>
         <a href="#sponsors">Partners</a>
         <a href="#club">Our club</a>
         <a href="#contact">Contact</a>
@@ -335,6 +337,30 @@
 
 
 
+    <section class="section section-muted fans-gallery-section" id="fans-gallery" aria-labelledby="fans-gallery-title" hidden>
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow-green">OUR COMMUNITY IN THE STANDS</p>
+            <h2 id="fans-gallery-title">Fans Gallery</h2>
+            <p class="section-lead">Matchday moments from the Timau Union FC family.</p>
+          </div>
+        </div>
+        <div class="fans-carousel" id="fans-carousel" aria-roledescription="carousel" aria-label="Approved Timau Union FC matchday fan photos" tabindex="0">
+          <div class="fans-carousel-viewport" id="fans-carousel-viewport">
+            <div class="fans-carousel-track" id="fans-carousel-track"></div>
+          </div>
+          <div class="fans-carousel-controls">
+            <button class="fans-carousel-arrow" id="fans-previous" type="button" aria-label="Previous fan photo">←</button>
+            <div class="fans-carousel-dots" id="fans-carousel-dots" role="group" aria-label="Choose a fan photo"></div>
+            <button class="fans-carousel-arrow" id="fans-next" type="button" aria-label="Next fan photo">→</button>
+            <button class="fans-carousel-toggle" id="fans-autoplay-toggle" type="button" aria-pressed="false">Pause slideshow</button>
+          </div>
+          <p class="fans-carousel-status" id="fans-carousel-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
     <section
       class="section contact-section"
       id="contact"
@@ -402,5 +428,6 @@
       </p>
     </div>
   </footer>
+  <script type="module" src="js/fans-gallery.js"></script>
 </body>
 </html>
