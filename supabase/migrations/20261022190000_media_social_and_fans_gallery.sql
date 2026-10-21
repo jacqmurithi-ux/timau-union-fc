@@ -61,7 +61,8 @@ create table public.fan_gallery (
 create index fan_gallery_public_order_idx on public.fan_gallery(status, order_index, photo_date desc);
 alter table public.fan_gallery enable row level security;
 revoke all on public.fan_gallery from public, anon, authenticated;
-grant select on public.fan_gallery to anon, authenticated;
+revoke select on public.fan_gallery from anon, authenticated;
+grant select (id,image_path,caption,fixture_url,photo_date,alt_text,order_index,status) on public.fan_gallery to anon, authenticated;
 
 create table private.media_record_audit (
   id bigint generated always as identity primary key,
@@ -246,10 +247,12 @@ begin
   if auth.uid() is null or not public.media_can_manage() then raise exception 'Media Team access required'; end if;
   if _image_path is null or length(btrim(_image_path))<5 or _photo_date is null or length(btrim(coalesce(_alt_text,''))) not between 5 and 300 then raise exception 'Image, date and descriptive alt text are required'; end if;
   if split_part(_image_path,'/',1)='' or _image_path like '/%' or _image_path like '%..%' then raise exception 'Invalid storage path'; end if;
+  if not exists(select 1 from storage.objects o where o.bucket_id='fans-gallery' and o.name=_image_path) then raise exception 'Uploaded photo must exist in the Fans Gallery bucket'; end if;
   if _caption is not null and length(_caption)>1000 then raise exception 'Caption too long'; end if;
   if _fixture_url is not null and length(_fixture_url)>2000 then raise exception 'Fixture link too long'; end if;
   v_admin:=private.is_active_platform_admin(auth.uid());
   if _record_id is null then
+    if split_part(_image_path,'/',1)<>auth.uid()::text then raise exception 'New photos must be uploaded to your own folder'; end if;
     insert into public.fan_gallery(image_path,caption,fixture_url,photo_date,alt_text,identifiable_children,created_by,updated_by)
     values(_image_path,nullif(btrim(_caption),''),nullif(btrim(_fixture_url),''),_photo_date,btrim(_alt_text),coalesce(_identifiable_children,false),auth.uid(),auth.uid())
     returning id into v_id;
@@ -260,6 +263,7 @@ begin
     if not found then raise exception 'Fan photo not found'; end if;
     v_override:=v_admin and v_old.created_by<>auth.uid();
     if not v_admin and v_old.created_by<>auth.uid() then raise exception 'You can edit only photos you uploaded'; end if;
+    if _image_path<>v_old.image_path and split_part(_image_path,'/',1)<>auth.uid()::text then raise exception 'Replacement uploads must be in your own folder'; end if;
     if v_override and (length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000) then raise exception 'Administrator override reason (3–1000 characters) required'; end if;
     update public.fan_gallery set image_path=_image_path,caption=nullif(btrim(_caption),''),fixture_url=nullif(btrim(_fixture_url),''),
       photo_date=_photo_date,alt_text=btrim(_alt_text),identifiable_children=coalesce(_identifiable_children,false),
