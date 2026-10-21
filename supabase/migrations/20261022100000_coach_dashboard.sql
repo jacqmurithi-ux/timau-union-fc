@@ -8,7 +8,7 @@ create table if not exists private.coach_records (
   section_key text not null check (section_key = any(array[
     'training_plans','training_attendance','match_selection','tactics_match_prep',
     'player_performance','match_analysis','player_development'
-  ]::text[]),
+  ]::text[])),
   data jsonb not null check (jsonb_typeof(data)='object'),
   publication_status text not null default 'draft' check (publication_status in ('draft','approved','archived')),
   created_by uuid not null references auth.users(id),
