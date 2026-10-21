@@ -24,3 +24,11 @@ Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-tea
 - [ ] As Platform Admin/Chairman, correct an approved expense with a reason; verify the compensating reversal, re-submission as pending, and old/new values in `private.club_financial_audit`.
 - [ ] Verify every active club role can read the summary RPC, while only TM/Treasurer/Chairman/Platform Admin can see expense records. Treasurer cannot edit TM submissions.
 - [ ] Confirm financial summary states are based only on posted ledger transactions; do not enter estimated income or opening balances to make totals look complete.
+
+
+## All-role expense submission
+- [ ] Sign in with each active club role and confirm the Expenses & club finances tab is available.
+- [ ] Each role can submit an expense linked in its description to the role, duty/activity, payee and receipt/reference; submission remains pending until Treasurer approval.
+- [ ] Ordinary roles can see and edit their own pending/rejected expenses only; they cannot see other roles' expense records or edit another submitter's record.
+- [ ] Treasurer, Chairman and Platform Admin can view all submissions; only Treasurer/Chairman/Platform Admin can approve or reject. Approval posts to the shared ledger; no one can directly write ledger rows from the client.
+- [ ] All active club roles can read the same financial summary, and the summary changes only after ledger transactions are posted.
