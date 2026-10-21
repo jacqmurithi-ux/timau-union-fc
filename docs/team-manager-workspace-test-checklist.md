@@ -1,6 +1,6 @@
 # Team Manager workspace — test checklist
 
-Run on **Union Test** after applying `20261021130000_team_manager_workspace.sql`. Do not test by applying the migration directly to production.
+Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-team-manager-role-adapter.sql`, then `supabase/migrations/20261021130000_team_manager_workspace.sql`. For production, use `supabase/environment-adapters/production-team-manager-role-adapter.sql` before the migration. Do not apply either directly to production before Union Test checks pass.
 
 - [ ] Sign in as a Team Manager. Workspace shows Players, Fixtures & results, Activities, Import FKF roster, and the eight TM duty sections. News and Sponsors tabs are absent.
 - [ ] As TM, call `club_save_record` for `news` and `sponsor`; both must fail. Try the same through the UI.
