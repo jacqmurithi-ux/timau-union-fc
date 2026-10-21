@@ -277,7 +277,7 @@ begin
     order by f.created_at desc) from private.treasurer_records f
     where (adm or chair or treas or ('sponsor'=any(r) and f.sponsor_user_id=uid)
       or (r && array['secretary','vice_chairman']::text[] and f.record_type='financial_report' and f.status in('approved','published'))
-      or (f.record_type='requisition' and f.submitted_by=uid)), '[]'::jsonb),
+      or (f.record_type='requisition' and f.submitted_by=uid))), '[]'::jsonb),
   'opening_balance',case when adm or chair or treas then (select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true) else null end,
   'ledger',case when adm or chair or treas then coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'record_id',coalesce(l.source_treasurer_record_id,l.source_expense_id),'created_at',l.created_at) order by l.created_at desc) from (select * from private.club_financial_ledger order by created_at desc limit 100) l),'[]'::jsonb) else '[]'::jsonb end,
   'audit',case when adm or chair or treas then coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'record_id',a.treasurer_record_id,'actor_user_id',a.actor_user_id,'action_key',a.action_key,'old_data',a.old_data,'new_data',a.new_data,'reason',a.reason,'is_admin_override',a.is_admin_override,'created_at',a.created_at) order by a.created_at desc) from (select * from private.club_financial_audit order by created_at desc limit 100) a),'[]'::jsonb) else '[]'::jsonb end
