@@ -232,7 +232,7 @@ begin
  insert into private.club_financial_audit(actor_user_id,action_key,old_data,new_data,reason,is_admin_override)
  values(auth.uid(),'opening_balance_'||_confirm_as||'_confirmation',case when found then jsonb_build_object('amount_kes',old.amount_kes::text,'locked_at',old.locked_at) else '{}'::jsonb end,
  jsonb_build_object('amount_kes',_amount_kes::text,'confirm_as',_confirm_as),nullif(btrim(_reason),''),adm and old.locked_at is not null);
- if exists(select 1 from private.treasurer_opening_balance where id=true and locked_at is not null) and not exists(select 1 from private.club_financial_ledger where entry_type='opening_balance') then
+ if _amount_kes<>0 and exists(select 1 from private.treasurer_opening_balance where id=true and locked_at is not null) and not exists(select 1 from private.club_financial_ledger where entry_type='opening_balance') then
   insert into private.club_financial_ledger(entry_type,amount_kes,description,actor_user_id,approved_by) values('opening_balance',_amount_kes,'Jointly confirmed opening balance',auth.uid(),auth.uid());
  end if;
  return true;
@@ -285,7 +285,14 @@ end $role$;
 create or replace function public.treasurer_public_published_reports()
 returns jsonb language sql stable security definer set search_path=''
 as $report$
- select coalesce(jsonb_agg(jsonb_build_object('title',f.title,'record_date',f.record_date,'category',f.category,'payload',f.payload,'published_at',f.published_at) order by f.record_date desc),'[]'::jsonb)
+ select coalesce(jsonb_agg(jsonb_build_object(
+  'title',f.title,'record_date',f.record_date,'category',f.category,'published_at',f.published_at,
+  'summary',jsonb_strip_nulls(jsonb_build_object(
+   'start_date',f.payload->'start_date','end_date',f.payload->'end_date','currency',f.payload->'currency',
+   'income_kes',f.payload->'income_kes','expenses_kes',f.payload->'expenses_kes',
+   'period_net_kes',f.payload->'period_net_kes','balance_kes',f.payload->'balance_kes'
+  ))
+ ) order by f.record_date desc),'[]'::jsonb)
  from private.treasurer_records f where f.record_type='financial_report' and f.status='published' and f.published_at is not null
 $report$;
 revoke all on function public.treasurer_public_published_reports() from public;
