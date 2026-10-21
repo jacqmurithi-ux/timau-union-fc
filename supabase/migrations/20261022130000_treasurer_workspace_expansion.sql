@@ -191,7 +191,9 @@ begin
  if old.status='pending' and old.submitted_by=auth.uid() then raise exception 'Cannot approve your own requisition'; end if;
  update private.treasurer_records set status=_decision,reviewed_by=auth.uid(),reviewed_at=now(),review_reason=btrim(_reason),published_at=case when _decision='published' then now() else null end,updated_by=auth.uid(),updated_at=now() where id=_id;
  if _decision='approved' and old.status<>'approved' then
-  if old.record_type='income' or old.record_type='sponsor_fund' or old.record_type='member_contribution' then ledger_type:='income'; amount:=old.amount_kes;
+  if old.record_type='income' then ledger_type:='income'; amount:=old.amount_kes;
+  elsif old.record_type='sponsor_fund' and lower(coalesce(old.category,''))='received' then ledger_type:='income'; amount:=old.amount_kes;
+  elsif old.record_type='member_contribution' and lower(coalesce(old.category,'')) in('paid','received') then ledger_type:='income'; amount:=old.amount_kes;
   elsif old.record_type='expense' or old.record_type='transport_approval' then ledger_type:='expense'; amount:=-old.amount_kes;
   end if;
   if ledger_type is not null and amount<>0 then
