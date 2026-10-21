@@ -310,7 +310,11 @@ as $function$
 declare v_admin boolean; v_id uuid; v_idx integer; v_old integer;
 begin
   if auth.uid() is null or not public.media_can_manage() then raise exception 'Media Team access required'; end if;
-  if coalesce(array_length(_ids,1),0)=0 or array_length(_ids,1)>(select count(*) from public.fan_gallery) then raise exception 'Invalid photo order'; end if;
+  if coalesce(array_length(_ids,1),0)=0
+     or array_length(_ids,1)<>(select count(*) from public.fan_gallery)
+     or (select count(distinct x) from unnest(_ids) x)<>array_length(_ids,1) then
+    raise exception 'Photo order must include every gallery photo exactly once';
+  end if;
   v_admin:=private.is_active_platform_admin(auth.uid());
   if v_admin and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Administrator override reason required'; end if;
   for v_id,v_idx in select x.id,(x.ordinality-1)::integer from unnest(_ids) with ordinality as x(id,ordinality) loop
