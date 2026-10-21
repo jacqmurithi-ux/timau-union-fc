@@ -61,6 +61,23 @@
 <section class="media-panel"><div class="media-row"><h2 style="font-size:1.45rem;margin:0">Fans Gallery photos</h2><span id="gallery-count" class="media-muted"></span></div><p class="media-help">Move photos up or down to change carousel order. Public visitors see approved photos only.</p><div id="gallery-list"></div></section>
 </div>
 </section>
+<section id="tab-hero" class="media-tab media-hidden">
+<div id="homepage-hero-manager" hidden>
+<div class="media-panel"><h2 style="font-size:1.45rem">Homepage hero</h2><p class="media-help">Slides publish immediately when saved. Maximum 3 active slides. Images are resized to at most 1920px wide without filters. Removed slides and their images are permanently deleted.</p><p id="hero-manager-notice" class="media-note" role="status" aria-live="polite">Checking access…</p></div>
+<div class="media-grid">
+<section class="media-panel"><h3 id="hero-slide-heading">Add homepage slide</h3><form id="hero-manager-form" class="media-form">
+<input id="hero-slide-id" type="hidden">
+<label>Photo<input id="hero-slide-file" type="file" accept="image/jpeg,image/png,image/webp" required><span class="media-help">JPG, PNG or WebP only; max 15 MB before resizing.</span></label>
+<img id="hero-slide-preview" class="media-preview" alt="Selected homepage slide preview" hidden>
+<label>Caption headline<input id="hero-slide-caption" maxlength="180" required></label>
+<label>Optional link<input id="hero-slide-link" maxlength="2000" placeholder="/players.html or https://…"></label>
+<label>Alt text describing the photo<input id="hero-slide-alt" maxlength="300" minlength="5" required></label>
+<label>Display order<select id="hero-slide-order"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+<label>Optional end date<input id="hero-slide-end" type="date"></label>
+<div class="media-actions"><button id="hero-slide-save" class="button button-dark" type="submit">Publish slide</button><button id="hero-slide-clear" class="button button-dark" type="button">Clear</button></div>
+</form></section>
+<section class="media-panel"><div class="media-row"><h3 style="margin:0">Active slides</h3><button id="hero-slide-refresh" class="button button-dark" type="button">Refresh</button></div><div id="hero-manager-list"></div></section>
+</div></div></section>
 </section>
 </main>
 <footer class="site-footer"><div class="container footer-inner"><div class="footer-brand"><a class="brand footer-brand-link" href="../index.html"><img class="brand-mark" src="../assets/club-crest.jpg" alt="" width="40" height="40"><span class="brand-copy"><strong>TIMAU UNION FC</strong><small>One community. One club. One ambition.</small></span></a></div><p>Private media records are protected by database permissions.</p></div></footer>
