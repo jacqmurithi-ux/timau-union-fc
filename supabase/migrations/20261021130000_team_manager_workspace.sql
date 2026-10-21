@@ -75,6 +75,10 @@ alter table private.club_record_audit add column if not exists new_data jsonb no
 alter table private.club_record_audit add column if not exists is_admin_override boolean not null default false;
 alter table private.club_record_audit add column if not exists old_status text;
 alter table private.club_record_audit add column if not exists new_status text;
+drop policy if exists club_records_no_direct_access on private.club_records;
+create policy club_records_no_direct_access on private.club_records for all to anon,authenticated using(false) with check(false);
+drop policy if exists club_record_audit_no_direct_access on private.club_record_audit;
+create policy club_record_audit_no_direct_access on private.club_record_audit for all to anon,authenticated using(false) with check(false);
 
 create or replace function public.club_get_workspace_bundle()
 returns jsonb language plpgsql stable security definer set search_path=''
