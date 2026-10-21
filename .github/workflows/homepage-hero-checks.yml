@@ -1,0 +1,46 @@
+name: Homepage hero validation
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "script.js"
+      - "css/homepage-hero.css"
+      - "js/homepage-hero.js"
+      - "app/homepage-hero-manager.js"
+      - "app/media.html"
+      - "app/workspace.html"
+      - "supabase/migrations/*homepage_hero*.sql"
+      - "supabase/functions/expire-homepage-hero/**"
+      - "docs/homepage-hero-test-checklist.md"
+      - ".github/workflows/homepage-hero-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  syntax-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript syntax
+        run: |
+          node --input-type=module --check < script.js
+          node --input-type=module --check < js/homepage-hero.js
+          node --input-type=module --check < app/homepage-hero-manager.js
+      - name: Check SQL security contract
+        shell: bash
+        run: |
+          grep -q "enable row level security" supabase/migrations/20261022170000_homepage_hero_slides.sql
+          grep -q "public.homepage_hero_can_manage()" supabase/migrations/20261022170000_homepage_hero_slides.sql
+          grep -q "Maximum of 3 active homepage hero slides" supabase/migrations/20261022170000_homepage_hero_slides.sql
+          grep -q "homepage_hero_active_limit" supabase/migrations/20261022173000_homepage_hero_capacity_guard.sql
+          grep -q "position(chr(92) in link_url)" supabase/migrations/20261022180000_homepage_hero_link_validation_and_audit.sql
+          grep -q "'reordered'" supabase/migrations/20261022180000_homepage_hero_link_validation_and_audit.sql
+          grep -q "homepage_hero_audit" supabase/migrations/20261022170000_homepage_hero_slides.sql
+          grep -q "public=false" supabase/migrations/20261022170000_homepage_hero_slides.sql
+      - name: Ensure no service-role key is committed
+        shell: bash
+        run: |
+          ! grep -R -n -E "SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*['\"]eyJ|service_role_key[[:space:]]*=[[:space:]]*['\"]eyJ" index.html script.js js app css supabase/functions
