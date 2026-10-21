@@ -95,7 +95,7 @@ begin
  chair:='chairman'=any(r); treas:='treasurer'=any(r);
  if not (adm or chair or treas or 'secretary'=any(r) or 'vice_chairman'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
  return jsonb_build_object(
-  'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',adm or treas,'can_override',adm or chair,
+  'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',treas,'can_override',adm or chair,
   'records',coalesce((select jsonb_agg(jsonb_build_object(
     'id',f.id,'record_type',f.record_type,'title',f.title,'amount_kes',f.amount_kes::text,
     'record_date',f.record_date,'category',f.category,'source',f.source,'receipt_reference',f.receipt_reference,
@@ -126,7 +126,7 @@ begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid()); treas:='treasurer'=any(r); chair:='chairman'=any(r);
  if _id is null and not treas then raise exception 'Only the Treasurer may create finance records'; end if;
- if _id is not null and not(adm or treas or chair) then raise exception 'Only the Treasurer, Chairman or Platform Admin may edit an existing finance record'; end if;
+ if _id is not null and not treas then raise exception 'Only the Treasurer may edit finance records; Chairman/Admin may override decisions only'; end if;
  if _record_type not in('income','expense','transport_approval','budget','sponsor_fund','member_contribution','receipt','financial_report') then raise exception 'Unsupported Treasurer record type'; end if;
  if length(btrim(coalesce(_title,'')))<2 or _amount_kes is null or _amount_kes<0 or _amount_kes>100000000000 or coalesce(jsonb_typeof(_payload),'object')<>'object' then raise exception 'Valid title, non-negative KES amount and object details are required'; end if;
  newj:=jsonb_build_object('record_type',_record_type,'title',btrim(_title),'amount_kes',_amount_kes::text,'record_date',_record_date,'category',_category,'source',_source,'receipt_reference',_receipt_reference,'payload',coalesce(_payload,'{}'::jsonb),'sponsor_user_id',_sponsor_user_id);
@@ -138,11 +138,11 @@ begin
   select * into old from private.treasurer_records where id=_id for update;
   if not found then raise exception 'Finance record not found'; end if;
   if old.status='approved' then raise exception 'Approved finance records are immutable; create a separately reviewed adjustment or reversal'; end if;
-  if (adm or chair) and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Chairman/Admin override reason required'; end if;
+  
   oldj:=jsonb_build_object('record_type',old.record_type,'title',old.title,'amount_kes',old.amount_kes::text,'record_date',old.record_date,'category',old.category,'source',old.source,'receipt_reference',old.receipt_reference,'payload',old.payload,'status',old.status,'sponsor_user_id',old.sponsor_user_id);
   update private.treasurer_records set record_type=_record_type,title=btrim(_title),amount_kes=_amount_kes,record_date=_record_date,category=nullif(_category,''),source=nullif(_source,''),receipt_reference=nullif(_receipt_reference,''),payload=coalesce(_payload,'{}'::jsonb),sponsor_user_id=_sponsor_user_id,status='draft',updated_by=auth.uid(),updated_at=now(),reviewed_by=null,reviewed_at=null,review_reason=null,published_at=null where id=_id returning id into rid;
   insert into private.treasurer_audit(actor_user_id,record_id,action_key,old_data,new_data,reason,is_admin_override)
-  values(auth.uid(),rid,case when adm or chair then 'chairman_admin_override_edit_reset_to_draft' else 'finance_record_edited_as_draft' end,oldj,newj,nullif(btrim(_reason),''),adm or chair);
+  values(auth.uid(),rid,'finance_record_edited_as_draft',oldj,newj,nullif(btrim(_reason),''),false);
  end if;
  return rid;
 end $$;
