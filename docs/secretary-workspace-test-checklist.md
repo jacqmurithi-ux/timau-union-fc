@@ -36,3 +36,15 @@
 - [ ] Treasurer, Coach and Team Manager dashboards still load and keep their existing role guards.
 - [ ] Existing finance ledger, expense and audit records are unchanged.
 - [ ] Run JavaScript syntax checks and SQL contract/security tests before merge.
+
+
+## Follow-up UI regression checks (fix/secretary-tabs-and-forms)
+- [ ] Secretary page shows all 13 tabs: Players, Fixtures & results, News, Sponsors, Activities, Meetings & minutes, Correspondence, Registration & licensing, Membership register, Documents, Notices, Elections & appointments, Reports.
+- [ ] Existing five sections load the existing club records and keep using the established `club_save_record` and `club_set_publication_status` RPCs.
+- [ ] Meeting form captures type, date, venue, attendance/apologies, agenda, minutes, resolutions and action items.
+- [ ] Correspondence form captures direction, sender/recipient, date, reference, status and follow-up due date.
+- [ ] Registration form captures FKF/league status, registration and expiry dates, and restricted under-18 document notes.
+- [ ] Membership form captures member/official type, role, terms, contacts and membership status.
+- [ ] Documents form captures category and version; Notices capture audience, channel, recipient log and send status; Elections capture nominees, result and terms; Reports capture period, recipient and summaries.
+- [ ] Secretary save/edit remains draft-only; Chairman/Admin approval/override remains reasoned and audited.
+- [ ] Compare read-only financial summary against Treasurer-approved finance records/ledger; investigate discrepancies instead of treating displayed zeroes as authoritative.
