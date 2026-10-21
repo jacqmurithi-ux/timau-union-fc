@@ -74,7 +74,7 @@ function initializePage() {
       document.querySelectorAll("main h1, main h2, main h3, main .match-feature, main .news-card, main article").forEach((node) => {
         if (!node.textContent.toLocaleLowerCase().includes(query)) return;
         const heading = node.matches("h1,h2,h3") ? node : node.querySelector("h1,h2,h3");
-        const label = (heading ? heading.textContent : node.textContent).trim().replace(/\\s+/g, " ").slice(0, 150);
+        const label = (heading ? heading.textContent : node.textContent).trim().replace(/\s+/g, " ").slice(0, 150);
         if (!label) return;
         const section = node.closest("section");
         const anchor = section && section.id ? "#" + section.id : "#main";
@@ -87,7 +87,8 @@ function initializePage() {
         ]);
         if (playersResponse.ok) {
           const players = await playersResponse.json();
-          const playerRows = Array.isArray(players) ? players : (Array.isArray(players.players) ? players.players : []);\n          if (Array.isArray(playerRows)) playerRows.forEach((p) => {
+          const playerRows = Array.isArray(players) ? players : (Array.isArray(players.players) ? players.players : []);
+          if (Array.isArray(playerRows)) playerRows.forEach((p) => {
             const name = String(p.name || p.player_name || "");
             const detail = [p.position, p.squad_number].filter(Boolean).join(" · ");
             if (name.toLocaleLowerCase().includes(query) || detail.toLocaleLowerCase().includes(query))
@@ -114,7 +115,8 @@ function initializePage() {
       });
     });
   }
-\n  const yearElement = document.getElementById("current-year");
+
+  const yearElement = document.getElementById("current-year");
   if (yearElement) yearElement.textContent = String(new Date().getFullYear());
   loadMatchCentre();
 }
