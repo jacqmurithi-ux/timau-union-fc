@@ -391,4 +391,31 @@ end $function$;
 revoke all on function public.club_get_financial_summary() from public,anon;
 grant execute on function public.club_get_financial_summary() to authenticated;
 
+
+-- General official documents remain private to signed-in club officials; only
+-- Secretary/Chairman/Admin may write them. Identity/under-18 documents use the
+-- separate stricter bucket above.
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+values ('secretary-official-documents','secretary-official-documents',false,10485760,array['application/pdf','image/jpeg','image/png'])
+on conflict (id) do update set public=false,file_size_limit=10485760,allowed_mime_types=excluded.allowed_mime_types;
+drop policy if exists secretary_official_docs_select on storage.objects;
+create policy secretary_official_docs_select on storage.objects for select to authenticated
+using (bucket_id='secretary-official-documents' and
+ (private.is_active_platform_admin(auth.uid()) or cardinality(private.current_club_roles())>0));
+drop policy if exists secretary_official_docs_insert on storage.objects;
+create policy secretary_official_docs_insert on storage.objects for insert to authenticated
+with check (bucket_id='secretary-official-documents' and
+ (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles()))
+ and (storage.foldername(name))[1]=auth.uid()::text);
+drop policy if exists secretary_official_docs_update on storage.objects;
+create policy secretary_official_docs_update on storage.objects for update to authenticated
+using (bucket_id='secretary-official-documents' and
+ (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())))
+with check (bucket_id='secretary-official-documents' and
+ (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
+drop policy if exists secretary_official_docs_delete on storage.objects;
+create policy secretary_official_docs_delete on storage.objects for delete to authenticated
+using (bucket_id='secretary-official-documents' and
+ (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
+
 commit;
