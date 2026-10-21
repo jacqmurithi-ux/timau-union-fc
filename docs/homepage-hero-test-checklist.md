@@ -33,7 +33,7 @@
 - [ ] Slide link works by tapping the slide and through the accessible caption link.
 - [ ] Images have alt text; slides two and three are lazy-loaded.
 - [ ] Photo bytes display without tint, filters or blur; sizing uses `object-fit: cover`.
-- [ ] Upload accepts JPG/JPEG, PNG and WebP only; wider images resize to at most 1920px without filters.
+- [ ] Upload accepts JPG/JPEG, PNG and WebP only; images with either dimension above 1920px are resized proportionally without filters.
 - [ ] Admin and Media Team can add, edit, reorder and permanently remove slides.
 - [ ] Other roles cannot manage slides through UI, table policies, Storage policies or RPCs.
 - [ ] Replacing an image removes the prior Storage object.
