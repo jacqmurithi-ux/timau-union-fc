@@ -72,7 +72,7 @@ begin
  return coalesce((select jsonb_agg(jsonb_build_object(
   'id',e.id,'record_type','tm_expenses','data',jsonb_build_object('category',e.category,'description',e.description,'amount_kes',e.amount_kes::text,'expense_date',e.expense_date::text),
   'status',e.status,'publication_status',e.status,'created_by',e.created_by,'updated_by',e.updated_by,'reviewed_by',e.reviewed_by,'reviewed_at',e.reviewed_at,'review_reason',e.review_reason,'created_at',e.created_at,'updated_at',e.updated_at,
-  'can_review',adm or 'chairman'=any(r) or 'treasurer'=any(r))
+  'can_review',adm or r && array['chairman','secretary','treasurer']::text[])
   order by case e.status when 'pending' then 0 when 'rejected' then 1 else 2 end,e.expense_date desc,e.created_at desc)
   from private.club_financial_expenses e
   where (adm or 'chairman'=any(r) or 'treasurer'=any(r) or e.created_by=auth.uid())),'[]'::jsonb);
@@ -125,10 +125,11 @@ declare r text[]; adm boolean; oldrow private.club_financial_expenses%rowtype; l
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  adm:=private.is_active_platform_admin(auth.uid());r:=private.current_club_roles();over:=adm or 'chairman'=any(r);
- if not(over or 'treasurer'=any(r)) then raise exception 'Treasurer or administrator approval required'; end if;
+ if not(adm or r && array['chairman','secretary','treasurer']::text[]) then raise exception 'Chairperson, Secretary, Treasurer, or Platform Admin approval required'; end if;
  if _decision is null or _decision not in('approved','rejected') or _reason is null or length(btrim(_reason))<3 or length(_reason)>1000 then raise exception 'Valid decision and review reason required'; end if;
  select * into oldrow from private.club_financial_expenses where id=_expense_id for update;
  if not found then raise exception 'Expense not found'; end if;
+ if oldrow.created_by=auth.uid() then raise exception 'You cannot approve or reject your own expense'; end if;
  if oldrow.status<>'pending' then raise exception 'Only pending expenses can be reviewed'; end if;
  if _decision='approved' then
   insert into private.club_financial_ledger(entry_type,amount_kes,description,source_expense_id,actor_user_id,approved_by)
@@ -139,10 +140,10 @@ begin
   update private.club_financial_expenses set status='rejected',reviewed_by=auth.uid(),reviewed_at=now(),review_reason=btrim(_reason),updated_by=auth.uid(),updated_at=now() where id=_expense_id;
  end if;
  insert into private.club_financial_audit(actor_user_id,expense_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
- values(auth.uid(),_expense_id,case when over then 'admin_override_'||_decision else 'treasurer_'||_decision end,
+ values(auth.uid(),_expense_id,case when adm then 'platform_admin_override_'||_decision when 'chairman'=any(r) then 'chairperson_'||_decision when 'secretary'=any(r) then 'secretary_'||_decision else 'treasurer_'||_decision end,
  jsonb_build_object('category',oldrow.category,'description',oldrow.description,'amount_kes',oldrow.amount_kes::text,'expense_date',oldrow.expense_date::text),
  jsonb_build_object('category',oldrow.category,'description',oldrow.description,'amount_kes',oldrow.amount_kes::text,'expense_date',oldrow.expense_date::text),
- 'pending',_decision,over,btrim(_reason));
+ 'pending',_decision,adm,btrim(_reason));
  return true;
 end $f$;
 revoke all on function public.tm_review_expense(uuid,text,text) from public,anon;
