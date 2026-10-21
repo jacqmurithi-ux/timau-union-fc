@@ -1,6 +1,10 @@
 # Team Manager workspace — test checklist
 
-Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-team-manager-role-adapter.sql`, then `supabase/migrations/20261021130000_team_manager_workspace.sql`, then `supabase/migrations/20261021160000_tm_expense_treasurer_finance_ledger.sql`. For production, use `supabase/environment-adapters/production-team-manager-role-adapter.sql` before the Team Manager migration, then apply both migrations in order only after Union Test passes. Do not apply directly to production before Union Test checks pass.
+## Current rollout status (21 October 2026)
+
+The Union Test and Production role adapters, Team Manager workspace migration, and expense-ledger migration have already been applied in order. The database-level rollback-only expense workflow test passed on Union Test, and no test expenses or ledger entries were retained. **Do not reapply these migrations.** Continue with the interactive signed-in/browser checks below using Union Test accounts only. Do not create test expenses in Production.
+
+For a future schema change, use the relevant environment adapter first, then the Team Manager workspace migration, then the expense-ledger migration; validate in Union Test before any separate Production rollout.
 
 - [ ] Sign in as a Team Manager. Workspace shows Players, Fixtures & results, Activities, Import FKF roster, and the eight TM duty sections. News and Sponsors tabs are absent.
 - [ ] As TM, call `club_save_record` for `news` and `sponsor`; both must fail. Try the same through the UI.
