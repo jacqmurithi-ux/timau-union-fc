@@ -183,7 +183,7 @@ begin
  and ( (nullif(_fkf_number,'') is not null and p.data->>'fkf_number'=_fkf_number)
    or (_date_of_birth is not null and p.data->>'date_of_birth' is not null and (p.data->>'date_of_birth')::date=_date_of_birth)
    or (private.secretary_edit_distance(_name,p.data->>'name') <= greatest(1,ceil(length(_name)*0.22)::int)
-       and ( _date_of_birth is not null or nullif(_fkf_number,'') is not null)));
+        ));
  return result;
 end $$;
 revoke all on function public.secretary_find_player_duplicates(text,date,text) from public,anon;
@@ -196,7 +196,7 @@ declare r text[]; adm boolean; keep private.club_records%rowtype; dup private.cl
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid());
- if not (adm or 'chairman'=any(r) or 'secretary'=any(r)) then raise exception 'Secretary or admin required'; end if;
+ if not (adm or 'chairman'=any(r) or 'secretary'=any(r) or 'team_manager'=any(r)) then raise exception 'Secretary or authorized player-register manager required'; end if;
  if _keep_id=_duplicate_id or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Choose two different records and provide a reason'; end if;
  select * into keep from private.club_records where id=_keep_id and record_type='player' for update;
  select * into dup from private.club_records where id=_duplicate_id and record_type='player' for update;
