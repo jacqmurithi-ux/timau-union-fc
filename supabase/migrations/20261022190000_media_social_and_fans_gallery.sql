@@ -167,7 +167,6 @@ begin
   else
     select * into v_old from public.social_posts where id=_record_id for update;
     if not found then raise exception 'Social post not found'; end if;
-    if not v_admin and v_old.created_by<>auth.uid() then raise exception 'You can edit only your own social posts'; end if;
     v_override:=v_admin and v_old.created_by<>auth.uid();
     if v_override and (length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000) then raise exception 'Administrator override reason (3–1000 characters) required'; end if;
     update public.social_posts set title=btrim(_title),copy_text=coalesce(_copy_text,''),channel=_channel,
@@ -222,7 +221,6 @@ begin
   select * into v_old from public.social_posts where id=_record_id for update;
   if not found then raise exception 'Social post not found'; end if;
   v_admin:=private.is_active_platform_admin(auth.uid());
-  if not v_admin and v_old.created_by<>auth.uid() then raise exception 'You can edit stats only for your own social posts'; end if;
   v_override:=v_admin and v_old.created_by<>auth.uid();
   if v_override and (length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000) then raise exception 'Administrator override reason (3–1000 characters) required'; end if;
   update public.social_posts set reach=_reach,impressions=_impressions,likes=_likes,comments=_comments,shares=_shares,
@@ -262,7 +260,6 @@ begin
     select * into v_old from public.fan_gallery where id=_record_id for update;
     if not found then raise exception 'Fan photo not found'; end if;
     v_override:=v_admin and v_old.created_by<>auth.uid();
-    if not v_admin and v_old.created_by<>auth.uid() then raise exception 'You can edit only photos you uploaded'; end if;
     if _image_path<>v_old.image_path and split_part(_image_path,'/',1)<>auth.uid()::text then raise exception 'Replacement uploads must be in your own folder'; end if;
     if v_override and (length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000) then raise exception 'Administrator override reason (3–1000 characters) required'; end if;
     update public.fan_gallery set image_path=_image_path,caption=nullif(btrim(_caption),''),fixture_url=nullif(btrim(_fixture_url),''),
@@ -289,7 +286,6 @@ begin
   select * into v_old from public.fan_gallery where id=_record_id for update;
   if not found then raise exception 'Fan photo not found'; end if;
   v_admin:=private.is_active_platform_admin(auth.uid());
-  if not v_admin and v_old.created_by<>auth.uid() then raise exception 'Media Team members may approve their own uploaded photos'; end if;
   if _approved and not coalesce(_consent_confirmed,false) then raise exception 'Confirm that fans are aware or the photo was taken in a public matchday setting'; end if;
   if _approved and coalesce(_identifiable_children,false) and not coalesce(_child_consent_confirmed,false) then raise exception 'Approval blocked: identifiable children require consent confirmation'; end if;
   v_override:=v_admin and v_old.created_by<>auth.uid();
@@ -339,7 +335,6 @@ begin
   select * into v_old from public.fan_gallery where id=_record_id for update;
   if not found then raise exception 'Fan photo not found'; end if;
   v_admin:=private.is_active_platform_admin(auth.uid());
-  if not v_admin and v_old.created_by<>auth.uid() then raise exception 'You can remove only photos you uploaded'; end if;
   v_override:=v_admin and v_old.created_by<>auth.uid();
   if v_override and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Administrator override reason required'; end if;
   insert into private.media_record_audit(actor_user_id,record_id,record_type,action_key,reason,is_admin_override,old_data)
