@@ -14,7 +14,7 @@
 - [x] Deployed `expire-homepage-hero` to Union Test with JWT verification enabled.
 - [x] Verified the slide table and guarded RPCs exist, the bucket is private, five hero RLS policies exist, there are no active slides, unauthenticated management checks return false, anonymous execution of the save RPC is denied, and the audit table stores metadata only.
 - [ ] Scheduled expiry is **not active yet**: the Union Test Vault does not currently contain `project_url` and `service_role_key`. This requires a project administrator to configure those secrets securely; do not commit the service-role key.
-- [ ] GitHub Actions validation has been added but its first run must complete successfully on the updated pull request.
+- [x] GitHub Actions homepage hero validation passed on the latest revision; the existing Treasurer workspace validation also passed on the preceding revision.
 - [ ] Browser tests and a real upload/delete/expiry lifecycle test remain outstanding.
 
 ## Deployment prerequisites
