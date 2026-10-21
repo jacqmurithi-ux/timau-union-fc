@@ -195,7 +195,7 @@ async function loadFeaturedNews() {
     const featured = records
       .filter((item) => item && item.featured === true &&
         typeof item.title === "string" && item.title.trim() &&
-        typeof item.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(item.date) &&
+        typeof item.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
         isSafeNewsLink(item.link))
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 4);
@@ -261,7 +261,7 @@ async function loadFeaturedNews() {
 function isSafeNewsLink(value) {
   if (typeof value !== "string" || !value.trim()) return false;
   const link = value.trim();
-  if (link.startsWith("#")) return !/^#\\s*$/.test(link);
+  if (link.startsWith("#")) return !/^#\s*$/.test(link);
   if (link.startsWith("/") && !link.startsWith("//")) return true;
   if (link.startsWith("./") || link.startsWith("../")) return true;
   try {
