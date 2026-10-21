@@ -113,7 +113,7 @@ begin
     order by f.created_at desc)
     from private.treasurer_records f
     where (adm or chair or treas or ('sponsor'=any(r) and f.sponsor_user_id=uid)
-      or ('secretary'=any(r) and f.record_type='financial_report' and f.status in('approved','published'))
+      or (r && array['secretary','vice_chairman']::text[] and f.record_type='financial_report' and f.status in('approved','published'))
       or (f.record_type='requisition' and f.submitted_by=uid))), '[]'::jsonb),
   'opening_balance',(select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true),
   'ledger',case when adm or chair or treas or 'secretary'=any(r) then
