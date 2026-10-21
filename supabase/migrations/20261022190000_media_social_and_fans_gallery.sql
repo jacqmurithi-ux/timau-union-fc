@@ -8,6 +8,7 @@ create table public.social_posts (
   copy_text text not null default '' check (length(copy_text) <= 10000),
   channel text not null check (channel in ('Facebook','Instagram','X','TikTok','YouTube','WhatsApp channel')),
   planned_for date,
+  posted_at date,
   status text not null default 'idea' check (status in ('idea','drafted','approved','posted')),
   post_url text check (post_url is null or length(post_url) <= 2000),
   reach bigint not null default 0 check (reach >= 0),
@@ -170,7 +171,7 @@ begin
     v_override:=v_admin and v_old.created_by<>auth.uid();
     if v_override and (length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000) then raise exception 'Administrator override reason (3–1000 characters) required'; end if;
     update public.social_posts set title=btrim(_title),copy_text=coalesce(_copy_text,''),channel=_channel,
-      planned_for=_planned_for,post_url=nullif(btrim(_post_url),''),status=_status,
+      planned_for=_planned_for,posted_at=null,post_url=nullif(btrim(_post_url),''),status=_status,
       approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now()
     where id=_record_id returning id into v_id;
     insert into private.media_record_audit(actor_user_id,record_id,record_type,action_key,reason,is_admin_override,old_data,new_data)
@@ -200,10 +201,11 @@ begin
   update public.social_posts set status=_new_status,
     approved_by=case when _new_status in ('approved','posted') then coalesce(approved_by,auth.uid()) else null end,
     approved_at=case when _new_status in ('approved','posted') then coalesce(approved_at,now()) else null end,
+    posted_at=case when _new_status='posted' then coalesce(posted_at,current_date) else null end,
     updated_by=auth.uid(),updated_at=now() where id=_record_id;
   insert into private.media_record_audit(actor_user_id,record_id,record_type,action_key,reason,is_admin_override,old_data,new_data)
   values(auth.uid(),_record_id,'social_post','status_'||_new_status,nullif(btrim(_reason),''),v_override,
-    jsonb_build_object('status',v_old.status),jsonb_build_object('status',_new_status,'approved_by',case when _new_status in ('approved','posted') then auth.uid() else null end));
+    jsonb_build_object('status',v_old.status),jsonb_build_object('status',_new_status,'approved_by',case when _new_status in ('approved','posted') then auth.uid() else null end,'posted_at',case when _new_status='posted' then coalesce(v_old.posted_at,current_date) else null end));
   return true;
 end $function$;
 revoke all on function public.media_set_social_status(uuid,text,text) from public, anon;
@@ -211,7 +213,7 @@ grant execute on function public.media_set_social_status(uuid,text,text) to auth
 
 create or replace function public.media_save_social_stats(
   _record_id uuid,_reach bigint,_impressions bigint,_likes bigint,_comments bigint,
-  _shares bigint,_saves bigint,_link_clicks bigint,_followers_gained bigint,_post_url text,_reason text
+  _shares bigint,_saves bigint,_link_clicks bigint,_followers_gained bigint,_posted_at date,_post_url text,_reason text
 ) returns boolean language plpgsql security definer set search_path=''
 as $function$
 declare v_admin boolean; v_old public.social_posts%rowtype; v_override boolean;
@@ -224,15 +226,15 @@ begin
   v_override:=v_admin and v_old.created_by<>auth.uid();
   if v_override and (length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000) then raise exception 'Administrator override reason (3–1000 characters) required'; end if;
   update public.social_posts set reach=_reach,impressions=_impressions,likes=_likes,comments=_comments,shares=_shares,
-    saves=_saves,link_clicks=_link_clicks,followers_gained=_followers_gained,post_url=nullif(btrim(_post_url),''),
+    saves=_saves,link_clicks=_link_clicks,followers_gained=_followers_gained,posted_at=coalesce(_posted_at,posted_at),post_url=nullif(btrim(_post_url),''),
     updated_by=auth.uid(),updated_at=now() where id=_record_id;
   insert into private.media_record_audit(actor_user_id,record_id,record_type,action_key,reason,is_admin_override,old_data,new_data)
   values(auth.uid(),_record_id,'social_post','stats_updated',nullif(btrim(_reason),''),v_override,
-    jsonb_build_object('reach',v_old.reach,'impressions',v_old.impressions,'likes',v_old.likes,'comments',v_old.comments,'shares',v_old.shares,'saves',v_old.saves,'link_clicks',v_old.link_clicks,'followers_gained',v_old.followers_gained,'post_url',v_old.post_url),
-    jsonb_build_object('reach',_reach,'impressions',_impressions,'likes',_likes,'comments',_comments,'shares',_shares,'saves',_saves,'link_clicks',_link_clicks,'followers_gained',_followers_gained,'post_url',_post_url));
+    jsonb_build_object('reach',v_old.reach,'impressions',v_old.impressions,'likes',v_old.likes,'comments',v_old.comments,'shares',v_old.shares,'saves',v_old.saves,'link_clicks',v_old.link_clicks,'followers_gained',v_old.followers_gained,'posted_at',v_old.posted_at,'post_url',v_old.post_url),
+    jsonb_build_object('reach',_reach,'impressions',_impressions,'likes',_likes,'comments',_comments,'shares',_shares,'saves',_saves,'link_clicks',_link_clicks,'followers_gained',_followers_gained,'posted_at',coalesce(_posted_at,v_old.posted_at),'post_url',_post_url));
   return true;
 end $function$;
-revoke all on function public.media_save_social_stats(uuid,bigint,bigint,bigint,bigint,bigint,bigint,bigint,bigint,text,text) from public, anon;
+revoke all on function public.media_save_social_stats(uuid,bigint,bigint,bigint,bigint,bigint,bigint,bigint,bigint,date,text,text) from public, anon;
 grant execute on function public.media_save_social_stats(uuid,bigint,bigint,bigint,bigint,bigint,bigint,bigint,bigint,text,text) to authenticated;
 
 create or replace function public.media_save_fan_photo(
