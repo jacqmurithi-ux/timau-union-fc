@@ -1,8 +1,8 @@
 # Media Team, Social Calendar and Fans Gallery — Test Checklist
 
 ## Scope and environment
-- [ ] Apply `supabase/migrations/20261022190000_media_social_and_fans_gallery.sql` and `supabase/migrations/20261022193000_media_gallery_child_consent_guard.sql\` to **Union Test first**; do not apply to Production until review and role-based verification pass.
-- [ ] Use a confirmed, active \`media_team\` test account, a Platform Admin account, a non-media club role, and an anonymous browser.
+- [ ] Apply `supabase/migrations/20261022190000_media_social_and_fans_gallery.sql` and `supabase/migrations/20261022193000_media_gallery_child_consent_guard.sql` to **Union Test first**; do not apply to Production until review and role-based verification pass.
+- [ ] Use a confirmed, active `media_team` test account, a Platform Admin account, a non-media club role, and an anonymous browser.
 - [ ] Use only clearly labelled synthetic test posts and consenting test photos. Do not add real fan or child images without the required permissions.
 - [ ] Confirm the existing News workflow remains unchanged; social-post approval uses the new dedicated RPC and must not call the News publication workflow.
 - [ ] Verify all changes through the database and audit table, not just the UI.
@@ -11,14 +11,14 @@
 - [ ] Media Team can create an idea and a drafted post for each channel: Facebook, Instagram, X, TikTok, YouTube and WhatsApp channel.
 - [ ] Marking a post posted records an actual publication date; an authorised editor can correct it in the stats form.
 - [ ] Required title and channel validation works; planned date, caption/copy and post URL can be saved.
-- [ ] A post in \`idea\` cannot be approved directly; move it to \`drafted\` first.
-- [ ] Media Team author can approve its own drafted post; database sets \`approved_by\` and \`approved_at\`.
-- [ ] Approved post can be marked \`posted\`; a posted post retains its approval metadata.
-- [ ] Unapproving returns the post to \`drafted\` and clears approval metadata.
+- [ ] A post in `idea` cannot be approved directly; move it to `drafted` first.
+- [ ] Media Team author can approve its own drafted post; database sets `approved_by` and `approved_at`.
+- [ ] Approved post can be marked `posted`; a posted post retains its approval metadata.
+- [ ] Unapproving returns the post to `drafted` and clears approval metadata.
 - [ ] Editing an approved or posted post resets it to draft and clears approval metadata.
 - [ ] A Media Team user cannot approve another user's social post; the database rejects it even if the RPC is called directly.
 - [ ] Media Team members can collaborate on editing posts, manual statistics and gallery photos; edits are audit-logged and edited social posts return to draft.
-- [ ] Platform Admin can view and edit another user's post and stats; an override reason is required and the action is recorded in \`private.media_record_audit\` with \`is_admin_override=true\`.
+- [ ] Platform Admin can view and edit another user's post and stats; an override reason is required and the action is recorded in `private.media_record_audit` with `is_admin_override=true`.
 - [ ] News approval and existing news publishing behavior remain unchanged.
 
 ## Calendar and manual statistics
@@ -55,12 +55,12 @@
 - [ ] Many approved photos: previous/next and dots can reach all carousel pages.
 - [ ] Desktop shows three cards; mobile shows one card.
 - [ ] Touch swipe, previous/next arrows, dots, Left/Right/Home/End keyboard navigation and focus indicators work.
-- [ ] Auto-advance is slow, pauses on hover/focus/touch, can be paused manually, and is disabled for \`prefers-reduced-motion\`.
+- [ ] Auto-advance is slow, pauses on hover/focus/touch, can be paused manually, and is disabled for `prefers-reduced-motion`.
 - [ ] Images are lazy-loaded and have the saved alt text; caption/date/optional fixture link render safely.
 - [ ] A gallery API/storage error hides the section cleanly without breaking the rest of the homepage.
 
 ## Role isolation and regression
-- [ ] Media Team-only account routes to \`/app/media.html\`; other roles retain their current routes and workspace access.
+- [ ] Media Team-only account routes to `/app/media.html`; other roles retain their current routes and workspace access.
 - [ ] Generic workspace exposes the Media Team link only to Media Team or Platform Admin.
 - [ ] Secretary, Treasurer, Coach, Team Manager, Sponsor Lead, Player and Supporter cannot invoke media mutation RPCs or upload to the gallery bucket.
 - [ ] Platform Admin retains access to view/edit/override media records; override reason and audit are present.
