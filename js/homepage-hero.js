@@ -13,6 +13,15 @@ else {
     if (value.startsWith("/") && !value.startsWith("//")) return value;
     try { const u = new URL(value); return ["http:", "https:"].includes(u.protocol) ? u.href : ""; } catch { return ""; }
   };
+  const ensureImage = async i => {
+    const image = track.children[i]?.querySelector("img");
+    if (!image || image.dataset.loaded === "true" || image.dataset.loaded === "loading") return;
+    image.dataset.loaded = "loading";
+    const { data, error } = await db.storage.from("homepage-hero").download(slides[i].image_path);
+    if (error || !data) { image.dataset.loaded = "error"; return; }
+    image.src = URL.createObjectURL(data);
+    image.dataset.loaded = "true";
+  };
   const setActive = next => {
     if (!slides.length) return;
     index = (next + slides.length) % slides.length;
@@ -20,9 +29,18 @@ else {
     [...progress.children].forEach((el, i) => {
       el.setAttribute("aria-current", String(i === index));
       const fill = el.querySelector("span");
-      fill.style.transform = i === index ? "scaleX(1)" : "scaleX(0)";
-      fill.style.transitionDuration = (!paused && !reduceMotion && i === index) ? "6000ms" : "0ms";
+      fill.style.transitionDuration = "0ms";
+      fill.style.transform = "scaleX(0)";
     });
+    ensureImage(index).catch(() => {});
+    const activeFill = progress.children[index]?.querySelector("span");
+    if (activeFill && !paused && !reduceMotion) {
+      requestAnimationFrame(() => {
+        if (paused) return;
+        activeFill.style.transitionDuration = "6000ms";
+        activeFill.style.transform = "scaleX(1)";
+      });
+    }
   };
   const stop = () => { paused = true; clearInterval(timer); timer = null; [...progress.children].forEach(el => el.querySelector("span").style.transitionDuration = "0ms"); };
   const start = () => {
@@ -39,7 +57,8 @@ else {
       const s=data[i], slide=document.createElement("article");
       slide.className="hero-slide"; slide.hidden=true;
       const image=document.createElement("img"); image.alt=s.alt_text; image.loading=i===0?"eager":"lazy"; image.fetchPriority=i===0?"high":"auto";
-      const {data:imageBlob,error:imageError}=await db.storage.from("homepage-hero").download(s.image_path); if(imageError||!imageBlob){root.hidden=true;return;} image.src=URL.createObjectURL(imageBlob);
+      image.dataset.loaded = "false";
+      image.dataset.path = s.image_path;
       const caption=document.createElement("div"); caption.className="hero-slide-caption";
       const h=document.createElement("h1"); h.textContent=s.caption; caption.append(h);
       if (s.link_url) { const href=safeLink(s.link_url); if(href){const a=document.createElement("a");a.className="hero-caption-link";a.href=href;a.textContent="Read more";a.setAttribute("aria-label","Read more: "+s.caption);caption.append(a);slide.classList.add("hero-slide-linked");slide.addEventListener("click",e=>{if(e.target.closest("a"))return;location.href=href;});slide.tabIndex=0;slide.setAttribute("role","link");slide.addEventListener("keydown",e=>{if(e.target===slide&&(e.key==="Enter"||e.key===" ")){e.preventDefault();location.href=href;}});}}
