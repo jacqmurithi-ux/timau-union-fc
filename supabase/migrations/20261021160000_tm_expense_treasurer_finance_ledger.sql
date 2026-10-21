@@ -125,7 +125,7 @@ begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  adm:=private.is_active_platform_admin(auth.uid());r:=private.current_club_roles();over:=adm or 'chairman'=any(r);
  if not(over or 'treasurer'=any(r)) then raise exception 'Treasurer or administrator approval required'; end if;
- if _decision not in('approved','rejected') or _reason is null or length(btrim(_reason))<3 or length(_reason)>1000 then raise exception 'Valid decision and review reason required'; end if;
+ if _decision is null or _decision not in('approved','rejected') or _reason is null or length(btrim(_reason))<3 or length(_reason)>1000 then raise exception 'Valid decision and review reason required'; end if;
  select * into oldrow from private.club_financial_expenses where id=_expense_id for update;
  if not found then raise exception 'Expense not found'; end if;
  if oldrow.status<>'pending' then raise exception 'Only pending expenses can be reviewed'; end if;
