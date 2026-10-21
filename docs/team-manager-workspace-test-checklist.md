@@ -17,7 +17,7 @@ Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-tea
 
 
 ## Expense and Treasurer financial workflow
-- [ ] As TM, submit transport, refreshments, kit/equipment, medical/first aid, venue/pitch, and other expense entries with category, description/payee/reference, amount (KES), and date. Submission is pending; no ledger total changes yet.
+- [ ] As TM, submit transport, refreshments, kit/equipment, medical/first aid, venue/pitch, and other expense entries with category, description/payee/reference, amount (KES), and date. Submission is pending; no ledger total changes until an authorized reviewer approves it.
 - [ ] As TM, edit a pending/rejected expense; it returns to pending and requires Treasurer review again. TM cannot edit an approved expense.
 - [ ] As Chairperson, Secretary, and Treasurer in separate sessions, each approve another person's pending expense with a reason; verify exactly one negative expense entry is posted to `private.club_financial_ledger` and the club financial summary updates. Each may reject another person's expense with a reason and no ledger entry is posted.
 - [ ] Verify roles outside Chairperson/Secretary/Treasurer/Platform Admin cannot approve/reject; direct authenticated table access is denied; anonymous users cannot call expense RPCs.
@@ -28,7 +28,7 @@ Run on **Union Test** first. Apply `supabase/environment-adapters/union-test-tea
 
 ## All-role expense submission
 - [ ] Sign in with each active club role and confirm the Expenses & club finances tab is available.
-- [ ] Each role can submit an expense linked in its description to the role, duty/activity, payee and receipt/reference; submission remains pending until Treasurer approval.
+- [ ] Each role can submit an expense linked in its description to the role, duty/activity, payee and receipt/reference; submission remains pending until Chairperson, Secretary, or Treasurer review.
 - [ ] Ordinary roles can see and edit their own pending/rejected expenses only; they cannot see other roles' expense records or edit another submitter's record.
 - [ ] Treasurer, Chairman and Platform Admin can view all submissions; only Chairperson/Secretary/Treasurer/Platform Admin can approve or reject; Chairperson, Secretary, Treasurer and Platform Admin must each be denied when reviewing an expense they personally submitted. Approval posts to the shared ledger; no one can directly write ledger rows from the client.
 - [ ] All active club roles can read the same financial summary, and the summary changes only after ledger transactions are posted.
