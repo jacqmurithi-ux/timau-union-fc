@@ -178,7 +178,7 @@ begin
  select * into old from private.treasurer_records where id=_id for update;
  if not found then raise exception 'Record not found'; end if;
  if old.record_type='requisition' and not(adm or treas or chair) then raise exception 'Cannot review requisition'; end if;
- if old.status='approved' and not adm then raise exception 'Approved record is locked'; end if;
+ if old.status='approved' then raise exception 'Approved finance records are immutable; create a separately reviewed adjustment or reversal'; end if;
  if _decision='published' and old.record_type<>'financial_report' then raise exception 'Only financial reports may be published'; end if;
  if old.status='pending' and old.submitted_by=auth.uid() then raise exception 'Cannot approve your own requisition'; end if;
  update private.treasurer_records set status=_decision,reviewed_by=auth.uid(),reviewed_at=now(),review_reason=btrim(_reason),published_at=case when _decision='published' then now() else null end,updated_by=auth.uid(),updated_at=now() where id=_id;
