@@ -35,8 +35,7 @@ create table if not exists private.club_financial_ledger(
  source_expense_id uuid references private.club_financial_expenses(id),
  actor_user_id uuid references auth.users(id),
  approved_by uuid references auth.users(id),
- created_at timestamptz not null default now(),
-
+ created_at timestamptz not null default now()
 );
 create index if not exists club_financial_ledger_created_idx on private.club_financial_ledger(created_at desc);
 alter table private.club_financial_ledger enable row level security;
