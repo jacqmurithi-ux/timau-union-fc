@@ -16,6 +16,8 @@ create table if not exists private.tm_records(
 create index if not exists tm_records_section_updated_idx on private.tm_records(section_key,updated_at desc);
 alter table private.tm_records enable row level security;
 revoke all on private.tm_records from public,anon,authenticated;
+drop policy if exists tm_records_no_direct_access on private.tm_records;
+create policy tm_records_no_direct_access on private.tm_records for all to anon,authenticated using(false) with check(false);
 
 create table if not exists private.tm_record_audit(
  id bigint generated always as identity primary key, actor_user_id uuid references auth.users(id) on delete set null,
@@ -26,6 +28,8 @@ create table if not exists private.tm_record_audit(
 create index if not exists tm_record_audit_record_created_idx on private.tm_record_audit(record_id,created_at desc);
 alter table private.tm_record_audit enable row level security;
 revoke all on private.tm_record_audit from public,anon,authenticated;
+drop policy if exists tm_record_audit_no_direct_access on private.tm_record_audit;
+create policy tm_record_audit_no_direct_access on private.tm_record_audit for all to anon,authenticated using(false) with check(false);
 
 create or replace function private.role_can_manage_record(_roles text[],_type text)
 returns boolean language sql immutable set search_path=''
@@ -191,7 +195,7 @@ begin
  if not(adm or 'chairman'=any(r) or 'team_manager'=any(r) or 'player_welfare'=any(r)) then raise exception 'Not authorized to view TM audit'; end if;
  return coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'actor_user_id',a.actor_user_id,'record_id',a.record_id,'section_key',a.section_key,'action_key',a.action_key,'old_data',a.old_data,'new_data',a.new_data,'old_status',a.old_status,'new_status',a.new_status,'is_admin_override',a.is_admin_override,'reason',a.reason,'created_at',a.created_at) order by a.created_at desc)
  from private.tm_record_audit a where (_record_id is null or a.record_id=_record_id)
- and (a.section_key<>'discipline_welfare' or adm or 'chairman'=any(r) or 'team_manager'=any(r) or 'player_welfare'=any(r))),'[]'::jsonb);
+ and (adm or 'chairman'=any(r) or 'team_manager'=any(r) or ('player_welfare'=any(r) and a.section_key='discipline_welfare'))),'[]'::jsonb);
 end $f$;
 revoke all on function public.tm_get_audit(uuid) from public,anon;grant execute on function public.tm_get_audit(uuid) to authenticated;
 commit;
