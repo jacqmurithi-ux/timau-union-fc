@@ -91,7 +91,7 @@ begin
  if _data is null or jsonb_typeof(_data)<>'object' or exists(select 1 from jsonb_object_keys(_data) k where k not in('category','description','amount_kes','expense_date')) then raise exception 'Invalid expense fields'; end if;
  cat:=_data->>'category'; descr:=btrim(coalesce(_data->>'description',''));
  begin amt:=(_data->>'amount_kes')::numeric; d:=(_data->>'expense_date')::date; exception when others then raise exception 'Enter a valid amount and expense date'; end;
- if cat not in('transport','refreshments','kit_equipment','medical_first_aid','venue_pitch','other') or length(descr)<3 or length(descr)>3000 or amt is null or amt<=0 or amt>100000000 or d is null then raise exception 'Expense category, description, positive KES amount and date are required'; end if;
+ if cat is null or cat not in('transport','refreshments','kit_equipment','medical_first_aid','venue_pitch','other') or length(descr)<3 or length(descr)>3000 or amt is null or amt<=0 or amt>100000000 or d is null then raise exception 'Expense category, description, positive KES amount and date are required'; end if;
  newj:=jsonb_build_object('category',cat,'description',descr,'amount_kes',amt::text,'expense_date',d::text);
  if _expense_id is null then
   insert into private.club_financial_expenses(category,description,amount_kes,expense_date,created_by,updated_by)
