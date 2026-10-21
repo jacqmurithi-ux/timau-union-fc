@@ -115,7 +115,7 @@ begin
     where (adm or chair or treas or ('sponsor'=any(r) and f.sponsor_user_id=uid)
       or (r && array['secretary','vice_chairman']::text[] and f.record_type='financial_report' and f.status in('approved','published'))
       or (f.record_type='requisition' and f.submitted_by=uid))), '[]'::jsonb),
-  'opening_balance',(select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true),
+  'opening_balance',case when adm or chair or treas or 'secretary'=any(r) then (select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true) else null end,
   'ledger',case when adm or chair or treas or 'secretary'=any(r) then
    coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'record_id',l.record_id,'created_at',l.created_at) order by l.created_at desc) from (select * from private.treasurer_ledger order by created_at desc limit 100) l),'[]'::jsonb)
    else '[]'::jsonb end,
