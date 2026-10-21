@@ -6,8 +6,11 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceKey) return new Response("Server configuration missing", { status: 500 });
   const auth = req.headers.get("authorization") || "";
-  if (auth !== "Bearer " + serviceKey) return new Response("Unauthorized", { status: 401 });
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return new Response("Unauthorized", { status: 401 });
   const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: authorized, error: authError } = await db.rpc("homepage_hero_cron_authorized", { _token: token });
+  if (authError || authorized !== true) return new Response("Unauthorized", { status: 401 });
   const { data: expired, error } = await db.from("homepage_hero_slides")
     .select("id,image_path,caption").not("ends_at", "is", null).lte("ends_at", new Date().toISOString()).limit(100);
   if (error) return Response.json({ error: error.message }, { status: 500 });
