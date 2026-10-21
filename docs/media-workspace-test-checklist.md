@@ -15,7 +15,8 @@
 - [ ] Approved post can be marked \`posted\`; a posted post retains its approval metadata.
 - [ ] Unapproving returns the post to \`drafted\` and clears approval metadata.
 - [ ] Editing an approved or posted post resets it to draft and clears approval metadata.
-- [ ] A Media Team user cannot approve another user's social post or edit another user's post/stats.
+- [ ] A Media Team user cannot approve another user's social post; the database rejects it even if the RPC is called directly.
+- [ ] Media Team members can collaborate on editing posts, manual statistics and gallery photos; edits are audit-logged and edited social posts return to draft.
 - [ ] Platform Admin can view and edit another user's post and stats; an override reason is required and the action is recorded in \`private.media_record_audit\` with \`is_admin_override=true\`.
 - [ ] News approval and existing news publishing behavior remain unchanged.
 
@@ -36,7 +37,7 @@
 - [ ] New photo is private/draft until explicitly approved.
 - [ ] Consent checkbox text is exactly: “Fans are aware or photo was taken in a public matchday setting”. Approval fails if unchecked.
 - [ ] When identifiable children under 18 are flagged, approval fails until child-consent confirmation is checked. Do not approve identifiable children without consent.
-- [ ] Media Team can edit, reorder, approve, unapprove and remove its photos; editing resets approval and consent confirmations.
+- [ ] Media Team can edit, reorder, approve, unapprove and remove gallery photos; editing resets approval and consent confirmations.
 - [ ] Platform Admin can override another user's photo and the audit entry records actor, reason, old/new data and override flag.
 - [ ] An unapproved photo's image path cannot be read by an anonymous visitor, including through the Storage API.
 - [ ] Anonymous and ordinary authenticated non-media accounts can read only approved gallery metadata and approved image objects; they cannot upload, edit, approve or remove photos.
