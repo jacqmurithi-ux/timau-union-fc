@@ -20,7 +20,7 @@ const roleOptions = [
   ["chairman", "Chairman"], ["vice_chairman", "Vice Chairman"],
   ["secretary", "Secretary"], ["team_manager", "Team Manager"],
   ["treasurer", "Treasurer"], ["coach", "Coach"],
-  ["sponsor_lead", "Sponsor Lead"], ["media_team", "Media Team"]
+  ["sponsor_lead", "Sponsor Lead"], ["media_team", "Media Team"], ["player_welfare", "Players Welfare"]
 ];
 
 function message(text, kind = "info") {
