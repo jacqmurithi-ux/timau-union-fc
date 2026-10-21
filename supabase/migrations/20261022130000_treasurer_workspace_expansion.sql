@@ -93,7 +93,7 @@ begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  uid:=auth.uid(); adm:=private.is_active_platform_admin(uid); r:=private.current_club_roles();
  chair:='chairman'=any(r); treas:='treasurer'=any(r);
- if not (adm or chair or treas or 'secretary'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
+ if not (adm or chair or treas or 'secretary'=any(r) or 'vice_chairman'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
  return jsonb_build_object(
   'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',adm or treas,'can_override',adm or chair,
   'records',coalesce((select jsonb_agg(jsonb_build_object(
