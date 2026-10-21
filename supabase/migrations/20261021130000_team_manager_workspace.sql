@@ -76,6 +76,26 @@ alter table private.club_record_audit add column if not exists is_admin_override
 alter table private.club_record_audit add column if not exists old_status text;
 alter table private.club_record_audit add column if not exists new_status text;
 
+create or replace function public.admin_assign_club_role(_target_user_id uuid,_new_role text,_reason text)
+returns jsonb language plpgsql security definer set search_path=''
+as $function$
+declare v_actor uuid:=auth.uid(); v_status text; v_verified boolean; v_old_roles jsonb;
+begin
+ if v_actor is null or not private.is_active_platform_admin(v_actor) then raise exception 'Active Platform Admin required' using errcode='42501'; end if;
+ if _target_user_id is null or _target_user_id=v_actor then raise exception 'Invalid target account' using errcode='22023'; end if;
+ if _new_role not in('chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team','player_welfare') then raise exception 'Unsupported club role' using errcode='22023'; end if;
+ if _reason is null or length(pg_catalog.btrim(_reason))<3 or length(_reason)>1000 then raise exception 'A reason of 3 to 1000 characters is required' using errcode='22023'; end if;
+ select aa.status,u.email_confirmed_at is not null into v_status,v_verified from private.account_access aa join auth.users u on u.id=aa.user_id where aa.user_id=_target_user_id for update of aa;
+ if not found then raise exception 'Access request not found' using errcode='P0002'; end if;
+ if v_status<>'approved' or not coalesce(v_verified,false) then raise exception 'Target must be email-verified and approved first' using errcode='22023'; end if;
+ select coalesce(pg_catalog.jsonb_agg(role_key order by role_key),'[]'::jsonb) into v_old_roles from private.role_assignments where user_id=_target_user_id and active;
+ update private.role_assignments set active=false,revoked_at=pg_catalog.now(),revoked_by=v_actor where user_id=_target_user_id and active;
+ insert into private.role_assignments(user_id,role_key,assigned_by,reason) values(_target_user_id,_new_role,v_actor,_reason);
+ insert into private.audit_events(actor_user_id,target_user_id,action_key,old_value,new_value,reason) values(v_actor,_target_user_id,'club_role_changed',pg_catalog.jsonb_build_object('roles',v_old_roles),pg_catalog.jsonb_build_object('role',_new_role),_reason);
+ return pg_catalog.jsonb_build_object('ok',true,'old_roles',v_old_roles,'new_role',_new_role);
+end;
+$function$;
+
 create or replace function public.club_get_workspace_bundle()
 returns jsonb language plpgsql stable security definer set search_path=''
 as $f$
@@ -95,7 +115,7 @@ revoke all on function public.club_get_workspace_bundle() from public,anon; gran
 create or replace function public.club_save_record(_record_id uuid,_record_type text,_data jsonb)
 returns uuid language plpgsql security definer set search_path=''
 as $f$
-declare r text[]; adm boolean; id2 uuid; typ text; creator uuid; oldj jsonb; override boolean;
+declare r text[]; adm boolean; id2 uuid; typ text; creator uuid; oldj jsonb; oldst text; override boolean;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  if not private.valid_club_record_data(_record_type,_data) then raise exception 'Invalid record type or field values'; end if;
@@ -103,13 +123,13 @@ begin
  if not adm and coalesce(array_length(r,1),0)=0 then raise exception 'Approved active club role required'; end if;
  if not adm and not private.role_can_manage_record(r,_record_type) then raise exception 'Your role cannot edit this record type'; end if;
  if _record_id is not null then
-  select record_type,created_by,data into typ,creator,oldj from private.club_records where id=_record_id for update;
+  select record_type,created_by,data,publication_status into typ,creator,oldj,oldst from private.club_records where id=_record_id for update;
   if not found then raise exception 'Record not found'; end if;
   if not adm and (not private.role_can_manage_record(r,typ) or not private.can_manage_club_record(r,false,creator)) then raise exception 'Your role cannot edit this record'; end if;
   override:=adm or 'chairman'=any(r);
   update private.club_records set record_type=_record_type,data=_data,publication_status='draft',approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=_record_id returning id into id2;
   insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason,old_data,new_data,is_admin_override,old_status,new_status)
-  values(auth.uid(),id2,_record_type,case when override then 'admin_override_updated' else 'record_updated' end,case when override then 'Administrator override; saved as draft' else 'Saved as draft; approval reset' end,oldj,_data,override,'draft','draft');
+  values(auth.uid(),id2,_record_type,case when override then 'admin_override_updated' else 'record_updated' end,case when override then 'Administrator override; saved as draft' else 'Saved as draft; approval reset' end,oldj,_data,override,oldst,'draft');
  else
   insert into private.club_records(record_type,data,created_by,updated_by) values(_record_type,_data,auth.uid(),auth.uid()) returning id into id2;
   insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,new_data) values(auth.uid(),id2,_record_type,'record_created',_data);
