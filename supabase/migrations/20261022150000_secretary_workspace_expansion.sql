@@ -405,4 +405,33 @@ create policy secretary_official_docs_delete on storage.objects for delete to au
 using (bucket_id='secretary-official-documents' and
  (private.is_active_platform_admin(auth.uid()) or 'chairman'=any(private.current_club_roles()) or 'secretary'=any(private.current_club_roles())));
 
+
+-- Extend the existing player validator only for the two optional duplicate-check
+-- identifiers; all existing type/required-field validation remains in place.
+create or replace function private.valid_club_record_data(_type text,_data jsonb)
+returns boolean language plpgsql immutable set search_path=''
+as $function$
+declare v_allowed text[]; v_required text; v_key text; v_value text;
+begin
+ if _data is null or jsonb_typeof(_data)<>'object' then return false; end if;
+ case _type
+  when 'player' then v_allowed:=array['name','position','bio','squad_number','date_of_birth','fkf_number']; v_required:='name';
+  when 'fixture' then v_allowed:=array['opponent','match_date','venue','result']; v_required:='opponent';
+  when 'news' then v_allowed:=array['title','summary','body','category']; v_required:='title';
+  when 'sponsor' then v_allowed:=array['name','support_type','details','website']; v_required:='name';
+  when 'activity' then v_allowed:=array['title','date','location','details']; v_required:='title';
+  else return false;
+ end case;
+ if not (_data ? v_required) or jsonb_typeof(_data->v_required)<>'string' or length(btrim(_data->>v_required))=0 then return false; end if;
+ for v_key in select jsonb_object_keys(_data) loop
+  if not (v_key=any(v_allowed)) or jsonb_typeof(_data->v_key)<>'string' then return false; end if;
+  v_value:=_data->>v_key;
+  if length(v_value)>3000 then return false; end if;
+  if v_key='date_of_birth' and v_value<>'' and v_value !~ '^\\d{4}-\\d{2}-\\d{2}
+ then return false; end if;
+ end loop;
+ return true;
+end $function$;
+revoke all on function private.valid_club_record_data(text,jsonb) from public,anon,authenticated;
+
 commit;
