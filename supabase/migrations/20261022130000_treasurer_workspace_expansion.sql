@@ -109,7 +109,7 @@ begin
       or (f.record_type='requisition' and f.submitted_by=uid))), '[]'::jsonb),
   'opening_balance',(select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true),
   'ledger',case when adm or chair or treas or 'secretary'=any(r) then
-   coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'created_at',l.created_at) order by l.created_at desc) from (select * from private.treasurer_ledger order by created_at desc limit 100) l),'[]'::jsonb)
+   coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'record_id',l.record_id,'created_at',l.created_at) order by l.created_at desc) from (select * from private.treasurer_ledger order by created_at desc limit 100) l),'[]'::jsonb)
    else '[]'::jsonb end,
   'audit',case when adm or chair or treas then
    coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'record_id',a.record_id,'actor_user_id',a.actor_user_id,'action_key',a.action_key,'old_data',a.old_data,'new_data',a.new_data,'reason',a.reason,'is_admin_override',a.is_admin_override,'created_at',a.created_at) order by a.created_at desc) from (select * from private.treasurer_audit order by created_at desc limit 100) a),'[]'::jsonb)
