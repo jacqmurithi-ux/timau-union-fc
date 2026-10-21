@@ -68,13 +68,14 @@ declare r text[]; adm boolean;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  adm:=private.is_active_platform_admin(auth.uid()); r:=private.current_club_roles();
- if not(adm or 'chairman'=any(r) or 'team_manager'=any(r) or 'treasurer'=any(r)) then raise exception 'Team Manager or Treasurer access required'; end if;
+ if not(adm or coalesce(array_length(r,1),0)>0) then raise exception 'Active club role required'; end if;
  return coalesce((select jsonb_agg(jsonb_build_object(
   'id',e.id,'record_type','tm_expenses','data',jsonb_build_object('category',e.category,'description',e.description,'amount_kes',e.amount_kes::text,'expense_date',e.expense_date::text),
   'status',e.status,'publication_status',e.status,'created_by',e.created_by,'updated_by',e.updated_by,'reviewed_by',e.reviewed_by,'reviewed_at',e.reviewed_at,'review_reason',e.review_reason,'created_at',e.created_at,'updated_at',e.updated_at,
   'can_review',adm or 'chairman'=any(r) or 'treasurer'=any(r))
   order by case e.status when 'pending' then 0 when 'rejected' then 1 else 2 end,e.expense_date desc,e.created_at desc)
-  from private.club_financial_expenses e),'[]'::jsonb);
+  from private.club_financial_expenses e
+  where (adm or 'chairman'=any(r) or 'treasurer'=any(r) or e.created_by=auth.uid())),'[]'::jsonb);
 end $f$;
 revoke all on function public.tm_get_expenses() from public,anon;
 grant execute on function public.tm_get_expenses() to authenticated;
@@ -86,7 +87,7 @@ declare r text[]; adm boolean; tm boolean; oldrow private.club_financial_expense
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  adm:=private.is_active_platform_admin(auth.uid());r:=private.current_club_roles();tm:='team_manager'=any(r);
- if not(adm or 'chairman'=any(r) or tm) then raise exception 'Only Team Manager or administrator can submit expenses'; end if;
+ if not(adm or coalesce(array_length(r,1),0)>0) then raise exception 'An active club role is required to submit an expense'; end if;
  if _data is null or jsonb_typeof(_data)<>'object' or exists(select 1 from jsonb_object_keys(_data) k where k not in('category','description','amount_kes','expense_date')) then raise exception 'Invalid expense fields'; end if;
  cat:=_data->>'category'; descr:=btrim(coalesce(_data->>'description',''));
  begin amt:=(_data->>'amount_kes')::numeric; d:=(_data->>'expense_date')::date; exception when others then raise exception 'Enter a valid amount and expense date'; end;
@@ -100,7 +101,7 @@ begin
  else
   select * into oldrow from private.club_financial_expenses where id=_expense_id for update;
   if not found then raise exception 'Expense not found'; end if;
-  if not adm and not 'chairman'=any(r) and (not tm or oldrow.created_by<>auth.uid()) then raise exception 'Only the submitting Team Manager or administrator can edit this expense'; end if;
+  if not adm and not 'chairman'=any(r) and oldrow.created_by<>auth.uid() then raise exception 'You can edit only expenses you submitted'; end if;
   if oldrow.status='approved' and not(adm or 'chairman'=any(r)) then raise exception 'Approved expenses are locked for financial integrity'; end if;
   if oldrow.status='approved' then
    insert into private.club_financial_ledger(entry_type,amount_kes,description,source_expense_id,actor_user_id,approved_by)
