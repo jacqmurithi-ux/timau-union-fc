@@ -72,7 +72,7 @@ begin
   if auth.uid() is null or not public.homepage_hero_can_manage() then raise exception 'Admin or Media Team access required'; end if;
   if length(btrim(coalesce(_caption,''))) not between 1 and 180 then raise exception 'Caption must be 1–180 characters'; end if;
   if length(btrim(coalesce(_alt_text,''))) not between 5 and 300 then raise exception 'Descriptive alt text is required'; end if;
-  if _image_path is null or length(_image_path)>1000 or _image_path !~ ('^'||auth.uid()::text||'/[A-Za-z0-9._-]+$') then raise exception 'Invalid image path'; end if;
+  if _image_path is null or length(_image_path)>1000 then raise exception 'Invalid image path'; end if;\n  if _slide_id is null and _image_path !~ ('^'||auth.uid()::text||'/[A-Za-z0-9._-]+
   if _link_url is not null and (length(_link_url)>2000 or _link_url !~* '^(https?://|/)') then raise exception 'Link must be an HTTP(S) URL or internal path'; end if;
   if _order_index not between 0 and 2 then raise exception 'Slide order must be between 1 and 3'; end if;
   if _ends_at is not null and _ends_at <= now() then raise exception 'End date must be in the future'; end if;
@@ -145,3 +145,107 @@ end
 $$;
 revoke all on function public.homepage_hero_expire(uuid) from public, anon, authenticated;
 grant execute on function public.homepage_hero_expire(uuid) to service_role;
+) then raise exception 'New images must be uploaded to your own folder'; end if;
+  if _link_url is not null and (length(_link_url)>2000 or _link_url !~* '^(https?://|/)') then raise exception 'Link must be an HTTP(S) URL or internal path'; end if;
+  if _order_index not between 0 and 2 then raise exception 'Slide order must be between 1 and 3'; end if;
+  if _ends_at is not null and _ends_at <= now() then raise exception 'End date must be in the future'; end if;
+  if _slide_id is null then
+    select count(*) into v_count from public.homepage_hero_slides where ends_at is null or ends_at>now();
+    if v_count >= 3 then raise exception 'Maximum of 3 active homepage hero slides'; end if;
+    insert into public.homepage_hero_slides(image_path,caption,link_url,alt_text,ends_at,order_index,created_by,updated_by)
+    values(_image_path,btrim(_caption),nullif(btrim(_link_url),''),btrim(_alt_text),_ends_at,_order_index,auth.uid(),auth.uid()) returning id into v_id;
+    insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(auth.uid(),v_id,btrim(_caption),'created');
+  else
+    select * into v_old from public.homepage_hero_slides where id=_slide_id for update;
+    if not found then raise exception 'Slide not found'; end if;
+    if v_old.image_path <> _image_path then
+      insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(auth.uid(),_slide_id,v_old.caption,'image_replaced');
+    end if;
+    update public.homepage_hero_slides set image_path=_image_path,caption=btrim(_caption),link_url=nullif(btrim(_link_url),''),alt_text=btrim(_alt_text),ends_at=_ends_at,order_index=_order_index,updated_by=auth.uid(),updated_at=now()
+      where id=_slide_id returning id into v_id;
+    insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(auth.uid(),v_id,btrim(_caption),'updated');
+  end if;
+  return v_id;
+end
+$$;
+revoke all on function public.homepage_hero_save(uuid,text,text,text,text,timestamptz,integer) from public, anon;
+grant execute on function public.homepage_hero_save(uuid,text,text,text,text,timestamptz,integer) to authenticated;
+
+create or replace function public.homepage_hero_remove(_slide_id uuid)
+returns text language plpgsql security definer set search_path=''
+as $$
+declare v public.homepage_hero_slides%rowtype;
+begin
+  if auth.uid() is null or not public.homepage_hero_can_manage() then raise exception 'Admin or Media Team access required'; end if;
+  select * into v from public.homepage_hero_slides where id=_slide_id for update;
+  if not found then raise exception 'Slide not found'; end if;
+  -- Return the path so the client removes the object via Supabase Storage API before/after RPC.
+  insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(auth.uid(),v.id,v.caption,'removed');
+  delete from public.homepage_hero_slides where id=_slide_id;
+  return v.image_path;
+end
+$$;
+revoke all on function public.homepage_hero_remove(uuid) from public, anon;
+grant execute on function public.homepage_hero_remove(uuid) to authenticated;
+
+create or replace function public.homepage_hero_expired_paths()
+returns table(slide_id uuid, image_path text, caption text)
+language plpgsql security definer set search_path=''
+as $$
+begin
+  if not public.homepage_hero_can_manage() then raise exception 'Admin or Media Team access required'; end if;
+  return query select s.id,s.image_path,s.caption from public.homepage_hero_slides s where s.ends_at is not null and s.ends_at <= now() order by s.ends_at;
+end
+$$;
+revoke all on function public.homepage_hero_expired_paths() from public, anon;
+grant execute on function public.homepage_hero_expired_paths() to authenticated;
+
+commit;
+
+-- Service-role-only hard delete used by the scheduled cleanup function.
+create or replace function public.homepage_hero_expire(_slide_id uuid)
+returns boolean language plpgsql security definer set search_path=''
+as $$
+declare v public.homepage_hero_slides%rowtype;
+begin
+  if coalesce(current_setting('request.jwt.claim.role', true),'') <> 'service_role' then raise exception 'Service role required'; end if;
+  select * into v from public.homepage_hero_slides where id=_slide_id and ends_at is not null and ends_at<=now() for update;
+  if not found then return false; end if;
+  insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(v.updated_by,v.id,v.caption,'expired');
+  delete from public.homepage_hero_slides where id=v.id;
+  return true;
+end
+$$;
+revoke all on function public.homepage_hero_expire(uuid) from public, anon, authenticated;
+grant execute on function public.homepage_hero_expire(uuid) to service_role;
+
+-- Scheduled cleanup calls the Edge Function, which deletes the Storage object
+-- through the Storage API before hard-deleting its row. Configure Vault secrets
+-- project_url and service_role_key before enabling this schedule.
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+do $schedule$
+declare v_job bigint;
+begin
+  select jobid into v_job from cron.job where jobname='expire-homepage-hero-slides';
+  if v_job is not null then perform cron.unschedule(v_job); end if;
+  if exists(select 1 from vault.decrypted_secrets where name='project_url')
+     and exists(select 1 from vault.decrypted_secrets where name='service_role_key') then
+    perform cron.schedule(
+      'expire-homepage-hero-slides',
+      '*/15 * * * *',
+      $command$
+      select net.http_post(
+        url := (select decrypted_secret from vault.decrypted_secrets where name='project_url' limit 1) || '/functions/v1/expire-homepage-hero',
+        headers := jsonb_build_object(
+          'Content-Type','application/json',
+          'Authorization','Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name='service_role_key' limit 1),
+          'apikey',(select decrypted_secret from vault.decrypted_secrets where name='service_role_key' limit 1)
+        ),
+        body := '{}'::jsonb
+      );
+      $command$
+    );
+  end if;
+end
+$schedule$;
