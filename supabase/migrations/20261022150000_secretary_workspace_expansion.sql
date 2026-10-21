@@ -339,4 +339,56 @@ end $function$;
 revoke all on function public.club_set_publication_status(uuid,text,text) from public,anon;
 grant execute on function public.club_set_publication_status(uuid,text,text) to authenticated;
 
+
+-- Remove the old broad Secretary finance read path. The Secretary gets aggregate
+-- totals through club_get_financial_summary and own requisitions through the
+-- Treasurer dashboard, never item-level expense or ledger rows.
+create or replace function public.tm_get_expenses()
+returns jsonb language plpgsql stable security definer set search_path=''
+as $function$
+declare r text[]; adm boolean;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ adm:=private.is_active_platform_admin(auth.uid()); r:=private.current_club_roles();
+ if not (adm or r && array['chairman','treasurer']::text[]) then
+  raise exception 'Expense record access is restricted to Chairman, Treasurer, or Platform Admin' using errcode='42501';
+ end if;
+ return coalesce((select jsonb_agg(jsonb_build_object(
+   'id',e.id,'record_type','tm_expenses','data',jsonb_build_object('category',e.category,'description',e.description,
+   'amount_kes',e.amount_kes::text,'expense_date',e.expense_date::text,'squad_number',e.squad_number),
+   'status',e.status,'publication_status',e.status,'created_by',e.created_by,'updated_by',e.updated_by,
+   'reviewed_by',e.reviewed_by,'reviewed_at',e.reviewed_at,'review_reason',e.review_reason,
+   'created_at',e.created_at,'updated_at',e.updated_at,'can_review',adm or 'chairman'=any(r) or 'treasurer'=any(r))
+   order by e.created_at desc) from private.club_financial_expenses e),'[]'::jsonb);
+end $function$;
+revoke all on function public.tm_get_expenses() from public,anon;
+grant execute on function public.tm_get_expenses() to authenticated;
+
+create or replace function public.club_get_financial_summary()
+returns jsonb language plpgsql stable security definer set search_path=''
+as $function$
+declare r text[]; adm boolean; chair boolean; treas boolean; sec boolean; summary jsonb;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ adm:=private.is_active_platform_admin(auth.uid()); r:=private.current_club_roles();
+ chair:=coalesce('chairman'=any(r),false); treas:=coalesce('treasurer'=any(r),false); sec:=coalesce('secretary'=any(r),false);
+ if not (adm or chair or sec or treas) then raise exception 'Finance summary access required' using errcode='42501'; end if;
+ summary:=jsonb_build_object(
+  'currency','KES',
+  'approved_income_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where entry_type='income'),0),
+  'approved_expenses_kes',coalesce(-(select sum(amount_kes) from private.club_financial_ledger where entry_type in('expense','expense_reversal','adjustment')),0),
+  'balance_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger),0),
+  'pending_expenses_count',(select count(*) from private.club_financial_expenses where status='pending'),
+  'pending_expenses_kes',coalesce((select sum(amount_kes) from private.club_financial_expenses where status='pending'),0)
+ );
+ if adm or chair or treas then
+  summary:=summary||jsonb_build_object('ledger',coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes,'description',l.description,'created_at',l.created_at,'approved_by',l.approved_by) order by l.created_at desc) from (select * from private.club_financial_ledger order by created_at desc limit 25) l),'[]'::jsonb));
+ else
+  summary:=summary||jsonb_build_object('ledger','[]'::jsonb);
+ end if;
+ return summary;
+end $function$;
+revoke all on function public.club_get_financial_summary() from public,anon;
+grant execute on function public.club_get_financial_summary() to authenticated;
+
 commit;
