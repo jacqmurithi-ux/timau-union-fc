@@ -23,24 +23,8 @@ drop policy if exists secretary_records_no_direct_access on private.secretary_re
 create policy secretary_records_no_direct_access on private.secretary_records
   for all to anon, authenticated using (false) with check (false);
 
-create table if not exists private.secretary_record_audit (
-  id bigint generated always as identity primary key,
-  record_id uuid,
-  section_key text not null,
-  actor_user_id uuid not null references auth.users(id),
-  action_key text not null,
-  old_data jsonb not null default '{}'::jsonb,
-  new_data jsonb not null default '{}'::jsonb,
-  old_status text,
-  new_status text,
-  is_admin_override boolean not null default false,
-  reason text,
-  created_at timestamptz not null default now()
-);
-alter table private.secretary_record_audit enable row level security;
-revoke all on private.secretary_record_audit from public, anon, authenticated;
-create index if not exists secretary_audit_record_created_idx
-  on private.secretary_record_audit(record_id, created_at desc);
+-- Reuse private.tm_record_audit, the existing append-only audit table used by role workspaces.
+create index if not exists tm_record_audit_secretary_lookup_idx on private.tm_record_audit(section_key,record_id,created_at desc);
 
 create or replace function private.secretary_actor_can_manage()
 returns boolean language sql stable security definer set search_path=''
@@ -106,7 +90,7 @@ begin
  if _id is null then
   insert into private.secretary_records(section_key,data,publication_status,created_by,updated_by)
   values(_section_key,_data,'draft',auth.uid(),auth.uid()) returning id into rid;
-  insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,new_data,new_status,is_admin_override)
+  insert into private.tm_record_audit(record_id,section_key,actor_user_id,action_key,new_data,new_status,is_admin_override)
   values(rid,_section_key,auth.uid(),'record_created',_data,'draft',adm or 'chairman'=any(private.current_club_roles()));
  else
   select * into old from private.secretary_records where id=_id for update;
@@ -120,7 +104,7 @@ begin
   update private.secretary_records set section_key=_section_key,data=_data,publication_status='draft',
     approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=_id;
   rid:=_id;
-  insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+  insert into private.tm_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
   values(rid,_section_key,auth.uid(),'record_updated',old.data,_data,old.publication_status,'draft',adm or 'chairman'=any(private.current_club_roles()),
     case when adm or 'chairman'=any(private.current_club_roles()) then 'Admin/Chairman override; changes saved as draft' else null end);
  end if;
@@ -148,7 +132,7 @@ begin
   approved_by=case when _status='approved' then auth.uid() else null end,
   approved_at=case when _status='approved' then now() else null end,
   updated_by=auth.uid(),updated_at=now() where id=_id;
- insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ insert into private.tm_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
  values(old.id,old.section_key,auth.uid(),'publication_'||_status,old.data,old.data,old.publication_status,_status,adm or 'chairman'=any(private.current_club_roles()),btrim(_reason));
  return true;
 end $$;
@@ -222,7 +206,7 @@ begin
  update private.club_records set publication_status='archived',updated_by=auth.uid(),updated_at=now() where id=dup.id;
  insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason)
  values(auth.uid(),keep.id,'player','duplicate_merge_kept',btrim(_reason)),(auth.uid(),dup.id,'player','duplicate_merge_archived_into_'||keep.id::text,btrim(_reason));
- insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ insert into private.tm_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
  values(keep.id,'membership',auth.uid(),'player_duplicate_merge',jsonb_build_object('data',keep.data),jsonb_build_object('data',merged,'duplicate_id',dup.id),keep.publication_status,'draft',adm or 'chairman'=any(r),btrim(_reason));
  return true;
 end $$;
@@ -263,7 +247,7 @@ begin
   select * into m from private.club_records where id=_match_id and record_type='player';
   if not found then raise exception 'Matching player record not found'; end if;
  end if;
- insert into private.secretary_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ insert into private.tm_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
  values(_record_id,'membership',auth.uid(),'player_duplicate_marked_not_duplicate',
   jsonb_build_object('name',p.data->>'name','matched_record_id',_match_id),
   jsonb_build_object('resolution',_resolution,'match_name',m.data->>'name'),p.publication_status,p.publication_status,adm or 'chairman'=any(r),btrim(_reason));
@@ -322,7 +306,7 @@ begin
   where p.record_type='player' and p.id<>_record_id and p.publication_status<>'archived'
    and private.secretary_edit_distance(coalesce(v_data->>'name',''),coalesce(p.data->>'name','')) <= greatest(1,ceil(length(coalesce(v_data->>'name',''))*0.22)::int)
    and length(coalesce(p.data->>'name',''))>1
-   and not exists(select 1 from private.secretary_record_audit a
+   and not exists(select 1 from private.tm_record_audit a
      where a.record_id=_record_id and a.action_key='player_duplicate_marked_not_duplicate'
        and a.old_data->>'matched_record_id'=p.id::text and a.created_at>=v_updated)
   order by p.created_at desc limit 1;
