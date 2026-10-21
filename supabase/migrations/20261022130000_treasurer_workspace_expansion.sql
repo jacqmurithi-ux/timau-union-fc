@@ -67,6 +67,14 @@ revoke all on private.club_financial_ledger from public,anon,authenticated;
 alter table private.club_financial_audit enable row level security;
 revoke all on private.club_financial_audit from public,anon,authenticated;
 alter table private.club_financial_ledger add column if not exists source_treasurer_record_id uuid references private.treasurer_records(id);
+alter table private.club_financial_ledger add column if not exists transaction_date date;
+update private.club_financial_ledger l set transaction_date=coalesce(
+ (select e.expense_date from private.club_financial_expenses e where e.id=l.source_expense_id),
+ l.created_at::date) where transaction_date is null;
+alter table private.club_financial_ledger alter column transaction_date set default current_date;
+alter table private.club_financial_ledger alter column transaction_date set not null;
+create index if not exists club_financial_ledger_transaction_date_idx on private.club_financial_ledger(transaction_date);
+
 alter table private.club_financial_ledger alter column amount_kes type numeric(14,2);
 alter table private.club_financial_ledger drop constraint if exists club_financial_ledger_entry_type_check;
 alter table private.club_financial_ledger add constraint club_financial_ledger_entry_type_check
@@ -179,7 +187,7 @@ begin
   elsif old.record_type='expense' or old.record_type='transport_approval' then ledger_type:='expense'; amount:=-old.amount_kes;
   end if;
   if ledger_type is not null and amount<>0 then
-   insert into private.club_financial_ledger(entry_type,amount_kes,description,source_treasurer_record_id,actor_user_id,approved_by) values(ledger_type,amount,old.title,_id,old.created_by,auth.uid());
+   insert into private.club_financial_ledger(entry_type,amount_kes,description,source_treasurer_record_id,actor_user_id,approved_by,transaction_date) values(ledger_type,amount,old.title,_id,old.created_by,auth.uid(),coalesce(old.record_date,current_date));
   end if;
  end if;
  insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,old_data,new_data,reason,is_admin_override)
@@ -313,5 +321,25 @@ begin
 end $transport$;
 revoke all on function public.treasurer_review_tm_transport(uuid,text,text,numeric) from public,anon;
 grant execute on function public.treasurer_review_tm_transport(uuid,text,text,numeric) to authenticated;
+
+create or replace function public.treasurer_get_period_summary(_start_date date,_end_date date)
+returns jsonb language plpgsql stable security definer set search_path=''
+as $period$
+declare r text[]; adm boolean;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ adm:=private.is_active_platform_admin(auth.uid());r:=private.current_club_roles();
+ if not(adm or coalesce(r,array[]::text[]) && array['chairman','treasurer','secretary','vice_chairman']::text[]) then raise exception 'Finance report access required'; end if;
+ if _start_date is null or _end_date is null or _start_date>_end_date then raise exception 'Valid report start and end dates are required'; end if;
+ return jsonb_build_object(
+  'start_date',_start_date,'end_date',_end_date,'currency','KES',
+  'income_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date and entry_type='income'),0),
+  'expenses_kes',coalesce(-(select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date and entry_type='expense'),0)-coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date and entry_type='expense_reversal'),0),
+  'balance_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date),0)
+ );
+end $period$;
+revoke all on function public.treasurer_get_period_summary(date,date) from public,anon;
+grant execute on function public.treasurer_get_period_summary(date,date) to authenticated;
+
 
 commit;
