@@ -75,7 +75,7 @@ end $$;
 revoke all on function public.secretary_get_workspace() from public, anon;
 grant execute on function public.secretary_get_workspace() to authenticated;
 
-create or replace function public.secretary_save_record(_id uuid, _section_key text, _data jsonb)
+create or replace function public.secretary_save_record(_id uuid, _section_key text, _data jsonb, _reason text default null)
 returns uuid language plpgsql security definer set search_path=''
 as $$
 declare adm boolean; sec boolean; old private.secretary_records%rowtype; rid uuid;
@@ -101,17 +101,20 @@ begin
   if old.publication_status='approved' and not (adm or 'chairman'=any(private.current_club_roles())) then
    raise exception 'Approved records require admin override; create a correction draft instead' using errcode='42501';
   end if;
+  if (adm or 'chairman'=any(private.current_club_roles())) and length(btrim(coalesce(_reason,'')))<3 then
+   raise exception 'A reason of at least 3 characters is required for admin overrides' using errcode='22023';
+  end if;
   update private.secretary_records set section_key=_section_key,data=_data,publication_status='draft',
     approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=_id;
   rid:=_id;
   insert into private.tm_record_audit(record_id,section_key,actor_user_id,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
   values(rid,_section_key,auth.uid(),'record_updated',old.data,_data,old.publication_status,'draft',adm or 'chairman'=any(private.current_club_roles()),
-    case when adm or 'chairman'=any(private.current_club_roles()) then 'Admin/Chairman override; changes saved as draft' else null end);
+    case when adm or 'chairman'=any(private.current_club_roles()) then btrim(_reason) else null end);
  end if;
  return rid;
 end $$;
-revoke all on function public.secretary_save_record(uuid,text,jsonb) from public, anon;
-grant execute on function public.secretary_save_record(uuid,text,jsonb) to authenticated;
+revoke all on function public.secretary_save_record(uuid,text,jsonb,text) from public, anon;
+grant execute on function public.secretary_save_record(uuid,text,jsonb,text) to authenticated;
 
 create or replace function public.secretary_set_status(_id uuid,_status text,_reason text)
 returns boolean language plpgsql security definer set search_path=''
