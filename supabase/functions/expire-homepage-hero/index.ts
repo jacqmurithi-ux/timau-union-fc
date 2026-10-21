@@ -18,5 +18,26 @@ Deno.serve(async (req) => {
     const { data: removed, error: removeError } = await db.rpc("homepage_hero_expire", { _slide_id: slide.id });
     results.push({ id: slide.id, status: removeError ? "record_delete_failed" : removed ? "expired" : "already_removed" });
   }
+  // Remove orphaned uploads/replaced files after a one-hour grace period.
+  // Keep files referenced by any slide row, including expired rows whose deletion failed.
+  const { data: rows } = await db.from("homepage_hero_slides").select("image_path");
+  const referenced = new Set((rows || []).map((row) => row.image_path));
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  const { data: folders } = await db.storage.from("homepage-hero").list("", { limit: 1000 });
+  for (const folder of folders || []) {
+    if (!folder.id) {
+      const { data: objects } = await db.storage.from("homepage-hero").list(folder.name, { limit: 1000 });
+      const orphanPaths = (objects || []).filter((obj) => {
+        if (!obj.id) return false;
+        const path = folder.name + "/" + obj.name;
+        const created = Date.parse(obj.created_at || obj.updated_at || "");
+        return !referenced.has(path) && Number.isFinite(created) && created < cutoff;
+      }).map((obj) => folder.name + "/" + obj.name);
+      if (orphanPaths.length) {
+        const { error: orphanError } = await db.storage.from("homepage-hero").remove(orphanPaths);
+        results.push({ id: folder.name, status: orphanError ? "orphan_cleanup_failed" : "orphans_removed:" + orphanPaths.length });
+      }
+    }
+  }
   return Response.json({ processed: results.length, results });
 });
