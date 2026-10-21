@@ -89,9 +89,9 @@ begin
  adm:=private.is_active_platform_admin(auth.uid()); r:=private.current_club_roles(); chair:='chairman'=any(r);tm:='team_manager'=any(r);welfare:='player_welfare'=any(r);
  if not adm and coalesce(array_length(r,1),0)=0 then raise exception 'Approved active club role required'; end if;
  return jsonb_build_object('roles',to_jsonb(r),'is_platform_admin',adm,'can_approve',adm or coalesce(array_length(r,1),0)>0,
- 'records',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'record_type',c.record_type,'data',c.data,'publication_status',c.publication_status,'created_at',c.created_at,'updated_at',c.updated_at,'approved_at',c.approved_at,'can_approve',adm or private.role_can_manage_record(r,c.record_type))
+ 'records',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'record_type',c.record_type,'data',c.data,'publication_status',c.publication_status,'created_at',c.created_at,'updated_at',c.updated_at,'approved_at',c.approved_at,'can_approve',adm or private.role_can_manage_record(r,c.record_type)))
  from private.club_records c where adm or chair or (private.role_can_manage_record(r,c.record_type) and private.can_manage_club_record(r,false,c.created_by))),'[]'::jsonb),
- 'tm_records',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'record_type','tm_'||t.section_key,'section_key',t.section_key,'data',t.data,'publication_status',t.publication_status,'created_at',t.created_at,'updated_at',t.updated_at,'approved_at',t.approved_at,'can_approve',adm or chair or tm)
+ 'tm_records',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'record_type','tm_'||t.section_key,'section_key',t.section_key,'data',t.data,'publication_status',t.publication_status,'created_at',t.created_at,'updated_at',t.updated_at,'approved_at',t.approved_at,'can_approve',adm or chair or tm))
  from private.tm_records t where adm or chair or tm or (welfare and t.section_key='discipline_welfare') or ('treasurer'=any(r) and t.section_key='transport_logistics' and lower(coalesce(t.data->>'treasurer_submission','')) like 'submitted%')),'[]'::jsonb));
 end $f$;
 revoke all on function public.club_get_workspace_bundle() from public,anon; grant execute on function public.club_get_workspace_bundle() to authenticated;
