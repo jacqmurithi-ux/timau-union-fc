@@ -177,7 +177,11 @@ begin
  if not found then raise exception 'Record not found'; end if;
  if old.record_type='requisition' and not(adm or treas or chair) then raise exception 'Cannot review requisition'; end if;
  if old.status='approved' then raise exception 'Approved finance records are immutable; create a separately reviewed adjustment or reversal'; end if;
- if _decision='published' and old.record_type<>'financial_report' then raise exception 'Only financial reports may be published'; end if;
+ if _decision='published' then
+  if old.record_type<>'financial_report' then raise exception 'Only financial reports may be published'; end if;
+  if old.status<>'approved' then raise exception 'A financial report must be approved before publication'; end if;
+  if not(adm or chair) then raise exception 'Chairman or Platform Admin must explicitly publish approved reports'; end if;
+ end if;
  if old.status='pending' and old.submitted_by=auth.uid() then raise exception 'Cannot approve your own requisition'; end if;
  update private.treasurer_records set status=_decision,reviewed_by=auth.uid(),reviewed_at=now(),review_reason=btrim(_reason),published_at=case when _decision='published' then now() else null end,updated_by=auth.uid(),updated_at=now() where id=_id;
  if _decision='approved' and old.status<>'approved' then
@@ -211,11 +215,13 @@ begin
  if found and old.locked_at is not null and not adm then raise exception 'Opening balance is locked; Platform Admin override required'; end if;
  if found and old.locked_at is not null and adm and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Platform Admin override reason required'; end if;
  if _confirm_as='treasurer' and ('treasurer'=any(r) or adm) then
-  insert into private.treasurer_opening_balance(id,amount_kes,note,treasurer_confirmed_by,treasurer_confirmed_at,updated_by)
-  values(true,_amount_kes,btrim(_note),auth.uid(),now(),auth.uid())
-  on conflict(id) do update set amount_kes=excluded.amount_kes,note=excluded.note,treasurer_confirmed_by=auth.uid(),treasurer_confirmed_at=now(),updated_by=auth.uid(),updated_at=now();
+  if found and old.chairman_confirmed_by=auth.uid() then raise exception 'Opening balance requires separate Treasurer and Chairman accounts'; end if;
+  insert into private.treasurer_opening_balance(id,amount_kes,note,treasurer_confirmed_by,treasurer_confirmed_at,chairman_confirmed_by,chairman_confirmed_at,locked_at,updated_by)
+  values(true,_amount_kes,btrim(_note),auth.uid(),now(),null,null,null,auth.uid())
+  on conflict(id) do update set amount_kes=excluded.amount_kes,note=excluded.note,treasurer_confirmed_by=auth.uid(),treasurer_confirmed_at=now(),chairman_confirmed_by=null,chairman_confirmed_at=null,locked_at=null,updated_by=auth.uid(),updated_at=now();
  elsif _confirm_as='chairman' and ('chairman'=any(r) or adm) then
   if not found then raise exception 'Treasurer must record and confirm the opening balance first'; end if;
+  if old.treasurer_confirmed_by=auth.uid() then raise exception 'Opening balance requires separate Treasurer and Chairman accounts'; end if;
   if old.amount_kes<>_amount_kes then raise exception 'Chairman confirmation amount must match the Treasurer-confirmed amount'; end if;
   update private.treasurer_opening_balance set chairman_confirmed_by=auth.uid(),chairman_confirmed_at=now(),updated_by=auth.uid(),updated_at=now() where id=true;
  else raise exception 'Matching Treasurer or Chairman role required'; end if;
