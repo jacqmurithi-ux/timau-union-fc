@@ -302,4 +302,41 @@ end $;
 revoke all on function public.treasurer_get_dashboard() from public,anon;
 grant execute on function public.treasurer_get_dashboard() to authenticated;
 
+
+-- Database-side duplicate gate: the UI warning is helpful, but direct RPC calls
+-- must also resolve every likely player-name match before approval.
+create or replace function public.club_set_publication_status(_record_id uuid,_new_status text,_reason text)
+returns boolean language plpgsql security definer set search_path=''
+as $function$
+declare v_is_admin boolean; v_type text; v_data jsonb; v_updated timestamptz; match_id uuid;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ v_is_admin:=private.is_active_platform_admin(auth.uid());
+ if _new_status not in('approved','archived','draft') then raise exception 'Invalid publication status'; end if;
+ if _reason is null or length(btrim(_reason))<3 or length(_reason)>1000 then raise exception 'Reason of 3 to 1000 characters required'; end if;
+ select record_type,data,updated_at into v_type,v_data,v_updated from private.club_records where id=_record_id for update;
+ if not found then raise exception 'Record not found'; end if;
+ if not v_is_admin and not private.role_can_manage_record(private.current_club_roles(),v_type) then raise exception 'Your role cannot approve or change publication status for this record type'; end if;
+ if _new_status='approved' and v_type='player' then
+  select p.id into match_id from private.club_records p
+  where p.record_type='player' and p.id<>_record_id and p.publication_status<>'archived'
+   and private.secretary_edit_distance(coalesce(v_data->>'name',''),coalesce(p.data->>'name','')) <= greatest(1,ceil(length(coalesce(v_data->>'name',''))*0.22)::int)
+   and length(coalesce(p.data->>'name',''))>1
+   and not exists(select 1 from private.secretary_record_audit a
+     where a.record_id=_record_id and a.action_key='player_duplicate_marked_not_duplicate'
+       and a.old_data->>'matched_record_id'=p.id::text and a.created_at>=v_updated)
+  order by p.created_at desc limit 1;
+  if match_id is not null then
+   raise exception 'Likely duplicate player detected (record %). Review matching records and merge, mark not duplicate with a reason, or cancel before approval.',match_id using errcode='23514';
+  end if;
+ end if;
+ update private.club_records set publication_status=_new_status,approved_by=case when _new_status='approved' then auth.uid() else null end,
+  approved_at=case when _new_status='approved' then now() else null end,updated_by=auth.uid(),updated_at=now() where id=_record_id;
+ insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason)
+ values(auth.uid(),_record_id,v_type,'publication_'||_new_status,btrim(_reason));
+ return true;
+end $function$;
+revoke all on function public.club_set_publication_status(uuid,text,text) from public,anon;
+grant execute on function public.club_set_publication_status(uuid,text,text) to authenticated;
+
 commit;
