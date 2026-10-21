@@ -13,6 +13,7 @@
 - [x] Deployed `expire-homepage-hero` to Production. Gateway JWT verification is disabled intentionally because the function validates a separate high-entropy token against Supabase Vault through a service-role-only RPC.
 - [x] Configured a random `homepage_hero_cron_token` in Vault without exposing its value, configured the public project URL in Vault, and activated `expire-homepage-hero-slides` on a 15-minute schedule.
 - [x] Invoked the function through the same Vault-token authorization path used by the schedule; it returned HTTP 200 with `processed: 0` because no expired slides or orphan uploads existed.
+- [ ] The cron job is active, but no scheduled run is recorded yet; confirm the first automatic run in `cron.job_run_details` and Edge Function logs.
 - [x] Confirmed the cron authorization RPC denies `anon`, grants execution to `service_role`, and rejects an invalid token.
 - [x] GitHub Actions homepage hero validation and Treasurer workspace validation passed before the production-only activation changes.
 - [ ] Authenticated browser tests and an actual image upload/replacement/reorder/removal/expiry lifecycle test remain outstanding.
