@@ -36,7 +36,7 @@ create table if not exists private.club_financial_ledger(
  actor_user_id uuid references auth.users(id),
  approved_by uuid references auth.users(id),
  created_at timestamptz not null default now(),
- unique(source_expense_id,entry_type)
+
 );
 create index if not exists club_financial_ledger_created_idx on private.club_financial_ledger(created_at desc);
 alter table private.club_financial_ledger enable row level security;
@@ -106,7 +106,7 @@ begin
   if oldrow.status='approved' then
    insert into private.club_financial_ledger(entry_type,amount_kes,description,source_expense_id,actor_user_id,approved_by)
    values('expense_reversal',abs(oldrow.amount_kes),'Admin correction reversal: '||oldrow.description,oldrow.id,auth.uid(),auth.uid())
-   on conflict(source_expense_id,entry_type) do nothing;
+
   end if;
   oldj:=jsonb_build_object('category',oldrow.category,'description',oldrow.description,'amount_kes',oldrow.amount_kes::text,'expense_date',oldrow.expense_date::text);
   update private.club_financial_expenses set category=cat,description=descr,amount_kes=amt,expense_date=d,status='pending',reviewed_by=null,reviewed_at=null,review_reason=null,approved_ledger_entry_id=null,updated_by=auth.uid(),updated_at=now() where id=_expense_id;
