@@ -9,12 +9,13 @@ else {
   let slides = [], index = 0, timer = null, paused = false, startX = null, hoverPaused = false, focusPaused = false, touchPaused = false;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const safeLink = value => {
-    if (!value || value.includes("\\\\") || /[\\u0000-\\u001f\\u007f]/.test(value)) return "";
+    if (!value || Array.from(value).some(c => c.charCodeAt(0) === 92 || c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) return "";
     try {
       const u = new URL(value, location.origin);
       if (!["http:", "https:"].includes(u.protocol)) return "";
       if (value.startsWith("/") && !value.startsWith("//") && u.origin === location.origin) return value;
-      return /^https?:\\/\\//i.test(value) ? u.href : "";
+      const lower = value.toLowerCase();
+      return lower.startsWith("http://") || lower.startsWith("https://") ? u.href : "";
     } catch { return ""; }
   };
   const ensureImage = async i => {
