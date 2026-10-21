@@ -6,10 +6,17 @@
 - Admin and Media Team write through guarded RPCs. The database checks roles independently of the UI.
 - Audit records contain actor, timestamp, caption and action only. They do not contain image bytes, URLs, or image paths.
 
+## Current rollout status
+- [x] Corrected the malformed SQL migration and applied it to the **Union Test** Supabase project only.
+- [x] Deployed `expire-homepage-hero` to Union Test with JWT verification enabled.
+- [x] Verified the slide table and guarded RPCs exist, the bucket is private, five hero RLS policies exist, there are no active slides, unauthenticated management checks return false, anonymous execution of the save RPC is denied, and the audit table stores metadata only.
+- [ ] Scheduled expiry is **not active yet**: the Union Test Vault does not currently contain `project_url` and `service_role_key`. This requires a project administrator to configure those secrets securely; do not commit the service-role key.
+- [ ] Browser tests and a real upload/delete/expiry lifecycle test remain outstanding.
+
 ## Deployment prerequisites
-1. Apply `supabase/migrations/20261022170000_homepage_hero_slides.sql` to Union Test first and inspect the migration diff before production.
-2. Deploy `supabase/functions/expire-homepage-hero` using the Supabase CLI.
-3. In Supabase Vault, set secrets named `project_url` (the project HTTPS URL) and `service_role_key` (the service-role key). Never put the service-role key in frontend code or commit it to Git.
+1. Apply `supabase/migrations/20261022170000_homepage_hero_slides.sql` to Union Test first and inspect the migration diff before production. The migration has already been applied to Union Test during this implementation pass; do not blindly apply it a second time.
+2. Deploy `supabase/functions/expire-homepage-hero` using the Supabase CLI. The function is already deployed to Union Test during this implementation pass.
+3. In Union Test Supabase Vault, set secrets named `project_url` (the project HTTPS URL) and `service_role_key` (the service-role key). Never put the service-role key in frontend code or commit it to Git.
 4. Re-run the scheduling block at the end of the migration after setting Vault secrets, or schedule the function through the Supabase Dashboard. Confirm `expire-homepage-hero-slides` exists in `cron.job`.
 5. Verify the Edge Function is invoked on schedule and check function logs. Expiry removes the Storage object first; the row is hard-deleted only after Storage deletion succeeds.
 
@@ -38,4 +45,4 @@
 
 ## Notes
 - A private Storage bucket is intentional: a public bucket would make non-active or orphaned files publicly addressable. The public hero uses the policy-protected Storage download endpoint.
-- This checklist is not a substitute for testing on Union Test and verifying the scheduled cleanup before production rollout.
+- Production has not been migrated or changed by this pull request. Do not merge/deploy to Production until the browser checklist, upload/delete/expiry lifecycle tests, and scheduled cleanup are verified.
