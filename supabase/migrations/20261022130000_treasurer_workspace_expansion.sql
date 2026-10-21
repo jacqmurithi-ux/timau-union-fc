@@ -246,7 +246,7 @@ declare r text[]; uid uuid; adm boolean;
 begin
  uid:=auth.uid(); if uid is null then return false; end if;
  r:=private.current_club_roles(); adm:=private.is_active_platform_admin(uid);
- if _upload then return _owner=uid and (adm or r && array['chairman','treasurer','team_manager','coach','secretary','player_welfare','sponsor_lead']::text[]); end if;
+ if _upload then return _owner=uid and (adm or r && array['chairman','treasurer','team_manager','coach','secretary','vice_chairman','player_welfare','sponsor_lead']::text[]); end if;
  return _owner=uid or adm or r && array['chairman','treasurer','secretary']::text[];
 end $;
 revoke all on function public.treasurer_receipt_access(uuid,boolean) from public,anon;
