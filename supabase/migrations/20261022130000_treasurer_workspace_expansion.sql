@@ -2,6 +2,13 @@
 -- budgets, sponsor/member contributions, receipt metadata and audit trail.
 begin;
 
+alter table private.tm_records add column if not exists treasurer_status text not null default 'pending';
+alter table private.tm_records add column if not exists treasurer_reviewed_by uuid references auth.users(id);
+alter table private.tm_records add column if not exists treasurer_reviewed_at timestamptz;
+alter table private.tm_records add column if not exists treasurer_review_reason text;
+alter table private.tm_records drop constraint if exists tm_records_treasurer_status_check;
+alter table private.tm_records add constraint tm_records_treasurer_status_check check(treasurer_status in ('pending','approved','rejected','queried'));
+
 create table if not exists private.treasurer_records (
  id uuid primary key default gen_random_uuid(),
  record_type text not null check (record_type in
@@ -96,6 +103,7 @@ begin
  if not (adm or chair or treas or 'secretary'=any(r) or 'vice_chairman'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
  return jsonb_build_object(
   'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',treas,'can_override',adm or chair,
+  'transport_plans',case when adm or chair or treas then coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'data',t.data,'created_by',t.created_by,'created_at',t.created_at,'treasurer_status',t.treasurer_status,'treasurer_review_reason',t.treasurer_review_reason) order by t.created_at desc) from private.tm_records t where t.section_key='transport_logistics' and t.treasurer_status in('pending','queried','rejected')),'[]'::jsonb) else '[]'::jsonb end,
   'records',coalesce((select jsonb_agg(jsonb_build_object(
     'id',f.id,'record_type',f.record_type,'title',f.title,'amount_kes',f.amount_kes::text,
     'record_date',f.record_date,'category',f.category,'source',f.source,'receipt_reference',f.receipt_reference,
@@ -306,8 +314,11 @@ begin
   insert into private.treasurer_ledger(entry_type,amount_kes,description,record_id,actor_user_id,approved_by)
   values('expense',-amt,'Approved Team Manager transport: '||coalesce(old.data->>'fixture','trip'),rid,old.created_by,auth.uid());
   update private.tm_records set publication_status='approved',approved_by=auth.uid(),approved_at=now(),updated_by=auth.uid(),updated_at=now() where id=old.id;
- else rid:=old.id;
+ else
+  rid:=old.id;
+  update private.tm_records set treasurer_status=_decision,treasurer_reviewed_by=auth.uid(),treasurer_reviewed_at=now(),treasurer_review_reason=btrim(_reason),updated_by=auth.uid(),updated_at=now() where id=old.id;
  end if;
+ if _decision='approved' then update private.tm_records set treasurer_status='approved',treasurer_reviewed_by=auth.uid(),treasurer_reviewed_at=now(),treasurer_review_reason=btrim(_reason) where id=old.id; end if;
  insert into private.tm_record_audit(actor_user_id,record_id,section_key,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
  values(auth.uid(),old.id,'transport_logistics','treasurer_transport_'||_decision,old.data,
  case when _decision='approved' then jsonb_build_object('approved_amount_kes',_approved_amount_kes::text,'expense_record_id',rid) else old.data end,
