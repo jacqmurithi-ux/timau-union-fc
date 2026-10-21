@@ -30,13 +30,12 @@
 
 /* The existing navigation is opened by the hamburger at every breakpoint. */
 .site-header .menu-toggle { display:grid; color:var(--white); background:transparent; border:1px solid rgba(255,255,255,.45); }
-.site-header .primary-nav { display:none; }
-.site-header .primary-nav.is-open { display:grid; }
+.site-header .primary-nav { display:grid; position:fixed; top:76px; right:0; left:auto; width:min(360px,90vw); height:calc(100dvh - 76px); max-height:none; overflow:auto; padding:1rem; align-content:start; gap:.35rem; background:var(--white); box-shadow:var(--shadow); transform:translateX(100%); visibility:hidden; transition:transform .2s ease,visibility .2s ease; z-index:30; }
+.site-header .primary-nav.is-open { transform:translateX(0); visibility:visible; }
 .hero-progress-segment { background:rgba(255,255,255,.88); }
 .hero-progress-segment[aria-current="true"] { background:rgba(255,255,255,.65); }
 
 @media(max-width:700px) {
-  .site-header .primary-nav { position:fixed; top:68px; right:0; left:auto; width:min(88vw,380px); height:calc(100dvh - 68px); max-height:none; padding:1rem; transform:translateX(100%); visibility:hidden; display:grid; align-content:start; gap:.35rem; transition:transform .2s ease,visibility .2s ease; border-left:1px solid var(--border); }
-  .site-header .primary-nav.is-open { transform:translateX(0); visibility:visible; }
+  .site-header .primary-nav { top:68px; width:min(88vw,380px); height:calc(100dvh - 68px); border-left:1px solid var(--border); }
 }
 @media(prefers-reduced-motion:reduce) { .site-header .primary-nav { transition:none; } }
