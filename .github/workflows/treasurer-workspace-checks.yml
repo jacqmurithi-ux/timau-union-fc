@@ -1,0 +1,36 @@
+name: Treasurer workspace validation
+
+on:
+  pull_request:
+    paths:
+      - "app/treasurer.js"
+      - "app/workspace.js"
+      - "app/access.js"
+      - "supabase/migrations/**"
+      - "docs/treasurer-workspace-test-checklist.md"
+  workflow_dispatch:
+
+jobs:
+  syntax-and-migration-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript module syntax
+        run: |
+          node --input-type=module --check < app/treasurer.js
+          node --input-type=module --check < app/workspace.js
+          node --input-type=module --check < app/access.js
+      - name: Check migration security contract
+        shell: bash
+        run: |
+          migration=supabase/migrations/20261022130000_treasurer_workspace_expansion.sql
+          grep -q "alter table private.treasurer_records" "$migration"
+          grep -q "enable row level security" "$migration"
+          grep -q "treasurer_receipt_access(text,boolean)" "$migration"
+          grep -q "treasurer_review_tm_transport" "$migration"
+          grep -q "treasurer_public_published_reports" "$migration"
+          grep -q "Approved finance records are immutable" "$migration"
+          ! grep -q "treasurer_receipt_access(uuid,boolean)" "$migration"
