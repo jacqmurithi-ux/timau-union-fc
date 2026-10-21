@@ -9,6 +9,7 @@
 
 ## Social posts and approval
 - [ ] Media Team can create an idea and a drafted post for each channel: Facebook, Instagram, X, TikTok, YouTube and WhatsApp channel.
+- [ ] Marking a post posted records an actual publication date; an authorised editor can correct it in the stats form.
 - [ ] Required title and channel validation works; planned date, caption/copy and post URL can be saved.
 - [ ] A post in \`idea\` cannot be approved directly; move it to \`drafted\` first.
 - [ ] Media Team author can approve its own drafted post; database sets \`approved_by\` and \`approved_at\`.
@@ -26,7 +27,7 @@
 - [ ] Month selector and switching between month/list views work on mobile and desktop.
 - [ ] Reach, impressions, likes, comments, shares, saves, link clicks, followers gained and post link save and reload correctly.
 - [ ] Negative metric values are rejected by the database.
-- [ ] Monthly totals, averages per post, per-channel summaries and top five posts by engagement match the saved records for all-month and selected-month filters.
+- [ ] Monthly totals, averages per post, per-channel summaries and top five posts by engagement match the saved **posted** records for all-month and selected-month filters; monthly grouping uses the actual posted date.
 - [ ] Channel filter changes the summaries and top posts correctly.
 - [ ] No passwords, API tokens, recovery codes or social account credentials are collected or stored.
 
