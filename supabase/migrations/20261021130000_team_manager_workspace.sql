@@ -44,7 +44,7 @@ begin
  v_tm:=private.user_has_active_club_role(_created_by,'team_manager');
  if v_tm then return 'team_manager'=any(coalesce(_roles,array[]::text[])); end if;
  if 'team_manager'=any(coalesce(_roles,array[]::text[])) then return false; end if;
- return 'secretary'=any(coalesce(_roles,array[]::text[]));
+ return true;
 end $f$;
 revoke all on function private.can_manage_club_record(text[],boolean,uuid) from public,anon,authenticated;
 
