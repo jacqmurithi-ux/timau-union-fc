@@ -14,9 +14,7 @@ create table if not exists public.homepage_hero_slides (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index if not exists homepage_hero_active_order_idx
-  on public.homepage_hero_slides(order_index, created_at)
-  where ends_at is null or ends_at > now();
+create index if not exists homepage_hero_active_order_idx on public.homepage_hero_slides(order_index, ends_at, created_at);
 
 alter table public.homepage_hero_slides enable row level security;
 revoke all on public.homepage_hero_slides from public, anon, authenticated;
