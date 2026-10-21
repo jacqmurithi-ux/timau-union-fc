@@ -1,9 +1,6 @@
 -- Team Manager workspace duties, role hardening, and override audit.
 -- Review and apply to Union Test first; this migration is not auto-applied.
 begin;
-alter table private.role_assignments drop constraint if exists role_assignments_role_key_check;
-alter table private.role_assignments add constraint role_assignments_role_key_check check(role_key=any(array['chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team','player_welfare']::text[]));
-
 create table if not exists private.tm_records(
  id uuid primary key default gen_random_uuid(),
  section_key text not null check(section_key=any(array['squad_admin','match_day','transport_logistics','team_sheet_report','discipline_welfare','communication','training_coordination','reporting']::text[])),
@@ -44,8 +41,7 @@ as $f$
 declare v_tm boolean;
 begin
  if coalesce(_is_platform_admin,false) or 'chairman'=any(coalesce(_roles,array[]::text[])) then return true; end if;
- select exists(select 1 from private.role_assignments ra join private.account_access aa on aa.user_id=ra.user_id join auth.users u on u.id=ra.user_id
- where ra.user_id=_created_by and ra.active and aa.status='approved' and u.email_confirmed_at is not null and ra.role_key='team_manager') into v_tm;
+ v_tm:=private.user_has_active_club_role(_created_by,'team_manager');
  if v_tm then return 'team_manager'=any(coalesce(_roles,array[]::text[])); end if;
  if 'team_manager'=any(coalesce(_roles,array[]::text[])) then return false; end if;
  return 'secretary'=any(coalesce(_roles,array[]::text[]));
