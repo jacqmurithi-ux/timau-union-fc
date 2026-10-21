@@ -427,8 +427,7 @@ begin
   if not (v_key=any(v_allowed)) or jsonb_typeof(_data->v_key)<>'string' then return false; end if;
   v_value:=_data->>v_key;
   if length(v_value)>3000 then return false; end if;
-  if v_key='date_of_birth' and v_value<>'' and v_value !~ '^\\d{4}-\\d{2}-\\d{2}
- then return false; end if;
+  if v_key='date_of_birth' and v_value<>'' and (length(v_value)<>10 or substring(v_value,5,1)<>'-' or substring(v_value,8,1)<>'-') then return false; end if;
  end loop;
  return true;
 end $function$;
