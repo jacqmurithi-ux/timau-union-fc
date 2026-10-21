@@ -1,4 +1,4 @@
--- Homepage hero slides. Apply to Union Test first; do not apply directly to Production.
+-- Homepage hero slides. Review and apply to test before rolling out to Production.
 begin;
 
 create table public.homepage_hero_slides (
