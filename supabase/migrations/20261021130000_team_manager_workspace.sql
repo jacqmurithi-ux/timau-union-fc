@@ -73,6 +73,8 @@ revoke all on function private.valid_tm_record_data(text,jsonb) from public,anon
 alter table private.club_record_audit add column if not exists old_data jsonb not null default '{}'::jsonb;
 alter table private.club_record_audit add column if not exists new_data jsonb not null default '{}'::jsonb;
 alter table private.club_record_audit add column if not exists is_admin_override boolean not null default false;
+alter table private.club_record_audit add column if not exists old_status text;
+alter table private.club_record_audit add column if not exists new_status text;
 
 create or replace function public.club_get_workspace_bundle()
 returns jsonb language plpgsql stable security definer set search_path=''
@@ -86,7 +88,7 @@ begin
  'records',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'record_type',c.record_type,'data',c.data,'publication_status',c.publication_status,'created_at',c.created_at,'updated_at',c.updated_at,'approved_at',c.approved_at,'can_approve',adm or private.role_can_manage_record(r,c.record_type))
  from private.club_records c where adm or chair or (private.role_can_manage_record(r,c.record_type) and private.can_manage_club_record(r,false,c.created_by))),'[]'::jsonb),
  'tm_records',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'record_type','tm_'||t.section_key,'section_key',t.section_key,'data',t.data,'publication_status',t.publication_status,'created_at',t.created_at,'updated_at',t.updated_at,'approved_at',t.approved_at,'can_approve',adm or chair or tm)
- from private.tm_records t where adm or chair or tm or (welfare and t.section_key='discipline_welfare')),'[]'::jsonb));
+ from private.tm_records t where adm or chair or tm or (welfare and t.section_key='discipline_welfare') or ('treasurer'=any(r) and t.section_key='transport_logistics' and lower(coalesce(t.data->>'treasurer_submission','')) like 'submitted%')),'[]'::jsonb));
 end $f$;
 revoke all on function public.club_get_workspace_bundle() from public,anon; grant execute on function public.club_get_workspace_bundle() to authenticated;
 
@@ -106,8 +108,8 @@ begin
   if not adm and (not private.role_can_manage_record(r,typ) or not private.can_manage_club_record(r,false,creator)) then raise exception 'Your role cannot edit this record'; end if;
   override:=adm or 'chairman'=any(r);
   update private.club_records set record_type=_record_type,data=_data,publication_status='draft',approved_by=null,approved_at=null,updated_by=auth.uid(),updated_at=now() where id=_record_id returning id into id2;
-  insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason,old_data,new_data,is_admin_override)
-  values(auth.uid(),id2,_record_type,case when override then 'admin_override_updated' else 'record_updated' end,case when override then 'Administrator override; saved as draft' else 'Saved as draft; approval reset' end,oldj,_data,override);
+  insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason,old_data,new_data,is_admin_override,old_status,new_status)
+  values(auth.uid(),id2,_record_type,case when override then 'admin_override_updated' else 'record_updated' end,case when override then 'Administrator override; saved as draft' else 'Saved as draft; approval reset' end,oldj,_data,override,'draft','draft');
  else
   insert into private.club_records(record_type,data,created_by,updated_by) values(_record_type,_data,auth.uid(),auth.uid()) returning id into id2;
   insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,new_data) values(auth.uid(),id2,_record_type,'record_created',_data);
@@ -130,8 +132,8 @@ begin
  if not adm and (not private.role_can_manage_record(r,typ) or not private.can_manage_club_record(r,false,creator)) then raise exception 'Your role cannot change publication status'; end if;
  over:=adm or 'chairman'=any(r);
  update private.club_records set publication_status=_new_status,approved_by=case when _new_status='approved' then auth.uid() else null end,approved_at=case when _new_status='approved' then now() else null end,updated_by=auth.uid(),updated_at=now() where id=_record_id;
- insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason,old_data,new_data,is_admin_override)
- values(auth.uid(),_record_id,typ,case when over then 'admin_override_publication_'||_new_status else 'publication_'||_new_status end,btrim(_reason),d,d,over);
+ insert into private.club_record_audit(actor_user_id,record_id,record_type,action_key,reason,old_data,new_data,is_admin_override,old_status,new_status)
+ values(auth.uid(),_record_id,typ,case when over then 'admin_override_publication_'||_new_status else 'publication_'||_new_status end,btrim(_reason),d,d,over,oldst,_new_status);
  return true;
 end $f$;
 revoke all on function public.club_set_publication_status(uuid,text,text) from public,anon;grant execute on function public.club_set_publication_status(uuid,text,text) to authenticated;
