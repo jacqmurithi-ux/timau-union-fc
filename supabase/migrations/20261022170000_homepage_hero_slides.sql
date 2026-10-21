@@ -39,7 +39,7 @@ alter table private.homepage_hero_audit enable row level security;
 revoke all on private.homepage_hero_audit from public, anon, authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values ('homepage-hero','homepage-hero',true,10485760,array['image/jpeg','image/png','image/webp'])
+values ('homepage-hero','homepage-hero',false,10485760,array['image/jpeg','image/png','image/webp'])
 on conflict (id) do update set public=true,file_size_limit=10485760,allowed_mime_types=array['image/jpeg','image/png','image/webp'];
 
 create or replace function public.homepage_hero_can_manage()
@@ -54,7 +54,7 @@ revoke all on function public.homepage_hero_can_manage() from public, anon;
 grant execute on function public.homepage_hero_can_manage() to authenticated;
 
 create policy homepage_hero_storage_public_read on storage.objects
- for select to anon, authenticated using (bucket_id = 'homepage-hero');
+ for select to anon, authenticated using (bucket_id = 'homepage-hero' and exists (select 1 from public.homepage_hero_slides s where s.image_path = storage.objects.name and (s.ends_at is null or s.ends_at > now())));
 create policy homepage_hero_storage_manager_insert on storage.objects
  for insert to authenticated with check (bucket_id = 'homepage-hero' and public.homepage_hero_can_manage());
 create policy homepage_hero_storage_manager_update on storage.objects
@@ -128,3 +128,20 @@ revoke all on function public.homepage_hero_expired_paths() from public, anon;
 grant execute on function public.homepage_hero_expired_paths() to authenticated;
 
 commit;
+
+-- Service-role-only hard delete used by the scheduled cleanup function.
+create or replace function public.homepage_hero_expire(_slide_id uuid)
+returns boolean language plpgsql security definer set search_path=''
+as $$
+declare v public.homepage_hero_slides%rowtype;
+begin
+  if coalesce(current_setting('request.jwt.claim.role', true),'') <> 'service_role' then raise exception 'Service role required'; end if;
+  select * into v from public.homepage_hero_slides where id=_slide_id and ends_at is not null and ends_at<=now() for update;
+  if not found then return false; end if;
+  insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(v.updated_by,v.id,v.caption,'expired');
+  delete from public.homepage_hero_slides where id=v.id;
+  return true;
+end
+$$;
+revoke all on function public.homepage_hero_expire(uuid) from public, anon, authenticated;
+grant execute on function public.homepage_hero_expire(uuid) to service_role;
