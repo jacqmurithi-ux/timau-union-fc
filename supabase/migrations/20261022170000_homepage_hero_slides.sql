@@ -249,3 +249,19 @@ begin
   end if;
 end
 $schedule$;
+
+create or replace function public.homepage_hero_expire_from_workspace(_slide_id uuid)
+returns boolean language plpgsql security definer set search_path=''
+as $$
+declare v public.homepage_hero_slides%rowtype;
+begin
+  if auth.uid() is null or not public.homepage_hero_can_manage() then raise exception 'Admin or Media Team access required'; end if;
+  select * into v from public.homepage_hero_slides where id=_slide_id and ends_at is not null and ends_at<=now() for update;
+  if not found then return false; end if;
+  insert into private.homepage_hero_audit(actor_user_id,slide_id,caption,action_key) values(auth.uid(),v.id,v.caption,'expired');
+  delete from public.homepage_hero_slides where id=v.id;
+  return true;
+end
+$$;
+revoke all on function public.homepage_hero_expire_from_workspace(uuid) from public, anon;
+grant execute on function public.homepage_hero_expire_from_workspace(uuid) to authenticated;
