@@ -274,12 +274,13 @@ create policy treasurer_receipts_delete on storage.objects for delete to authent
 
 -- Sponsor accounts are read-only and scoped to records assigned to their auth UUID.
 do $role$
-declare c record;
+declare c record; target regclass;
 begin
- for c in select conname from pg_constraint where conrelid='private.role_assignments'::regclass and contype='c' and pg_get_constraintdef(oid) ilike '%role_key%'
- loop execute format('alter table private.role_assignments drop constraint %I',c.conname); end loop;
- alter table private.role_assignments add constraint role_assignments_role_key_check
- check(role_key=any(array['chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team','player_welfare','sponsor']::text[]));
+ target:=coalesce(to_regclass('private.role_assignments'),to_regclass('public.role_assignments'));
+ if target is null then raise exception 'Role assignment table is missing; apply the club role baseline first'; end if;
+ for c in select conname from pg_constraint where conrelid=target and contype='c' and pg_get_constraintdef(oid) ilike '%role_key%'
+ loop execute format('alter table %s drop constraint %I',target,c.conname); end loop;
+ execute format('alter table %s add constraint role_assignments_role_key_check check(role_key=any(array[''chairman'',''vice_chairman'',''secretary'',''team_manager'',''treasurer'',''coach'',''sponsor_lead'',''media_team'',''player_welfare'',''sponsor'']::text[]))',target);
 end $role$;
 create or replace function public.treasurer_public_published_reports()
 returns jsonb language sql stable security definer set search_path=''
