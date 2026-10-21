@@ -8,13 +8,14 @@
 
 ## Current rollout status
 - [x] Corrected the malformed SQL migration and applied it to the **Union Test** Supabase project only.
+- [x] Applied `20261022173000_homepage_hero_capacity_guard.sql` to Union Test; a rollback-only SQL test confirmed that a fourth active slide is rejected.
 - [x] Deployed `expire-homepage-hero` to Union Test with JWT verification enabled.
 - [x] Verified the slide table and guarded RPCs exist, the bucket is private, five hero RLS policies exist, there are no active slides, unauthenticated management checks return false, anonymous execution of the save RPC is denied, and the audit table stores metadata only.
 - [ ] Scheduled expiry is **not active yet**: the Union Test Vault does not currently contain `project_url` and `service_role_key`. This requires a project administrator to configure those secrets securely; do not commit the service-role key.
 - [ ] Browser tests and a real upload/delete/expiry lifecycle test remain outstanding.
 
 ## Deployment prerequisites
-1. Apply `supabase/migrations/20261022170000_homepage_hero_slides.sql` to Union Test first and inspect the migration diff before production. The migration has already been applied to Union Test during this implementation pass; do not blindly apply it a second time.
+1. The two migrations `20261022170000_homepage_hero_slides.sql` and `20261022173000_homepage_hero_capacity_guard.sql` have already been applied to Union Test during this implementation pass. Do not blindly apply them a second time; review and apply them through the normal migration workflow when preparing another environment.
 2. Deploy `supabase/functions/expire-homepage-hero` using the Supabase CLI. The function is already deployed to Union Test during this implementation pass.
 3. In Union Test Supabase Vault, set secrets named `project_url` (the project HTTPS URL) and `service_role_key` (the service-role key). Never put the service-role key in frontend code or commit it to Git.
 4. Re-run the scheduling block at the end of the migration after setting Vault secrets, or schedule the function through the Supabase Dashboard. Confirm `expire-homepage-hero-slides` exists in `cron.job`.
