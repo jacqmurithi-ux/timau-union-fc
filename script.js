@@ -87,7 +87,7 @@ function initializePage() {
         ]);
         if (playersResponse.ok) {
           const players = await playersResponse.json();
-          if (Array.isArray(players)) players.forEach((p) => {
+          const playerRows = Array.isArray(players) ? players : (Array.isArray(players.players) ? players.players : []);\n          if (Array.isArray(playerRows)) playerRows.forEach((p) => {
             const name = String(p.name || p.player_name || "");
             const detail = [p.position, p.squad_number].filter(Boolean).join(" · ");
             if (name.toLocaleLowerCase().includes(query) || detail.toLocaleLowerCase().includes(query))
