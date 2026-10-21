@@ -60,37 +60,15 @@ revoke all on private.treasurer_opening_balance from public,anon,authenticated;
 drop policy if exists treasurer_opening_balance_no_direct_access on private.treasurer_opening_balance;
 create policy treasurer_opening_balance_no_direct_access on private.treasurer_opening_balance for all to anon,authenticated using(false) with check(false);
 
-create table if not exists private.treasurer_ledger (
- id uuid primary key default gen_random_uuid(),
- entry_type text not null check(entry_type in ('opening_balance','income','expense','reversal','adjustment')),
- amount_kes numeric(14,2) not null check(amount_kes <> 0),
- description text not null check(length(btrim(description)) between 2 and 1000),
- record_id uuid references private.treasurer_records(id),
- actor_user_id uuid references auth.users(id),
- approved_by uuid references auth.users(id),
- created_at timestamptz not null default now()
-);
-alter table private.treasurer_ledger enable row level security;
-revoke all on private.treasurer_ledger from public,anon,authenticated;
-drop policy if exists treasurer_ledger_no_direct_access on private.treasurer_ledger;
-create policy treasurer_ledger_no_direct_access on private.treasurer_ledger for all to anon,authenticated using(false) with check(false);
-create index if not exists treasurer_ledger_created_idx on private.treasurer_ledger(created_at desc);
-
-create table if not exists private.treasurer_audit (
- id bigint generated always as identity primary key,
- actor_user_id uuid references auth.users(id),
- record_id uuid,
- action_key text not null,
- old_data jsonb not null default '{}'::jsonb,
- new_data jsonb not null default '{}'::jsonb,
- reason text,
- is_admin_override boolean not null default false,
- created_at timestamptz not null default now()
-);
-alter table private.treasurer_audit enable row level security;
-revoke all on private.treasurer_audit from public,anon,authenticated;
-drop policy if exists treasurer_audit_no_direct_access on private.treasurer_audit;
-create policy treasurer_audit_no_direct_access on private.treasurer_audit for all to public using(false) with check(false);
+-- Reuse the existing canonical ledger and finance audit tables; extend them with
+-- links to the expanded Treasurer records rather than creating parallel ledgers.
+alter table private.club_financial_ledger add column if not exists source_treasurer_record_id uuid references private.treasurer_records(id);
+alter table private.club_financial_ledger alter column amount_kes type numeric(14,2);
+alter table private.club_financial_ledger drop constraint if exists club_financial_ledger_entry_type_check;
+alter table private.club_financial_ledger add constraint club_financial_ledger_entry_type_check
+ check(entry_type in('income','expense','expense_reversal','adjustment','opening_balance'));
+create index if not exists club_financial_ledger_treasurer_record_idx on private.club_financial_ledger(source_treasurer_record_id);
+alter table private.club_financial_audit add column if not exists treasurer_record_id uuid references private.treasurer_records(id);
 
 create or replace function public.treasurer_get_dashboard()
 returns jsonb language plpgsql stable security definer set search_path=''
@@ -117,10 +95,10 @@ begin
       or (f.record_type='requisition' and f.submitted_by=uid))), '[]'::jsonb),
   'opening_balance',case when adm or chair or treas or 'secretary'=any(r) then (select to_jsonb(o) from private.treasurer_opening_balance o where o.id=true) else null end,
   'ledger',case when adm or chair or treas or 'secretary'=any(r) then
-   coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'record_id',l.record_id,'created_at',l.created_at) order by l.created_at desc) from (select * from private.treasurer_ledger order by created_at desc limit 100) l),'[]'::jsonb)
+   coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entry_type',l.entry_type,'amount_kes',l.amount_kes::text,'description',l.description,'record_id',coalesce(l.source_treasurer_record_id,l.source_expense_id),'created_at',l.created_at) order by l.created_at desc) from (select * from private.club_financial_ledger order by created_at desc limit 100) l),'[]'::jsonb)
    else '[]'::jsonb end,
   'audit',case when adm or chair or treas then
-   coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'record_id',a.record_id,'actor_user_id',a.actor_user_id,'action_key',a.action_key,'old_data',a.old_data,'new_data',a.new_data,'reason',a.reason,'is_admin_override',a.is_admin_override,'created_at',a.created_at) order by a.created_at desc) from (select * from private.treasurer_audit order by created_at desc limit 100) a),'[]'::jsonb)
+   coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'record_id',a.treasurer_record_id,'actor_user_id',a.actor_user_id,'action_key',a.action_key,'old_data',a.old_data,'new_data',a.new_data,'reason',a.reason,'is_admin_override',a.is_admin_override,'created_at',a.created_at) order by a.created_at desc) from (select * from private.club_financial_audit order by created_at desc limit 100) a),'[]'::jsonb)
    else '[]'::jsonb end);
 end $$;
 revoke all on function public.treasurer_get_dashboard() from public,anon;
@@ -141,7 +119,7 @@ begin
  if _id is null then
   insert into private.treasurer_records(record_type,title,amount_kes,record_date,category,source,receipt_reference,payload,status,created_by,updated_by,sponsor_user_id)
   values(_record_type,btrim(_title),_amount_kes,_record_date,nullif(_category,''),nullif(_source,''),nullif(_receipt_reference,''),coalesce(_payload,'{}'::jsonb),'draft',auth.uid(),auth.uid(),_sponsor_user_id) returning id into rid;
-  insert into private.treasurer_audit(actor_user_id,record_id,action_key,new_data) values(auth.uid(),rid,'finance_record_created_as_draft',newj);
+  insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,new_data) values(auth.uid(),rid,'finance_record_created_as_draft',newj);
  else
   select * into old from private.treasurer_records where id=_id for update;
   if not found then raise exception 'Finance record not found'; end if;
@@ -149,7 +127,7 @@ begin
   
   oldj:=jsonb_build_object('record_type',old.record_type,'title',old.title,'amount_kes',old.amount_kes::text,'record_date',old.record_date,'category',old.category,'source',old.source,'receipt_reference',old.receipt_reference,'payload',old.payload,'status',old.status,'sponsor_user_id',old.sponsor_user_id);
   update private.treasurer_records set record_type=_record_type,title=btrim(_title),amount_kes=_amount_kes,record_date=_record_date,category=nullif(_category,''),source=nullif(_source,''),receipt_reference=nullif(_receipt_reference,''),payload=coalesce(_payload,'{}'::jsonb),sponsor_user_id=_sponsor_user_id,status='draft',updated_by=auth.uid(),updated_at=now(),reviewed_by=null,reviewed_at=null,review_reason=null,published_at=null where id=_id returning id into rid;
-  insert into private.treasurer_audit(actor_user_id,record_id,action_key,old_data,new_data,reason,is_admin_override)
+  insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,old_data,new_data,reason,is_admin_override)
   values(auth.uid(),rid,'finance_record_edited_as_draft',oldj,newj,nullif(btrim(_reason),''),false);
  end if;
  return rid;
@@ -168,7 +146,7 @@ begin
  if length(btrim(coalesce(_title,'')))<3 or _amount_kes is null or _amount_kes<=0 or _amount_kes>100000000000 or length(btrim(coalesce(_purpose,'')))<3 then raise exception 'Title, positive amount and purpose are required'; end if;
  insert into private.treasurer_records(record_type,title,amount_kes,category,receipt_reference,payload,status,created_by,updated_by,submitted_by)
  values('requisition',btrim(_title),_amount_kes,nullif(_category,''),nullif(_receipt_reference,''),jsonb_build_object('purpose',btrim(_purpose)),'pending',auth.uid(),auth.uid(),auth.uid()) returning id into rid;
- insert into private.treasurer_audit(actor_user_id,record_id,action_key,new_data) values(auth.uid(),rid,'requisition_submitted',jsonb_build_object('title',_title,'amount_kes',_amount_kes::text,'category',_category,'purpose',_purpose));
+ insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,new_data) values(auth.uid(),rid,'requisition_submitted',jsonb_build_object('title',_title,'amount_kes',_amount_kes::text,'category',_category,'purpose',_purpose));
  return rid;
 end $$;
 revoke all on function public.treasurer_submit_requisition(text,numeric,text,text,text) from public,anon;
@@ -197,10 +175,10 @@ begin
   elsif old.record_type='expense' or old.record_type='transport_approval' then ledger_type:='expense'; amount:=-old.amount_kes;
   end if;
   if ledger_type is not null and amount<>0 then
-   insert into private.treasurer_ledger(entry_type,amount_kes,description,record_id,actor_user_id,approved_by) values(ledger_type,amount,old.title,_id,old.created_by,auth.uid());
+   insert into private.club_financial_ledger(entry_type,amount_kes,description,source_treasurer_record_id,actor_user_id,approved_by) values(ledger_type,amount,old.title,_id,old.created_by,auth.uid());
   end if;
  end if;
- insert into private.treasurer_audit(actor_user_id,record_id,action_key,old_data,new_data,reason,is_admin_override)
+ insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,old_data,new_data,reason,is_admin_override)
  values(auth.uid(),_id,case when adm or chair then 'chairman_admin_override_'||_decision else 'treasurer_'||_decision end,
  jsonb_build_object('status',old.status,'title',old.title,'amount_kes',old.amount_kes::text),
  jsonb_build_object('status',_decision,'title',old.title,'amount_kes',old.amount_kes::text),btrim(_reason),adm or chair);
@@ -230,14 +208,14 @@ begin
   update private.treasurer_opening_balance set chairman_confirmed_by=auth.uid(),chairman_confirmed_at=now(),updated_by=auth.uid(),updated_at=now() where id=true;
  else raise exception 'Matching Treasurer or Chairman role required'; end if;
  if found and old.locked_at is not null and adm and _amount_kes<>old.amount_kes then
-  insert into private.treasurer_ledger(entry_type,amount_kes,description,actor_user_id,approved_by) values('adjustment',_amount_kes-old.amount_kes,'Platform Admin opening-balance override: '||btrim(_reason),auth.uid(),auth.uid());
+  insert into private.club_financial_ledger(entry_type,amount_kes,description,actor_user_id,approved_by) values('adjustment',_amount_kes-old.amount_kes,'Platform Admin opening-balance override: '||btrim(_reason),auth.uid(),auth.uid());
  end if;
  update private.treasurer_opening_balance set locked_at=coalesce(locked_at,now()) where id=true and treasurer_confirmed_at is not null and chairman_confirmed_at is not null;
- insert into private.treasurer_audit(actor_user_id,action_key,old_data,new_data,reason,is_admin_override)
+ insert into private.club_financial_audit(actor_user_id,action_key,old_data,new_data,reason,is_admin_override)
  values(auth.uid(),'opening_balance_'||_confirm_as||'_confirmation',case when found then jsonb_build_object('amount_kes',old.amount_kes::text,'locked_at',old.locked_at) else '{}'::jsonb end,
  jsonb_build_object('amount_kes',_amount_kes::text,'confirm_as',_confirm_as),nullif(btrim(_reason),''),adm and old.locked_at is not null);
- if exists(select 1 from private.treasurer_opening_balance where id=true and locked_at is not null) and not exists(select 1 from private.treasurer_ledger where entry_type='opening_balance') then
-  insert into private.treasurer_ledger(entry_type,amount_kes,description,actor_user_id,approved_by) values('opening_balance',_amount_kes,'Jointly confirmed opening balance',auth.uid(),auth.uid());
+ if exists(select 1 from private.treasurer_opening_balance where id=true and locked_at is not null) and not exists(select 1 from private.club_financial_ledger where entry_type='opening_balance') then
+  insert into private.club_financial_ledger(entry_type,amount_kes,description,actor_user_id,approved_by) values('opening_balance',_amount_kes,'Jointly confirmed opening balance',auth.uid(),auth.uid());
  end if;
  return true;
 end $$;
@@ -313,7 +291,7 @@ begin
   payload:=jsonb_build_object('source_tm_record_id',old.id,'trip_plan',old.data,'approval_reason',btrim(_reason));
   insert into private.treasurer_records(record_type,title,amount_kes,record_date,category,source,receipt_reference,payload,status,created_by,updated_by,submitted_by,reviewed_by,reviewed_at,review_reason)
   values('expense','Approved TM transport: '||coalesce(old.data->>'fixture','trip'),amt,current_date,'transport','Team Manager transport plan',old.id::text,payload,'approved',old.created_by,auth.uid(),old.created_by,auth.uid(),now(),btrim(_reason)) returning id into rid;
-  insert into private.treasurer_ledger(entry_type,amount_kes,description,record_id,actor_user_id,approved_by)
+  insert into private.club_financial_ledger(entry_type,amount_kes,description,source_treasurer_record_id,actor_user_id,approved_by)
   values('expense',-amt,'Approved Team Manager transport: '||coalesce(old.data->>'fixture','trip'),rid,old.created_by,auth.uid());
   update private.tm_records set publication_status='approved',approved_by=auth.uid(),approved_at=now(),updated_by=auth.uid(),updated_at=now() where id=old.id;
  else
@@ -325,7 +303,7 @@ begin
  values(auth.uid(),old.id,'transport_logistics','treasurer_transport_'||_decision,old.data,
  case when _decision='approved' then jsonb_build_object('approved_amount_kes',_approved_amount_kes::text,'expense_record_id',rid) else old.data end,
  old.publication_status,case when _decision='approved' then 'approved' else old.publication_status end,adm or chair,btrim(_reason));
- insert into private.treasurer_audit(actor_user_id,record_id,action_key,old_data,new_data,reason,is_admin_override)
+ insert into private.club_financial_audit(actor_user_id,treasurer_record_id,action_key,old_data,new_data,reason,is_admin_override)
  values(auth.uid(),rid,'tm_transport_'||_decision,jsonb_build_object('tm_record_id',old.id,'trip_plan',old.data),jsonb_build_object('approved_amount_kes',_approved_amount_kes::text,'decision',_decision),btrim(_reason),adm or chair);
  return rid;
 end $transport$;
