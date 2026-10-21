@@ -95,7 +95,7 @@ begin
  chair:='chairman'=any(r); treas:='treasurer'=any(r);
  if not (adm or chair or treas or 'secretary'=any(r) or 'sponsor'=any(r) or 'sponsor_lead'=any(r) or 'team_manager'=any(r) or 'coach'=any(r) or 'player'=any(r) or 'player_welfare'=any(r)) then raise exception 'Active club role required'; end if;
  return jsonb_build_object(
-  'can_manage',adm or treas,'can_override',adm or chair,
+  'roles',to_jsonb(coalesce(r,array[]::text[])),'is_admin',adm,'can_manage',adm or treas,'can_override',adm or chair,
   'records',coalesce((select jsonb_agg(jsonb_build_object(
     'id',f.id,'record_type',f.record_type,'title',f.title,'amount_kes',f.amount_kes::text,
     'record_date',f.record_date,'category',f.category,'source',f.source,'receipt_reference',f.receipt_reference,
@@ -124,7 +124,7 @@ declare r text[]; adm boolean; treas boolean; chair boolean; old private.treasur
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid()); treas:='treasurer'=any(r); chair:='chairman'=any(r);
- if not(adm or treas) then raise exception 'Only the Treasurer or Platform Admin may create or edit finance records'; end if;
+ if not(adm or treas or (chair and _id is not null)) then raise exception 'Only the Treasurer creates finance records; Chairman or Platform Admin may override existing records'; end if;
  if _record_type not in('income','expense','transport_approval','budget','sponsor_fund','member_contribution','receipt','financial_report') then raise exception 'Unsupported Treasurer record type'; end if;
  if length(btrim(coalesce(_title,'')))<2 or _amount_kes is null or _amount_kes<0 or _amount_kes>100000000000 or coalesce(jsonb_typeof(_payload),'object')<>'object' then raise exception 'Valid title, non-negative KES amount and object details are required'; end if;
  newj:=jsonb_build_object('record_type',_record_type,'title',btrim(_title),'amount_kes',_amount_kes::text,'record_date',_record_date,'category',_category,'source',_source,'receipt_reference',_receipt_reference,'payload',coalesce(_payload,'{}'::jsonb),'sponsor_user_id',_sponsor_user_id);
