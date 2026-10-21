@@ -31,6 +31,7 @@ jobs:
           grep -q "enable row level security" "$migration"
           grep -q "treasurer_receipt_access(text,boolean)" "$migration"
           grep -q "treasurer_review_tm_transport" "$migration"
+          grep -q "treasurer_create_adjustment" "$migration"
           grep -q "treasurer_public_published_reports" "$migration"
           grep -q "Approved finance records are immutable" "$migration"
           ! grep -q "treasurer_receipt_access(uuid,boolean)" "$migration"
