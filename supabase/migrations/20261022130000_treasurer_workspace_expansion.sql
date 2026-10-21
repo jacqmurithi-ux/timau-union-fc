@@ -335,7 +335,8 @@ begin
   'start_date',_start_date,'end_date',_end_date,'currency','KES',
   'income_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date and entry_type='income'),0),
   'expenses_kes',coalesce(-(select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date and entry_type='expense'),0)-coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date and entry_type='expense_reversal'),0),
-  'balance_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date),0)
+  'period_net_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date between _start_date and _end_date),0),
+  'balance_kes',coalesce((select sum(amount_kes) from private.club_financial_ledger where transaction_date<=_end_date),0)
  );
 end $period$;
 revoke all on function public.treasurer_get_period_summary(date,date) from public,anon;
