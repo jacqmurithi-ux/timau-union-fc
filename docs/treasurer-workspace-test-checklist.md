@@ -9,7 +9,7 @@ Run against a dedicated test project before applying the migration to production
 - [ ] Treasurer opening-balance confirmation alone does not lock the amount. Chairman confirmation must match the exact amount; after both confirmations the row is locked.
 - [ ] A locked opening balance cannot be changed by Treasurer or Chairman; Platform Admin override attempts require a reason and create an audit event. Verify the ledger remains reconciled after any approved correction.
 - [ ] Chairman and Platform Admin can review/override allowed record statuses; audit rows include actor, timestamp, record ID, old/new data, reason and override flag.
-- [ ] Approved income/expense/transport amounts create ledger entries; approved records cannot be edited/deleted and corrections use adjustment/reversal entries.
+- [ ] Approved income/expense/transport amounts create ledger entries; approved records cannot be edited/deleted and corrections use separate, audited adjustment/reversal entries.
 - [ ] Receipt bucket is private; users cannot list/download another user's folder, anonymous uploads/downloads fail, and approved roles can read receipts only under the configured policy.
 - [ ] A financial report is private as a draft or approved record and is returned by the public report RPC only after explicit `published` status.
 - [ ] Existing Transport & logistics and Expenses & club finances records remain visible to finance officials; approve a TM transport plan using an explicitly confirmed total fare and verify it creates an expense plus ledger entry.
