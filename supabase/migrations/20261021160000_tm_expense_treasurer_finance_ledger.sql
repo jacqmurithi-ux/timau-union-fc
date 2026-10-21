@@ -1,4 +1,4 @@
--- Team Manager expense submission, Treasurer approval, and canonical club ledger.
+-- Club expense submission, multi-role approval, and canonical club ledger.
 -- Apply to Union Test after the Team Manager workspace migration; validate before production.
 begin;
 
@@ -75,7 +75,7 @@ begin
   'can_review',adm or r && array['chairman','secretary','treasurer']::text[])
   order by case e.status when 'pending' then 0 when 'rejected' then 1 else 2 end,e.expense_date desc,e.created_at desc)
   from private.club_financial_expenses e
-  where (adm or 'chairman'=any(r) or 'treasurer'=any(r) or e.created_by=auth.uid())),'[]'::jsonb);
+  where (adm or r && array['chairman','secretary','treasurer']::text[] or e.created_by=auth.uid())),'[]'::jsonb);
 end $f$;
 revoke all on function public.tm_get_expenses() from public,anon;
 grant execute on function public.tm_get_expenses() to authenticated;
