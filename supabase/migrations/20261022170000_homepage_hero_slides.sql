@@ -19,7 +19,7 @@ create index if not exists homepage_hero_active_order_idx on public.homepage_her
 alter table public.homepage_hero_slides enable row level security;
 revoke all on public.homepage_hero_slides from public, anon, authenticated;
 grant select (id, caption, link_url, alt_text, order_index, ends_at, image_path)
-  on public.homepage_hero_slides to anon, authenticated;
+  on public.homepage_hero_slides to anon, authenticated;\ngrant select (created_by, updated_by, created_at, updated_at) on public.homepage_hero_slides to authenticated;
 
 create policy homepage_hero_public_active_read on public.homepage_hero_slides
   for select to anon, authenticated
