@@ -263,21 +263,55 @@ create policy treasurer_receipts_delete on storage.objects for delete to authent
 
 
 -- Sponsor accounts are read-only and scoped to records assigned to their auth UUID.
-do $
+do $role$
 declare c record;
 begin
  for c in select conname from pg_constraint where conrelid='private.role_assignments'::regclass and contype='c' and pg_get_constraintdef(oid) ilike '%role_key%'
  loop execute format('alter table private.role_assignments drop constraint %I',c.conname); end loop;
  alter table private.role_assignments add constraint role_assignments_role_key_check
  check(role_key=any(array['chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team','player_welfare','sponsor']::text[]));
-end $;
+end $role$;
 create or replace function public.treasurer_public_published_reports()
 returns jsonb language sql stable security definer set search_path=''
-as $
+as $report$
  select coalesce(jsonb_agg(jsonb_build_object('title',f.title,'record_date',f.record_date,'category',f.category,'payload',f.payload,'published_at',f.published_at) order by f.record_date desc),'[]'::jsonb)
  from private.treasurer_records f where f.record_type='financial_report' and f.status='published' and f.published_at is not null
-$;
+$report$;
 revoke all on function public.treasurer_public_published_reports() from public;
 grant execute on function public.treasurer_public_published_reports() to anon,authenticated;
+
+create or replace function public.treasurer_review_tm_transport(_id uuid,_decision text,_reason text,_approved_amount_kes numeric default null)
+returns uuid language plpgsql security definer set search_path=''
+as $transport$
+declare r text[]; adm boolean; treas boolean; chair boolean; old private.tm_records%rowtype; rid uuid; amt numeric; payload jsonb;
+begin
+ if auth.uid() is null then raise exception 'Sign-in required'; end if;
+ r:=private.current_club_roles();adm:=private.is_active_platform_admin(auth.uid());treas:='treasurer'=any(r);chair:='chairman'=any(r);
+ if not(adm or treas or chair) then raise exception 'Treasurer, Chairman or Platform Admin required'; end if;
+ if _decision not in('approved','rejected','queried') or length(btrim(coalesce(_reason,'')))<3 then raise exception 'Decision and reason required'; end if;
+ select * into old from private.tm_records where id=_id and section_key='transport_logistics' for update;
+ if not found then raise exception 'Team Manager transport plan not found'; end if;
+ if old.created_by=auth.uid() then raise exception 'Cannot approve your own transport plan'; end if;
+ if _decision='approved' then
+  if _approved_amount_kes is null or _approved_amount_kes<=0 or _approved_amount_kes>100000000000 then raise exception 'Enter the explicitly approved total fare in KES'; end if;
+  amt:=_approved_amount_kes;
+  payload:=jsonb_build_object('source_tm_record_id',old.id,'trip_plan',old.data,'approval_reason',btrim(_reason));
+  insert into private.treasurer_records(record_type,title,amount_kes,record_date,category,source,receipt_reference,payload,status,created_by,updated_by,submitted_by,reviewed_by,reviewed_at,review_reason)
+  values('expense','Approved TM transport: '||coalesce(old.data->>'fixture','trip'),amt,current_date,'transport','Team Manager transport plan',old.id::text,payload,'approved',old.created_by,auth.uid(),old.created_by,auth.uid(),now(),btrim(_reason)) returning id into rid;
+  insert into private.treasurer_ledger(entry_type,amount_kes,description,record_id,actor_user_id,approved_by)
+  values('expense',-amt,'Approved Team Manager transport: '||coalesce(old.data->>'fixture','trip'),rid,old.created_by,auth.uid());
+  update private.tm_records set publication_status='approved',approved_by=auth.uid(),approved_at=now(),updated_by=auth.uid(),updated_at=now() where id=old.id;
+ else rid:=old.id;
+ end if;
+ insert into private.tm_record_audit(actor_user_id,record_id,section_key,action_key,old_data,new_data,old_status,new_status,is_admin_override,reason)
+ values(auth.uid(),old.id,'transport_logistics','treasurer_transport_'||_decision,old.data,
+ case when _decision='approved' then jsonb_build_object('approved_amount_kes',_approved_amount_kes::text,'expense_record_id',rid) else old.data end,
+ old.publication_status,case when _decision='approved' then 'approved' else old.publication_status end,adm or chair,btrim(_reason));
+ insert into private.treasurer_audit(actor_user_id,record_id,action_key,old_data,new_data,reason,is_admin_override)
+ values(auth.uid(),rid,'tm_transport_'||_decision,jsonb_build_object('tm_record_id',old.id,'trip_plan',old.data),jsonb_build_object('approved_amount_kes',_approved_amount_kes::text,'decision',_decision),btrim(_reason),adm or chair);
+ return rid;
+end $transport$;
+revoke all on function public.treasurer_review_tm_transport(uuid,text,text,numeric) from public,anon;
+grant execute on function public.treasurer_review_tm_transport(uuid,text,text,numeric) to authenticated;
 
 commit;
