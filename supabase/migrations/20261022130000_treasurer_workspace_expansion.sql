@@ -146,7 +146,7 @@ declare r text[]; adm boolean; rid uuid;
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  r:=private.current_club_roles(); adm:=private.is_active_platform_admin(auth.uid());
- if not(adm or r && array['team_manager','coach','secretary','vice_chairman','media_team','sponsor_lead','player_welfare']::text[]) then raise exception 'Only Team Manager, Coach or an authorised club official may submit a requisition'; end if;
+ if not(adm or coalesce(r,array[]::text[]) && array['team_manager','coach','secretary','vice_chairman','media_team','sponsor_lead','player_welfare']::text[]) then raise exception 'Only Team Manager, Coach or an authorised club official may submit a requisition'; end if;
  if length(btrim(coalesce(_title,'')))<3 or _amount_kes is null or _amount_kes<=0 or _amount_kes>100000000000 or length(btrim(coalesce(_purpose,'')))<3 then raise exception 'Title, positive amount and purpose are required'; end if;
  insert into private.treasurer_records(record_type,title,amount_kes,category,receipt_reference,payload,status,created_by,updated_by,submitted_by)
  values('requisition',btrim(_title),_amount_kes,nullif(_category,''),nullif(_receipt_reference,''),jsonb_build_object('purpose',btrim(_purpose)),'pending',auth.uid(),auth.uid(),auth.uid()) returning id into rid;
