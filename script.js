@@ -45,7 +45,76 @@ function initializePage() {
     }
   }
 
-  const yearElement = document.getElementById("current-year");
+
+  const searchToggle = document.getElementById("site-search-toggle");
+  const searchPanel = document.getElementById("site-search-panel");
+  const searchForm = document.getElementById("site-search-form");
+  const searchInput = document.getElementById("site-search-input");
+  const searchResults = document.getElementById("site-search-results");
+  if (searchToggle && searchPanel && searchForm && searchInput && searchResults) {
+    const openSearch = (open) => {
+      searchPanel.hidden = !open;
+      searchPanel.classList.toggle("is-open", open);
+      searchToggle.setAttribute("aria-expanded", String(open));
+      if (open) searchInput.focus();
+    };
+    searchToggle.addEventListener("click", () => openSearch(searchPanel.hidden));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !searchPanel.hidden) { openSearch(false); searchToggle.focus(); }
+    });
+    searchForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const query = searchInput.value.trim().toLocaleLowerCase();
+      searchResults.replaceChildren();
+      if (query.length < 2) {
+        searchResults.appendChild(makeElement("p", "", "Enter at least two characters."));
+        return;
+      }
+      const matches = [];
+      document.querySelectorAll("main h1, main h2, main h3, main .match-feature, main .news-card, main article").forEach((node) => {
+        if (!node.textContent.toLocaleLowerCase().includes(query)) return;
+        const heading = node.matches("h1,h2,h3") ? node : node.querySelector("h1,h2,h3");
+        const label = (heading ? heading.textContent : node.textContent).trim().replace(/\\s+/g, " ").slice(0, 150);
+        if (!label) return;
+        const section = node.closest("section");
+        const anchor = section && section.id ? "#" + section.id : "#main";
+        matches.push({ label, href: anchor });
+      });
+      try {
+        const [playersResponse, matchesResponse] = await Promise.all([
+          fetch("data/players-2025-26.json", { cache: "no-store" }),
+          fetch("data/matches.json", { cache: "no-store" })
+        ]);
+        if (playersResponse.ok) {
+          const players = await playersResponse.json();
+          if (Array.isArray(players)) players.forEach((p) => {
+            const name = String(p.name || p.player_name || "");
+            const detail = [p.position, p.squad_number].filter(Boolean).join(" · ");
+            if (name.toLocaleLowerCase().includes(query) || detail.toLocaleLowerCase().includes(query))
+              matches.push({ label: [name, detail].filter(Boolean).join(" · "), href: "players.html" });
+          });
+        }
+        if (matchesResponse.ok) {
+          const games = await matchesResponse.json();
+          if (Array.isArray(games)) games.forEach((m) => {
+            const label = [m.home, m.away, m.competition, m.stage, m.venue, m.date, m.score].filter(Boolean).join(" · ");
+            if (label.toLocaleLowerCase().includes(query) && isUsableMatch(m))
+              matches.push({ label, href: "#fixtures" });
+          });
+        }
+      } catch (_error) { /* Keep public page matches if optional data is unavailable. */ }
+      const unique = [];
+      const seen = new Set();
+      matches.forEach((item) => { const key = item.label + "|" + item.href; if (!seen.has(key)) { seen.add(key); unique.push(item); } });
+      if (!unique.length) searchResults.appendChild(makeElement("p", "", "No public results found."));
+      unique.slice(0, 12).forEach((item) => {
+        const link = makeElement("a", "", item.label);
+        link.href = item.href;
+        searchResults.appendChild(link);
+      });
+    });
+  }
+\n  const yearElement = document.getElementById("current-year");
   if (yearElement) yearElement.textContent = String(new Date().getFullYear());
   loadMatchCentre();
 }
