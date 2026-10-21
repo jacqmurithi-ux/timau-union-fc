@@ -251,4 +251,23 @@ with check(bucket_id='club-financial-receipts' and (storage.foldername(name))[1]
 drop policy if exists treasurer_receipts_delete on storage.objects;
 create policy treasurer_receipts_delete on storage.objects for delete to authenticated using(false);
 
+
+-- Sponsor accounts are read-only and scoped to records assigned to their auth UUID.
+do $
+declare c record;
+begin
+ for c in select conname from pg_constraint where conrelid='private.role_assignments'::regclass and contype='c' and pg_get_constraintdef(oid) ilike '%role_key%'
+ loop execute format('alter table private.role_assignments drop constraint %I',c.conname); end loop;
+ alter table private.role_assignments add constraint role_assignments_role_key_check
+ check(role_key=any(array['chairman','vice_chairman','secretary','team_manager','treasurer','coach','sponsor_lead','media_team','player_welfare','sponsor']::text[]));
+end $;
+create or replace function public.treasurer_public_published_reports()
+returns jsonb language sql stable security definer set search_path=''
+as $
+ select coalesce(jsonb_agg(jsonb_build_object('title',f.title,'record_date',f.record_date,'category',f.category,'payload',f.payload,'published_at',f.published_at) order by f.record_date desc),'[]'::jsonb)
+ from private.treasurer_records f where f.record_type='financial_report' and f.status='published' and f.published_at is not null
+$;
+revoke all on function public.treasurer_public_published_reports() from public;
+grant execute on function public.treasurer_public_published_reports() to anon,authenticated;
+
 commit;
