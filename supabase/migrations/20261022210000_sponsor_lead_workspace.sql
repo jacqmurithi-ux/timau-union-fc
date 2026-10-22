@@ -237,26 +237,36 @@ grant execute on function public.sponsor_lead_create_agreement_upload_url(uuid) 
 
 create or replace function private.can_access_sponsor_agreement(_agreement_id uuid)
 returns boolean language sql stable security definer set search_path=''
-as $ select auth.uid() is not null and private.can_access_sponsor_workspace('lead') and exists(select 1 from private.sponsor_agreements a where a.id=_agreement_id) $;
+as $fn$
+ select auth.uid() is not null
+   and private.can_access_sponsor_workspace('lead')
+   and exists(select 1 from private.sponsor_agreements a where a.id=_agreement_id)
+$fn$;
 revoke all on function private.can_access_sponsor_agreement(uuid) from public,anon,authenticated;
-create policy "sponsor agreements private upload" on storage.objects for insert to authenticated with check(bucket_id='sponsor-agreements' and (storage.foldername(name))[1] ~* '^[0-9a-f-]{36}
 
-commit;
- and private.can_access_sponsor_agreement(((storage.foldername(name))[1])::uuid));
-create policy "sponsor agreements private read" on storage.objects for select to authenticated using(bucket_id='sponsor-agreements' and (storage.foldername(name))[1] ~* '^[0-9a-f-]{36}
-
-commit;
- and private.can_access_sponsor_agreement(((storage.foldername(name))[1])::uuid));
-create policy "sponsor agreements private update" on storage.objects for update to authenticated using(bucket_id='sponsor-agreements' and (storage.foldername(name))[1] ~* '^[0-9a-f-]{36}
-
-commit;
- and private.can_access_sponsor_agreement(((storage.foldername(name))[1])::uuid)) with check(bucket_id='sponsor-agreements' and (storage.foldername(name))[1] ~* '^[0-9a-f-]{36}
-
-commit;
- and private.can_access_sponsor_agreement(((storage.foldername(name))[1])::uuid));
-create policy "sponsor agreements private delete" on storage.objects for delete to authenticated using(bucket_id='sponsor-agreements' and (storage.foldername(name))[1] ~* '^[0-9a-f-]{36}
-
-commit;
- and private.can_access_sponsor_agreement(((storage.foldername(name))[1])::uuid));
+create policy "sponsor agreements private upload" on storage.objects for insert to authenticated
+ with check (bucket_id='sponsor-agreements' and exists (
+   select 1 from private.sponsor_agreements a
+   where a.id::text=(storage.foldername(name))[1]
+ ) and private.can_access_sponsor_workspace('lead'));
+create policy "sponsor agreements private read" on storage.objects for select to authenticated
+ using (bucket_id='sponsor-agreements' and exists (
+   select 1 from private.sponsor_agreements a
+   where a.id::text=(storage.foldername(name))[1]
+ ) and private.can_access_sponsor_workspace('lead'));
+create policy "sponsor agreements private update" on storage.objects for update to authenticated
+ using (bucket_id='sponsor-agreements' and exists (
+   select 1 from private.sponsor_agreements a
+   where a.id::text=(storage.foldername(name))[1]
+ ) and private.can_access_sponsor_workspace('lead'))
+ with check (bucket_id='sponsor-agreements' and exists (
+   select 1 from private.sponsor_agreements a
+   where a.id::text=(storage.foldername(name))[1]
+ ) and private.can_access_sponsor_workspace('lead'));
+create policy "sponsor agreements private delete" on storage.objects for delete to authenticated
+ using (bucket_id='sponsor-agreements' and exists (
+   select 1 from private.sponsor_agreements a
+   where a.id::text=(storage.foldername(name))[1]
+ ) and private.can_access_sponsor_workspace('lead'));
 
 commit;
