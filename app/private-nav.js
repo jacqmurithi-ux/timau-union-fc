@@ -45,7 +45,7 @@ const sections=[
  {label:"Activities",type:"activity",roles:["team_manager","secretary"]}
 ];
 const pages=[
- {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","vice_chairman","player_welfare","player","assistant_coach"],admin:true},
+ {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","vice_chairman","player_welfare"],admin:true},
  {label:"Coach workspace",href:"coach.html",roles:["coach"]},
  {label:"Secretary workspace",href:"secretary.html",roles:["secretary"]},
  {label:"Treasurer workspace",href:"treasurer.html",roles:["treasurer","chairman","secretary","vice_chairman","sponsor","sponsor_lead","team_manager","coach","player"]},
@@ -54,7 +54,7 @@ const pages=[
  {label:"Sponsor portal",href:"sponsor.html",roles:["sponsor"]},
  {label:"Sponsor account links",href:"sponsor-links.html",roles:["sponsor_lead"]},
  {label:"Kit & equipment",href:"kit.html",roles:["team_manager","coach","assistant_coach","secretary"]},
- {label:"Home attendance",href:"home-attendance.html",roles:["team_manager","secretary","chairman","vice_chairman","treasurer","coach","media_team","sponsor_lead","player_welfare"]}
+ {label:"Home attendance",href:"home-attendance.html",roles:["team_manager","secretary","chairman","vice_chairman","treasurer","coach","media_team","sponsor_lead"]}
 ];
 function currentPage(){return location.pathname.split("/").pop()||"workspace.html";}
 function buildTabs(roles,isAdmin,isPlatformAdmin){
@@ -63,7 +63,7 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Private workspace navigation");
  const allowed=(entry)=>{
   if(entry.href==="sponsor.html")return roles.has("sponsor");
-  if(entry.href==="sponsor-links.html")return roles.has("sponsor_lead");
+  if(entry.href==="sponsor-links.html")return roles.has("sponsor_lead")||isAdmin;
   if(entry.href==="workspace.html"){
    if(roles.has("sponsor")&&!isPlatformAdmin)return false;
    if(roles.has("coach")&&!isPlatformAdmin&&!roles.has("team_manager")&&!roles.has("chairman")&&!roles.has("secretary")&&!roles.has("treasurer")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare"))return false;
