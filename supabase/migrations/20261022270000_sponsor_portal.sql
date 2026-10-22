@@ -214,7 +214,7 @@ grant execute on function public.sponsor_portal_get() to authenticated;
 
 create or replace function private.sponsor_workspace_guard()
 returns trigger language plpgsql security definer set search_path=''
-as $
+as $$
 declare admin boolean; r text[]; before_j jsonb; after_j jsonb; record_key uuid; table_key text; sponsor_request_allowed boolean:=false;
 begin
  admin:=private.is_active_platform_admin(auth.uid());
@@ -246,7 +246,7 @@ begin
  end if;
  if tg_op='DELETE' then return old; end if;
  new.updated_by:=auth.uid(); new.updated_at:=now(); return new;
-end $;
+end $$;
 revoke all on function private.sponsor_workspace_guard() from public,anon,authenticated;
 
 create or replace function public.sponsor_portal_submit_request(_type text,_title text,_details text)
