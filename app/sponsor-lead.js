@@ -66,7 +66,7 @@ function normalizeProposalTemplateSection(value){
  return s;
 }
 function cleanProposalBenefits(value){
- return normalizeProposalTemplateSection(value).split("\n").filter(line=>{const s=line.trim();return !(s.startsWith("Suggested benefits for the ")&&s.endsWith(" type:"));}).join("\n").trim();
+ return normalizeProposalTemplateSection(value).split("\n").map(line=>{const start=line.indexOf("Suggested benefits for the "),end=line.indexOf(" type:",start);return start>=0&&end>=0?line.slice(0,start)+line.slice(end+6):line;}).join("\n").replace(/\n{3,}/g,"\n\n").trim();
 }
 function proposalValues(f){
  const fd=new FormData(f),prospect=(data.prospects||[]).find(x=>x.id===fd.get("prospect_id")),pack=(data.packages||[]).find(x=>x.id===fd.get("package_id")),template=(data.proposal_templates||[]).find(x=>x.id===fd.get("template_id"));
