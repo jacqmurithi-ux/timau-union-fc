@@ -3,8 +3,8 @@ const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable
 const $=s=>document.querySelector(s);
 const add=(root,label,href)=>{const a=document.createElement("a");a.className="text-link";a.textContent=label;a.href=href;root.append(a)};
 async function setup(){
- const root=$(".site-header .access-actions");if(!root)return;
- const signout=$("#signout");root.querySelectorAll("a").forEach(a=>a.remove());
+ const root=$(".site-header .access-actions, .site-header .header-actions");if(!root)return;
+ const signout=$("#signout")||$("#sign-out");root.querySelectorAll("a").forEach(a=>a.remove());
  const {data:{session}}=await db.auth.getSession();if(!session)return;
  const {data,error}=await db.rpc("club_get_workspace_bundle");if(error)return;
  const roles=Array.isArray(data?.roles)?data.roles:[],admin=Boolean(data?.is_platform_admin)||roles.includes("chairman"),has=(...r)=>admin||r.some(x=>roles.includes(x));
