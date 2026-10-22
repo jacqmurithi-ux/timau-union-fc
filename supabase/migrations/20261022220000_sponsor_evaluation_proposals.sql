@@ -106,7 +106,7 @@ grant execute on function public.sponsor_eval_get_workspace() to authenticated;
 
 create or replace function public.sponsor_eval_save_settings(_weights jsonb,_restricted_categories text[])
 returns void language plpgsql security definer set search_path=''
-as $$
+as $settings$
 declare r text[]; admin boolean; total numeric; old_j jsonb; new_j jsonb;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
@@ -122,7 +122,7 @@ begin
  select to_jsonb(s) into new_j from private.sponsor_evaluation_settings s where id=true;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
  values(auth.uid(),'sponsor_evaluation_settings',null,case when admin then 'admin_override' else 'evaluation_settings_updated' end,old_j,new_j,'Chairman/admin changed scoring weights or restricted categories');
-end $;
+end $settings$;
 revoke all on function public.sponsor_eval_save_settings(jsonb,text[]) from public,anon;
 grant execute on function public.sponsor_eval_save_settings(jsonb,text[]) to authenticated;
 
