@@ -3,6 +3,10 @@
 -- This does not replace runtime tests of interactions with all existing storage.objects policies.
 begin;
 
+-- RLS policy expressions execute as the querying role; grant the narrow role-check helper.
+-- It returns only a boolean for the caller's own current role set.
+grant execute on function private.can_access_sponsor_workspace(text) to authenticated;
+
 drop policy if exists sponsor_agreements_select_authorized on storage.objects;
 create policy sponsor_agreements_select_authorized
 on storage.objects for select to authenticated
