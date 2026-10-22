@@ -58,10 +58,10 @@ grant execute on function public.media_set_sponsor_shares(text,uuid,uuid[],text)
 
 create or replace function private.sponsor_can_read_agreement_path(_name text)
 returns boolean language sql stable security definer set search_path=''
-as $$ select exists(select 1 from private.sponsor_user_links l join private.sponsor_agreements a on a.sponsor_record_id=l.sponsor_record_id where l.user_id=auth.uid() and l.active and a.signed_document_path=_name) $$;
+as $ select auth.uid() is not null and 'sponsor'=any(private.current_club_roles()) and exists(select 1 from private.sponsor_user_links l join private.sponsor_agreements a on a.sponsor_record_id=l.sponsor_record_id join private.club_records c on c.id=l.sponsor_record_id and c.record_type='sponsor' and c.publication_status='approved' join private.account_access aa on aa.user_id=l.user_id and aa.status='approved' join auth.users u on u.id=l.user_id and u.email_confirmed_at is not null where l.user_id=auth.uid() and l.active and a.signed_document_path=_name) $;
 create or replace function private.sponsor_can_read_tagged_media_path(_name text)
 returns boolean language sql stable security definer set search_path=''
-as $$ select exists(select 1 from private.sponsor_user_links l join private.sponsor_media_shares sh on sh.sponsor_record_id=l.sponsor_record_id and sh.media_table='fan_gallery' join public.fan_gallery g on g.id=sh.media_record_id and g.image_path=_name and g.status='approved' where l.user_id=auth.uid() and l.active) $$;
+as $ select auth.uid() is not null and 'sponsor'=any(private.current_club_roles()) and exists(select 1 from private.sponsor_user_links l join private.sponsor_media_shares sh on sh.sponsor_record_id=l.sponsor_record_id and sh.media_table='fan_gallery' join public.fan_gallery g on g.id=sh.media_record_id and g.image_path=_name and g.status='approved' join private.club_records c on c.id=l.sponsor_record_id and c.record_type='sponsor' and c.publication_status='approved' join private.account_access aa on aa.user_id=l.user_id and aa.status='approved' join auth.users u on u.id=l.user_id and u.email_confirmed_at is not null where l.user_id=auth.uid() and l.active) $;
 revoke all on function private.sponsor_can_read_agreement_path(text) from public, anon;
 revoke all on function private.sponsor_can_read_tagged_media_path(text) from public, anon;
 grant execute on function private.sponsor_can_read_agreement_path(text) to authenticated;
