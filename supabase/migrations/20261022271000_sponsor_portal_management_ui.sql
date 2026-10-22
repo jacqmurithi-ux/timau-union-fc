@@ -29,14 +29,14 @@ revoke all on function public.sponsor_lead_get_link_options() from public, anon;
 grant execute on function public.sponsor_lead_get_link_options() to authenticated;
 create or replace function public.sponsor_lead_get_portal_notifications()
 returns jsonb language plpgsql security definer set search_path=''
-as $
+as $$
 begin
  if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then
    raise exception 'Sponsor Lead or admin required' using errcode='42501';
  end if;
  return coalesce((select jsonb_agg(jsonb_build_object('id',n.id,'title',n.title,'body',n.body,'request_id',n.request_id,'created_at',n.created_at)
    order by n.created_at desc) from private.sponsor_portal_notifications n where n.recipient_user_id=auth.uid() and n.read_at is null),'[]'::jsonb);
-end $;
+end $$;
 revoke all on function public.sponsor_lead_get_portal_notifications() from public, anon;
 grant execute on function public.sponsor_lead_get_portal_notifications() to authenticated;
 commit;
