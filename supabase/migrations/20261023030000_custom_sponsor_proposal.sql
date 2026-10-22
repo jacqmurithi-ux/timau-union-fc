@@ -143,7 +143,7 @@ begin
 
  -- State machine: draft -> approved -> sent -> accepted|declined.
  -- No privileged role can skip a state. Admin actions require and retain an audit reason.
- if _status='approved' and coalesce(old_j->>'content_html','') ~ E'\\\\[[^][]+\\\\]' then
+ if _status='approved' and coalesce(old_j->>'content_html','') ~ E'\\[[^][]+\\]' then
   raise exception 'Cannot approve or send this proposal while bracketed placeholders remain';
  end if;
  if _status='approved' and current_status not in ('draft','approved') then
