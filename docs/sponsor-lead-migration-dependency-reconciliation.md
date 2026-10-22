@@ -270,3 +270,27 @@ The following missing Sponsor Lead candidates were applied successfully to Union
 - GitHub CI at head `f463829af8362810f30cff5ea00dc80c0e5ed02a` reported no commit statuses and only two successful unrelated runs: Treasurer workspace validation and Homepage hero validation. Sponsor Lead SQL/security workflow evidence is still missing.
 
 **Release decision remains NO-GO.** The migrations are persistently applied to Union Test only; production remains untouched, and PR #42 is open, draft and unmerged. Do not merge or deploy until authenticated role tests, lifecycle/concurrency tests, signed URL tests, redundant index cleanup, and Sponsor Lead-specific CI/browser evidence are complete.
+## Union Test execution update — 2026-10-22
+
+### Candidate migration applied
+
+- User authorized use/reset of the existing Union Test account (`dzpquzfghapjodmrmavw`); no reset was performed because the project already contains other Timau Union FC work and its recorded migration history was not a clean blank slate.
+- Applied candidate SQL from `20261022238000_sponsor_proposal_immutability_and_version_integrity.sql` through the Supabase migration action. Supabase reported success. The actual migration history now includes a recorded `sponsor_proposal_immutability_and_version_integrity` entry in addition to timestamp-named sponsor entries, so the migration history needs reconciliation before assuming a clean canonical replay.
+- Before applying, corrected the accepted-proposal trigger to allow only a one-time `agreement_id` link when the accepted proposal had no link and all other columns remain unchanged. The trigger continues to reject other updates and deletes of accepted proposals.
+- Added cleanup of the four legacy `sponsor agreements private {read,upload,update,delete}` policies because permissive policies are OR-combined and would otherwise bypass the new helper's stricter role rules.
+
+### Post-application catalog checks
+
+Read-only checks on Union Test returned: unique proposal-version index = 1; proposal immutability trigger = 1; version immutability trigger = 1; legacy broad sponsor Storage policies remaining = 0; helper-based sponsor Storage policies = 4; duplicate `(proposal_id, version_no)` pairs = 0; accepted proposals present in current test data = 0.
+
+The Storage helper is owned by `postgres`, is `SECURITY DEFINER`, has an empty fixed search path, and its catalog ACL lists execution by `authenticated` and `postgres`. The migration grants `USAGE ON SCHEMA private` to `authenticated`; this remains a broad namespace grant to assess against the baseline, although direct private table grants were not added by this migration.
+
+### Not yet verified
+
+- There are no accepted proposals in the current test data, so the one-time agreement-link exception has not been exercised against a real acceptance workflow.
+- No authenticated role-by-role Storage API tests were run. Catalog checks do not prove behavior for Sponsor Lead, Chairman, Treasurer, platform admin, Secretary, Media Team, Player/Supporter, or anonymous requests.
+- No concurrent clients were used to test simultaneous saves, acceptance-vs-save races, or duplicate version allocation. The unique index and triggers are installed, but concurrency behavior still requires test evidence.
+- Signed URL issuance, expiry, and use were not tested.
+- The test project's migration history now has both timestamp-named candidate entries and a separately named applied entry. Reconcile this history before any attempt at a complete replay; do not reset the project blindly.
+
+**Current release decision: NO-GO.** The candidate migration is installed in Union Test only and catalog checks passed, but acceptance workflow, role-by-role Storage behavior, concurrency, signed URLs, browser/PDF flows, and current-head CI remain unverified. Production remains untouched; PR #42 remains open and draft.
