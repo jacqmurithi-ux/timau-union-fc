@@ -271,7 +271,7 @@ create or replace function public.kit_record_movement(
  p_fixture_id uuid default null, p_movement_date date default current_date, p_notes text default null
 )
 returns uuid language plpgsql security definer set search_path=''
-as $
+as $kit$
 declare v_item public.kit_items%rowtype;
 declare v_id uuid;
 declare v_coach boolean:=coalesce(private.kit_is_coach(),false);
@@ -303,7 +303,7 @@ begin
   update public.kit_items set quantity_damaged=quantity_damaged-p_quantity,quantity_usable=quantity_usable+p_quantity,status=case when status='needs_repair' then 'fair' else status end,updated_by=auth.uid() where id=p_kit_item_id;
  end if;
  return v_id;
-end; $;
+end; $kit$;
 revoke all on function public.kit_record_movement(uuid,text,integer,uuid,uuid,uuid,date,text) from public,anon;
 grant execute on function public.kit_record_movement(uuid,text,integer,uuid,uuid,uuid,date,text) to authenticated;
 
