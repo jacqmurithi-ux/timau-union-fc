@@ -22,7 +22,7 @@ const addStyle=()=>{
  .private-workspace-tabs a:hover,.private-workspace-tabs button:hover{background:#333;color:#fff}
  .private-workspace-tabs a[aria-current=page],.private-workspace-tabs button[aria-pressed=true]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
  .private-workspace-tabs a:focus-visible,.private-workspace-tabs button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
- .private-workspace-tabs [data-type].ws-hidden{display:none!important}
+ .private-workspace-tabs [data-nav-type].ws-hidden{display:none!important}
  .ws-tabs [data-type="player"],.ws-tabs [data-type="fixture"],.ws-tabs [data-type="news"],.ws-tabs [data-type="sponsor"],.ws-tabs [data-type="activity"]{display:none!important}
  @media(max-width:380px){.site-header .header-inner{gap:.35rem}.site-header .brand{gap:.4rem}.site-header .brand-mark{width:34px;height:34px;flex-basis:34px}.site-header .brand-copy strong{font-size:.76rem}.site-header #signout,.site-header #sign-out{padding:.45rem .55rem;font-size:.82rem}.private-workspace-tabs{gap:.4rem}.private-workspace-tabs a,.private-workspace-tabs button{min-height:40px;padding:.5rem .65rem;font-size:.85rem}}
  `;
@@ -34,7 +34,7 @@ const link=(label,href,active=false)=>{
  return a;
 };
 const tab=(label,type,active=false)=>{
- const b=document.createElement("button");b.type="button";b.className="button button-dark";b.textContent=label;b.dataset.type=type;b.setAttribute("aria-pressed",String(active));
+ const b=document.createElement("button");b.type="button";b.className="button button-dark";b.textContent=label;b.dataset.navType=type;b.setAttribute("aria-pressed",String(active));
  return b;
 };
 const sections=[
@@ -79,9 +79,12 @@ function buildTabs(roles,isAdmin){
  }
  // Section tabs on the Club workspace page are handled in place by workspace.js.
  if(isWorkspace){
-  nav.querySelectorAll("button[data-type]").forEach(b=>b.addEventListener("click",()=>{
-   const local=document.querySelector('.ws-tabs [data-type="'+b.dataset.type+'"]');
-   if(local&&!local.classList.contains("ws-hidden"))local.click();
+  nav.querySelectorAll("button[data-nav-type]").forEach(b=>b.addEventListener("click",()=>{
+   const local=document.querySelector('.ws-tabs [data-type="'+b.dataset.navType+'"]');
+   if(local&&!local.classList.contains("ws-hidden")){
+    local.click();
+    nav.querySelectorAll("button[data-nav-type]").forEach(other=>other.setAttribute("aria-pressed",String(other===b)));
+   }
   }));
  }
  main.insertBefore(nav,main.firstChild);
