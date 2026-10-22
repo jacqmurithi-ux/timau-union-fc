@@ -30,9 +30,10 @@ begin
 
   new.updated_at := now();
   if tg_op = 'INSERT' then
-    new.recorded_at := coalesce(new.recorded_at, now());
+    new.recorded_at := now();
   else
     new.id := old.id;
+    new.fixture_id := old.fixture_id;
     new.recorded_by := old.recorded_by;
     new.recorded_at := old.recorded_at;
   end if;
