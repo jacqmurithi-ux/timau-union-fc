@@ -33,10 +33,6 @@ const link=(label,href,active=false)=>{
  if(active)a.setAttribute("aria-current","page");
  return a;
 };
-const tab=(label,type,active=false)=>{
- const b=document.createElement("button");b.type="button";b.className="button button-dark";b.textContent=label;b.dataset.navType=type;b.setAttribute("aria-pressed",String(active));
- return b;
-};
 const sections=[
  {label:"Players",type:"player",roles:["team_manager","secretary"]},
  {label:"Fixtures & results",type:"fixture",roles:["team_manager","secretary"]},
