@@ -93,6 +93,7 @@ function proposalDisplaySection(f,key,raw,values){
 function renderProposalContent(f){
  const state=f._proposalState;if(!state)return;
  const values=proposalValues(f),editor=f.querySelector('[name="content_html"]');
+ for(const key of ["about_club","achievements","audience_reach"]){const name=proposalFactKeys[key],field=f.querySelector('[name="'+name+'"]');if(field)field.value=proposalFactValue(f,key,proposalMergeSection(state.sections[key]||"",values));}
  const parts=[];
  for(const key of proposalSectionOrder){
   const body=proposalDisplaySection(f,key,state.sections[key]||"",values);
