@@ -62,9 +62,16 @@ async function setStatus(id,status){const reason=window.prompt("Admin/Chairman a
 async function load(){
  note("Checking role and loading Coach dashboard…");
  try{
-  const {data,error}=await db.rpc("coach_get_dashboard");if(error)throw error;
-  roles=Array.isArray(data.roles)?data.roles:[];isAdmin=Boolean(data.is_admin);
-  if(!isAdmin&&!coach())throw new Error("Coach dashboard access required.");
+  const {data:access,error:accessError}=await db.rpc("club_get_workspace_bundle");if(accessError)throw new Error("Could not verify your club role. "+(accessError.message||""));
+  roles=Array.isArray(access?.roles)?access.roles:[];isAdmin=Boolean(access?.is_platform_admin)||roles.includes("chairman");
+  if(!isAdmin&&!coach()){
+   $("dashboard").classList.add("coach-hidden");
+   note("This page is for Coaches and club administrators. Your current role does not have Coach dashboard access. Use the role-appropriate links in the navigation above.","error");
+   return;
+  }
+  const {data,error}=await db.rpc("coach_get_dashboard");
+  if(error){if(error.code==="42883"||error.code==="PGRST202")throw new Error("Coach database migration/functions are missing. Install the Coach migration, then refresh.");throw error;}
+  roles=Array.isArray(data.roles)?data.roles:roles;isAdmin=Boolean(data.is_admin)||isAdmin;
   records=Array.isArray(data.records)?data.records:[];squad=Array.isArray(data.squad)?data.squad:[];fitness=Array.isArray(data.fitness)?data.fitness:[];discipline=Array.isArray(data.discipline)?data.discipline:[];
   const {data:bundle,error:bundleError}=await db.rpc("club_get_workspace_bundle");if(bundleError)throw bundleError;
   const base=Array.isArray(bundle.records)?bundle.records:[];
@@ -72,7 +79,7 @@ async function load(){
   activities=base.filter(r=>r.record_type==="activity"&&r.publication_status!=="archived");
   $("role-badge").textContent=isAdmin?"CHAIRMAN / PLATFORM ADMIN": "ROLE · "+roles.map(r=>r.replaceAll("_"," ").toUpperCase()).join(" / ");
   $("dashboard").classList.remove("coach-hidden");note("Connected. Coach records are isolated in the database; new and edited records remain drafts.","success");setSection(section);
- }catch(e){$("dashboard").classList.add("coach-hidden");note("Access denied or Coach database migration is not installed. "+(e?.message||""),"error")}
+ }catch(e){$("dashboard").classList.add("coach-hidden");note((e?.message||"Coach dashboard could not load. Check the Coach migration and your assigned role."),"error")}
 }
 $("coach-form").addEventListener("submit",async e=>{
  e.preventDefault();if(!schemas[section]||!canEdit()){note("This section is read-only.","error");return}
