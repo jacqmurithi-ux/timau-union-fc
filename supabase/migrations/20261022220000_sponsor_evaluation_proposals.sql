@@ -107,18 +107,22 @@ grant execute on function public.sponsor_eval_get_workspace() to authenticated;
 create or replace function public.sponsor_eval_save_settings(_weights jsonb,_restricted_categories text[])
 returns void language plpgsql security definer set search_path=''
 as $$
-declare r text[]; admin boolean; total numeric;
+declare r text[]; admin boolean; total numeric; old_j jsonb; new_j jsonb;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
  if not (admin or 'chairman'=any(r)) then raise exception 'Chairman or admin required'; end if;
+ select to_jsonb(s) into old_j from private.sponsor_evaluation_settings s where id=true for update;
  if jsonb_typeof(_weights)<>'object' or jsonb_object_length(_weights)<>7 or not (_weights ?& array['club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood']) then raise exception 'Exactly all seven weight keys are required'; end if;
  if exists(select 1 from jsonb_each_text(_weights) x where x.key not in ('club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood') or x.value !~ '^[0-9]+(\\.[0-9]+)?$' or x.value::numeric<0 or x.value::numeric>100) then raise exception 'Weights must be numbers from 0 to 100'; end if;
  total:=coalesce((select sum(value::numeric) from jsonb_each_text(_weights)),0);
  if abs(total-100)>0.01 then raise exception 'Weights must total 100 percent'; end if;
  insert into private.sponsor_evaluation_settings(id,weights,restricted_categories,updated_by,updated_at) values(true,_weights,coalesce(_restricted_categories,'{}'),auth.uid(),now())
  on conflict(id) do update set weights=excluded.weights,restricted_categories=excluded.restricted_categories,updated_by=excluded.updated_by,updated_at=now();
-end $$;
+ select to_jsonb(s) into new_j from private.sponsor_evaluation_settings s where id=true;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
+ values(auth.uid(),'sponsor_evaluation_settings',null,case when admin then 'admin_override' else 'evaluation_settings_updated' end,old_j,new_j,'Chairman/admin changed scoring weights or restricted categories');
+end $;
 revoke all on function public.sponsor_eval_save_settings(jsonb,text[]) from public,anon;
 grant execute on function public.sponsor_eval_save_settings(jsonb,text[]) to authenticated;
 
@@ -205,7 +209,8 @@ end $sponsor_template_update$;
 revoke all on function public.sponsor_template_update(uuid,text,text,jsonb,text) from public,anon;
 grant execute on function public.sponsor_template_update(uuid,text,text,jsonb,text) to authenticated;
 
-create or replace function public.sponsor_proposal_save(_id uuid,_prospect_id uuid,_package_id uuid,_template_id uuid,_title text,_content_html text,_amount_kes numeric,_duration text,_follow_up_date date)
+drop function if exists public.sponsor_proposal_save(uuid,uuid,uuid,uuid,text,text,numeric,text,date);
+create or replace function public.sponsor_proposal_save(_id uuid,_prospect_id uuid,_package_id uuid,_template_id uuid,_title text,_content_html text,_amount_kes numeric,_duration text,_follow_up_date date,_reason text default null)
 returns uuid language plpgsql security definer set search_path=''
 as $$
 declare r text[]; admin boolean; rid uuid; old_j jsonb; vno integer;
@@ -213,6 +218,7 @@ begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
  if not private.sponsor_eval_can_manage() then raise exception 'Sponsor Lead, Chairman or admin required'; end if;
+ if admin and _id is not null and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Admin override reason required'; end if;
  if _id is null then
   insert into private.sponsor_proposals(prospect_id,package_id,template_id,title,content_html,amount_kes,duration,follow_up_date,created_by,updated_by)
   values(_prospect_id,_package_id,_template_id,_title,_content_html,_amount_kes,coalesce(_duration,''),_follow_up_date,auth.uid(),auth.uid()) returning id into rid;
@@ -224,11 +230,11 @@ begin
  end if;
  select coalesce(max(version_no),0)+1 into vno from private.sponsor_proposal_versions where proposal_id=rid;
  insert into private.sponsor_proposal_versions(proposal_id,version_no,content_html,status,changed_by) values(rid,vno,_content_html,'draft',auth.uid());
- insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason) values(auth.uid(),'sponsor_proposals',rid,case when _id is null then 'proposal_created' else 'proposal_version_saved' end,old_j,jsonb_build_object('title',_title,'content_html',_content_html,'amount_kes',_amount_kes,'status','draft','version_no',vno),null);
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason) values(auth.uid(),'sponsor_proposals',rid,case when admin and _id is not null then 'admin_override' when _id is null then 'proposal_created' else 'proposal_version_saved' end,old_j,jsonb_build_object('title',_title,'content_html',_content_html,'amount_kes',_amount_kes,'status','draft','version_no',vno),_reason);
  return rid;
 end $$;
-revoke all on function public.sponsor_proposal_save(uuid,uuid,uuid,uuid,text,text,numeric,text,date) from public,anon;
-grant execute on function public.sponsor_proposal_save(uuid,uuid,uuid,uuid,text,text,numeric,text,date) to authenticated;
+revoke all on function public.sponsor_proposal_save(uuid,uuid,uuid,uuid,text,text,numeric,text,date,text) from public,anon;
+grant execute on function public.sponsor_proposal_save(uuid,uuid,uuid,uuid,text,text,numeric,text,date,text) to authenticated;
 
 create or replace function public.sponsor_proposal_set_status(_id uuid,_status text,_reason text default null)
 returns void language plpgsql security definer set search_path=''
