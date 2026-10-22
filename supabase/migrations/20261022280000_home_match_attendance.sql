@@ -173,9 +173,11 @@ begin
       select round(avg(a.attendance_count)::numeric,1)
       from public.match_attendance a
       join private.club_records c on c.id=a.fixture_id
-      where lower(coalesce(c.data->>'match_type','')) in ('home','home match')
-        or lower(coalesce(c.data->>'is_home','false')) in ('true','1','yes')
-        and false
+      where c.record_type='fixture'
+        and (lower(coalesce(c.data->>'match_type','')) in ('home','home match')
+          or lower(coalesce(c.data->>'is_home','false')) in ('true','1','yes'))
+        and lower(coalesce(c.data->>'match_status',c.data->>'status',''))='completed'
+        and date_trunc('month', nullif(c.data->>'match_date','')::date)=date_trunc('month', current_date)
     ),
     'season_average', (
       select round(avg(a.attendance_count)::numeric,1)
