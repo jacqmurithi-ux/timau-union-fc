@@ -1,7 +1,9 @@
 "use strict";
 
 function initializePage() {
-  // Shared public navigation is initialized by js/site-header.js on each public page.\n\n  const searchToggle = document.getElementById("site-search-toggle");
+  // Shared public navigation is initialized by js/site-header.js on each public page.
+
+  const searchToggle = document.getElementById("site-search-toggle");
   const searchPanel = document.getElementById("site-search-panel");
   const searchForm = document.getElementById("site-search-form");
   const searchInput = document.getElementById("site-search-input");
