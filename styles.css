@@ -210,6 +210,10 @@ body.navigation-open {
   gap: 4px;
 }
 
+.primary-nav-close {
+  display: none;
+}
+
 .primary-nav a {
   padding: 12px;
   border-radius: 7px;
