@@ -236,3 +236,37 @@ The connected Supabase account lists a separate project named `Union Test` (`dzp
 - [ ] Recheck CI on the current head and obtain SQL replay, role matrix, browser and release evidence specific to Sponsor Lead.
 
 **Release decision: NO-GO.** No production changes, migrations, merges, or deployments were made. The new migration is a candidate, not verified protection until tested against the complete schema and every write path.
+## Union Test persistent replay — 2026-10-22
+
+User explicitly authorized use of the existing Union Test account and said it may be reset. We chose not to wipe the project: its existing identity, club, Treasurer, Secretary, media, homepage and Sponsor Lead test schemas/data were preserved. No production project was targeted.
+
+### Applied candidate migrations
+
+The following missing Sponsor Lead candidates were applied successfully to Union Test using the connected Supabase migration operation:
+
+- `20261022234000_sponsor_proposal_state_transition_guard.sql`
+- `20261022235000_sponsor_accepted_proposal_immutable.sql`
+- `20261022236000_sponsor_acceptance_no_ambiguous_agreement_match.sql` (corrected to create/link the draft agreement while the proposal is still `sent`, then transition to `accepted`; this avoids the accepted-row trigger blocking the workflow)
+- `20261022237000_sponsor_agreement_storage_policies.sql`
+- `20261022238000_sponsor_proposal_immutability_and_version_integrity.sql`
+- `20261022239000_sponsor_storage_policy_overlap_cleanup.sql` (additional corrective migration added after inspecting the actual policy catalog)
+
+### Catalog checks after application
+
+- All six migrations reported success; the migration ledger now records them.
+- `sponsor-agreements` bucket exists and is private (`public=false`).
+- Four operation-specific Sponsor Agreement policies remain: SELECT, INSERT, UPDATE and DELETE, each scoped to the bucket and calling `private.can_access_sponsor_agreement_object`.
+- Found and removed four older permissive Sponsor Agreement policies (`sponsor agreements private read/upload/update/delete`) that OR-combined with the new policies and could have weakened the role-specific restrictions.
+- The helper is owned by `postgres`, is `SECURITY DEFINER`, uses an empty fixed `search_path`, and grants EXECUTE to `authenticated`. Authenticated users have no direct SELECT on `private.sponsor_agreements`, no direct UPDATE on `private.sponsor_proposals`, and no direct DELETE on `private.sponsor_proposal_versions`.
+- `authenticated` has USAGE on `private`; this was already effective at verification time. This remains a namespace privilege to review, but direct table privileges checked above remain denied.
+- The unique `(proposal_id, version_no)` index exists. The catalog also showed an existing equivalent unique index/constraint, so the added index may be redundant and should be cleaned up in a follow-up before final release rather than claimed as a required control.
+
+### Validation still incomplete
+
+- No role-authenticated Storage API matrix was run; catalog inspection is not equivalent to upload/download/delete tests under each real identity.
+- No live accepted-proposal lifecycle or concurrent save race was exercised with representative records. Function/trigger definitions and catalog presence were verified, not end-to-end behavior.
+- Signed URL issuance, expiration, and access after role changes remain untested.
+- Existing test project was not reset because its other workspace schemas and test data were present and could be valuable; the authorized reset was not necessary for applying the missing migrations. The replay was therefore against the existing populated test project, not a clean-from-zero database.
+- GitHub CI at head `f463829af8362810f30cff5ea00dc80c0e5ed02a` reported no commit statuses and only two successful unrelated runs: Treasurer workspace validation and Homepage hero validation. Sponsor Lead SQL/security workflow evidence is still missing.
+
+**Release decision remains NO-GO.** The migrations are persistently applied to Union Test only; production remains untouched, and PR #42 is open, draft and unmerged. Do not merge or deploy until authenticated role tests, lifecycle/concurrency tests, signed URL tests, redundant index cleanup, and Sponsor Lead-specific CI/browser evidence are complete.
