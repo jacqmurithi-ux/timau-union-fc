@@ -1,6 +1,7 @@
 -- Candidate only: separate club-record editing eligibility from approval/publication.
 -- Review and test in a non-production project before applying. Never run directly in production.
-begin;
+-- For rollback-only validation, execute this file and its paired test in one outer transaction,
+-- then issue ROLLBACK from the test harness; this file intentionally has no COMMIT.
 
 create or replace function private.role_can_approve_record(_roles text[], _type text)
 returns boolean
@@ -182,5 +183,4 @@ end
 $function$;
 
 -- Keep existing RPC grants unchanged; only authorization checks and UI affordance
--- metadata are separated. Transaction wrapper permits safe rollback during testing.
-commit;
+-- metadata are separated.
