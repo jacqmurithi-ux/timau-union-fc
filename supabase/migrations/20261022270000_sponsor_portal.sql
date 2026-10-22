@@ -188,7 +188,7 @@ begin
  if not ('sponsor'=any(private.current_club_roles())) then raise exception 'Sponsor role required' using errcode='42501'; end if;
  v_record:=private.current_sponsor_record_id();
  if v_record is null then
-   return jsonb_build_object('linked',false,'message','Your account is not yet linked to a sponsor record. Please contact the club’s Sponsor Lead.');
+   return jsonb_build_object('linked',false,'message','Your account is not yet linked to a sponsor record. Please contact the club''s Sponsor Lead.');
  end if;
  select jsonb_build_object('id',c.id,'name',c.data->>'name','tier',c.data->>'tier','benefits',c.data->>'benefits',
    'support_type',c.data->>'support_type','description',c.data->>'details','website',c.data->>'website',
