@@ -45,7 +45,7 @@ const sections=[
  {label:"Activities",type:"activity",roles:["team_manager","secretary"]}
 ];
 const pages=[
- {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","vice_chairman","player_welfare","player","sponsor","assistant_coach"],admin:true},
+ {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","vice_chairman","player_welfare","player","assistant_coach"],admin:true},
  {label:"Coach workspace",href:"coach.html",roles:["coach"]},
  {label:"Secretary workspace",href:"secretary.html",roles:["secretary"]},
  {label:"Treasurer workspace",href:"treasurer.html",roles:["treasurer","secretary"]},
@@ -57,11 +57,22 @@ const pages=[
  {label:"Home attendance",href:"home-attendance.html",roles:["team_manager","secretary","chairman","vice_chairman","treasurer","coach","media_team","sponsor_lead","player_welfare"]}
 ];
 function currentPage(){return location.pathname.split("/").pop()||"workspace.html";}
-function buildTabs(roles,isAdmin){
+function buildTabs(roles,isAdmin,isPlatformAdmin){
  const main=$("main");if(!main)return;
  const current=currentPage(),isWorkspace=current==="workspace.html";
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Private workspace navigation");
- const allowed=(entry)=>entry.href==="sponsor.html"?roles.has("sponsor"):entry.href==="sponsor-links.html"?roles.has("sponsor_lead"):isAdmin||entry.roles.some(r=>roles.has(r));
+ const allowed=(entry)=>{
+  if(entry.href==="sponsor.html")return roles.has("sponsor");
+  if(entry.href==="sponsor-links.html")return roles.has("sponsor_lead");
+  if(entry.href==="workspace.html"){
+   if(roles.has("sponsor")&&!isPlatformAdmin)return false;
+   if(roles.has("coach")&&!isPlatformAdmin&&!roles.has("team_manager")&&!roles.has("chairman")&&!roles.has("secretary")&&!roles.has("treasurer")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare"))return false;
+   if(roles.has("media_team")&&roles.size===1&&!isPlatformAdmin)return false;
+   if(roles.has("sponsor_lead")&&roles.size===1&&!isPlatformAdmin)return false;
+   if(roles.has("treasurer")&&!isPlatformAdmin&&!roles.has("chairman")&&!roles.has("secretary")&&!roles.has("team_manager")&&!roles.has("coach")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare")&&!roles.has("player"))return false;
+  }
+  return isAdmin||entry.roles.some(r=>roles.has(r));
+ };
  if(isWorkspace){
   const currentType=new URLSearchParams(location.search).get("type")||"player";
   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(tab(s.label,s.type,currentType===s.type));
@@ -102,7 +113,7 @@ async function setup(){
  if(!session)return;
  const {data,error}=await db.rpc("club_get_workspace_bundle");
  if(error||!data)return;
- const roles=roleSet(data.roles),isAdmin=Boolean(data.is_platform_admin)||roles.has("chairman");
- buildTabs(roles,isAdmin);
+ const roles=roleSet(data.roles),isPlatformAdmin=Boolean(data.is_platform_admin),isAdmin=isPlatformAdmin||roles.has("chairman");
+ buildTabs(roles,isAdmin,isPlatformAdmin);
 }
 setup().catch(()=>{});
