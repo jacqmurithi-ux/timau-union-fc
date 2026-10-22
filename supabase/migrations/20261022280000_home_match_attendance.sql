@@ -72,7 +72,7 @@ begin
 
   new.updated_at := now();
   if tg_op = 'INSERT' then
-    new.recorded_at := coalesce(new.recorded_at, now());
+    new.recorded_at := now();
   end if;
   return new;
 end;
@@ -81,7 +81,7 @@ revoke all on function private.validate_home_attendance_fixture() from public, a
 
 drop trigger if exists validate_home_attendance_fixture on public.match_attendance;
 create trigger validate_home_attendance_fixture
-before insert or update of fixture_id, attendance_count, notes on public.match_attendance
+before insert or update on public.match_attendance
 for each row execute function private.validate_home_attendance_fixture();
 
 
