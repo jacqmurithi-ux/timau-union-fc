@@ -23,3 +23,27 @@ The candidate migration was syntax/DDL-checked on Union Test inside a transactio
 - [ ] Authenticated role-by-role RPC and Storage tests are still required; migration execution is not authorization proof.
 - [ ] Browser verification of scoring, Chairman risk approval, proposal merge fields, verified-fact warnings, version history, print/PDF, accepted-agreement linking and reminders remains required.
 - [ ] Review stored proposal HTML for safe rendering before treating the UI as production-ready.
+
+
+## Prospect evaluation and proposals (added 2026-10-22)
+
+- [ ] Set evaluation weights in Chairman settings to values totalling 100%; verify invalid totals and missing keys are rejected.
+- [ ] Score each criterion from 1–5 and compare the weighted percentage with a hand calculation; confirm strong (75–100), medium (50–74.99), weak (below 50) bands.
+- [ ] Configure a restricted sponsor category; classify a prospect in that category and confirm the evaluation is risk-flagged.
+- [ ] As Sponsor Lead, submit a risk-flagged prospect for pursuit; confirm it remains on hold pending Chairman approval and is not marked pursue.
+- [ ] As Chairman, approve and decline pending risk decisions; verify evaluator history and audit rows preserve the decision and reason.
+- [ ] Confirm pipeline can sort by weighted score and next follow-up; proposal follow-up dates appear in reminders.
+- [ ] Create and edit each proposal template; starter templates contain placeholders only and no invented club facts/statistics.
+- [ ] Generate a proposal from a selected prospect/package/template; confirm merge fields fill, live preview is editable, and unverified facts visibly say UNVERIFIED.
+- [ ] Print proposal and use browser Print → Save as PDF; confirm Timau Union FC red branding is present.
+- [ ] Confirm Sponsor Lead can save drafts but cannot approve/mark sent/accept/decline proposals; Chairman/admin approval is required before sent, and sponsor response requires sent status.
+- [ ] Confirm accepted proposal is linked to an agreement; review the generated agreement draft before using it operationally.
+- [ ] Confirm Treasurer receives proposal amount/status only, not private proposal text, evaluation scores, risk notes, or templates.
+- [ ] Confirm non-authorized roles cannot call evaluation/template/proposal RPCs or read the private tables; public sponsor pages remain unchanged.
+- [ ] As admin, edit a template or override proposal status with a reason; verify the audit row includes actor, record, before/after values, and reason.
+
+## Current validation evidence
+
+- [x] Both Sponsor Lead SQL migrations execute together on Union Test inside a transaction and roll back cleanly (no migration changes persisted).
+- [x] Sponsor Lead JavaScript syntax check passed after the evaluation/proposal additions.
+- [ ] Browser workflows and authenticated multi-role tests are still pending; migration rollback alone is not proof of RLS correctness.
