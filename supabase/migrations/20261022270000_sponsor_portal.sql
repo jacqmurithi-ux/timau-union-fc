@@ -378,7 +378,7 @@ begin
    v_new:=jsonb_build_object('share_with_sponsor_ids',v_ids);
  else raise exception 'Unsupported media record type'; end if;
  insert into private.media_record_audit(actor_user_id,record_id,record_type,action_key,reason,is_admin_override,old_data,new_data)
- values(auth.uid(),_record_id,_table,'sponsor_share_changed',nullif(btrim(_reason),''),admin,v_old,v_new);
+ values(auth.uid(),_record_id,case when _table='social_posts' then 'social_post' else 'fan_gallery' end,'sponsor_share_changed',nullif(btrim(_reason),''),admin,v_old,v_new);
  return jsonb_build_object('ok',true,'share_with_sponsor_ids',to_jsonb(v_ids));
 end $$;
 revoke all on function public.media_set_sponsor_shares(text,uuid,uuid[],text) from public, anon;
