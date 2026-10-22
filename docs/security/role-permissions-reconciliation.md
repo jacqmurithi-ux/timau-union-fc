@@ -63,10 +63,10 @@ This matrix is a reconciliation of the existing roles and the previously provide
 
 ## Findings from live RPC review
 
-The deployed database was inspected read-only. The relevant current authorization paths are:
+The pre-fix production database was inspected read-only. The relevant authorization paths were:
 
-- `club_set_publication_status`: currently calls `role_can_manage_record`, so the Coach's shared-record management eligibility also permits publication-status changes for player, fixture, and activity records.
-- `club_get_workspace_bundle`: uses the management predicate for both record inclusion and each record's `can_approve` flag, so the UI metadata repeats the same conflation.
+- `club_set_publication_status`: called `role_can_manage_record`, so Coach's shared-record management eligibility also permitted publication-status changes for player, fixture, and activity records. This has now been corrected in production.
+- `club_get_workspace_bundle`: used the management predicate for both record inclusion and each record's `can_approve` flag. Record visibility now retains the original predicate, while approval metadata uses the separate approval predicate.
 - `coach_set_publication_status`: already restricts Coach-record status changes to Chairman or active Platform Admin and requires a reason. Preserve it.
 - `tm_set_publication_status`: separately permits Team Manager, Chairman, and Platform Admin; preserve this independent workflow.
 - `secretary_set_status`: Secretary may review their own record status, but approval itself is explicitly limited to Chairman or Platform Admin. Preserve it.
@@ -76,16 +76,19 @@ The deployed database was inspected read-only. The relevant current authorizatio
 
 This is a scoped first correction, not a claim that every publishing surface has been exhaustively penetration-tested. The candidate migration leaves the above separate workflows untouched and does not change direct-table RLS policies or function grants for existing public RPCs.
 
-## Candidate correction in this branch
+## Applied correction
 
 - `supabase/migrations/20261023100000_separate_club_record_approval_authority.sql` introduces a private approval predicate distinct from `role_can_manage_record`, changes `club_set_publication_status` to use the approval predicate, and updates `club_get_workspace_bundle` so record visibility remains based on the existing management rules while `can_approve` is based on the approval predicate.
-- The candidate preserves the current Chairman, Secretary/news, Media/news, Sponsor Lead/sponsor, and Team Manager shared-record approval paths represented by the deployed helper. It excludes Coach from approval for shared player, fixture, and activity records, as required by the existing guidance.
+- The applied correction preserves the existing Chairman, Secretary, Media Team/news, Sponsor Lead/sponsor, and Team Manager shared-record approval paths represented by the deployed helper. It excludes Coach from approval for shared player, fixture, and activity records.
 - `supabase/tests/20261023100000_separate_club_record_approval_authority.sql` contains rollback-only predicate regression checks for Coach denial, retained Coach internal management eligibility, and preservation of existing Team Manager/Secretary/Media/Sponsor Lead/Chairman approval paths.
 - The candidate migration and paired regression suite were executed together against the non-production Union Test project in a transaction that was rolled back. SQL creation, predicate checks, simulated direct RPC denial for Coach, retained internal record visibility, top-level/per-record approval metadata, allowed paths for Secretary/Team Manager/Media Team/Sponsor Lead/Chairman, and publication audit reasons all passed. The test harness temporarily substitutes `private.current_club_roles()` to simulate roles because the test project has no production-style `private.role_assignments` table; the rollback restores the original function and removes fixtures. No test data or candidate schema changes were retained.
 
-## Deployment guardrails
+## Production application and verification
 
-- This PR remains a review artifact; production was only inspected read-only.
-- Do not redesign or reapprove the role matrix. Correct implementation to match existing guidance.
-- Before merge, run the candidate migration and regression checks in a non-production project inside a controlled transaction/rollback, then verify Coach dashboard navigation, direct RPC denials, unaffected roles' allowed workflows, audit trails, RLS and function grants.
-- Do not merge or deploy until the SQL diff, regression results, and navigation check have been reviewed.
+- Migration `separate_club_record_approval_authority` was applied to the production Timau Union FC Supabase project on 2026-10-23 and appears in the production migration history.
+- The candidate migration and expanded regression suite passed on Union Test in a rollback-controlled transaction; test fixtures and temporary helper overrides were rolled back.
+- After production application, a rollback-only production RPC test temporarily simulated a Coach role by swapping the Sponsor Lead assignment for a Coach assignment on the same account. Direct approval of a shared player record was denied; internal record visibility remained available; top-level and per-record `can_approve` flags were false. Secretary's existing allowed status path and Sponsor Lead's sponsor-record path succeeded, with audit reasons verified; the transaction was rolled back.
+- A second rollback-only production check confirmed `coach_get_dashboard()` returns its expected fields and `coach_set_publication_status()` still denies Coach publication changes. The test role assignment was rolled back. Production currently has no active Coach assignment, so a real Coach account/browser session could not be exercised.
+- Post-application inspection confirmed private record/audit tables retain RLS enabled and the deny-all direct-access policies for `anon` and `authenticated`; existing public RPC execute grants were unchanged. Production migration history records the applied migration.
+- Security advisors still report the same existing broad categories of security-definer RPC warnings and private RLS-without-policy informational notices. Those findings predate this change; this migration did not alter those other functions or policies.
+- No role responsibilities or frontend navigation files were changed. The Coach dashboard and publication functions retain their separate existing rules.
