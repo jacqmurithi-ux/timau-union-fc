@@ -23,7 +23,7 @@ const addStyle=()=>{
  .private-workspace-tabs a[aria-current=page],.private-workspace-tabs button[aria-pressed=true]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
  .private-workspace-tabs a:focus-visible,.private-workspace-tabs button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
  .private-workspace-tabs [data-nav-type].ws-hidden{display:none!important}
- .ws-tabs [data-type="player"],.ws-tabs [data-type="fixture"],.ws-tabs [data-type="news"],.ws-tabs [data-type="sponsor"],.ws-tabs [data-type="activity"]{display:none!important}
+ .private-workspace-tabs .ws-tabs,.private-workspace-tabs .coach-tabs,.private-workspace-tabs .tw-tabs,.private-workspace-tabs .sec-tabs,.private-workspace-tabs .media-tabs,.private-workspace-tabs .sl-tabs,.private-workspace-tabs .sp-tabs{display:contents!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important}
  @media(max-width:380px){.site-header .header-inner{gap:.35rem}.site-header .brand{gap:.4rem}.site-header .brand-mark{width:34px;height:34px;flex-basis:34px}.site-header .brand-copy strong{font-size:.76rem}.site-header #signout,.site-header #sign-out{padding:.45rem .55rem;font-size:.82rem}.private-workspace-tabs{gap:.4rem}.private-workspace-tabs a,.private-workspace-tabs button{min-height:40px;padding:.5rem .65rem;font-size:.85rem}}
  `;
  document.head.append(style);
@@ -62,6 +62,15 @@ function currentPage(){return location.pathname.split("/").pop()||"workspace.htm
 function buildTabs(roles,isAdmin,isPlatformAdmin){
  const main=$("main");if(!main)return;
  const current=currentPage(),isWorkspace=current==="workspace.html";
+ const localSpec={
+  "workspace.html":{selector:".ws-tabs",gate:"#workspace"},
+  "coach.html":{selector:".coach-tabs",gate:"#dashboard"},
+  "treasurer.html":{selector:".tw-tabs",gate:"#dashboard"},
+  "secretary.html":{selector:".sec-tabs",gate:"#dashboard"},
+  "media.html":{selector:".media-tabs",gate:"#workspace"},
+  "sponsor-lead.html":{selector:".sl-tabs"},
+  "sponsor.html":{selector:".sp-tabs",gate:"#portal"}
+ }[current];
  const canUseWorkspace=()=>{
   if(isPlatformAdmin||roles.has("chairman"))return true;
   if(roles.has("sponsor"))return false;
@@ -72,50 +81,43 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
   return roles.has("team_manager")||roles.has("secretary")||roles.has("player_welfare")||roles.has("coach")||roles.has("media_team")||roles.has("sponsor_lead")||roles.has("treasurer");
  };
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Private workspace navigation");
+ const localNav=localSpec?$(localSpec.selector):null;
+ const localLabels=new Set(localNav?[...localNav.querySelectorAll("button")].map(b=>(b.textContent||"").trim().toLowerCase()):[]);
  const allowed=(entry)=>{
   if(entry.publicLink||entry.memberAccess)return true;
   if(entry.href==="sponsor.html")return roles.has("sponsor");
   if(entry.href==="sponsor-links.html")return roles.has("sponsor_lead")||isAdmin;
-  if(entry.href==="workspace.html"){
-   if(!canUseWorkspace())return false;
-   if(roles.has("sponsor")&&!isPlatformAdmin)return false;
-   if(roles.has("coach")&&!isPlatformAdmin&&!roles.has("team_manager")&&!roles.has("chairman")&&!roles.has("secretary")&&!roles.has("treasurer")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare"))return false;
-   if(roles.has("media_team")&&roles.size===1&&!isPlatformAdmin)return false;
-   if(roles.has("sponsor_lead")&&roles.size===1&&!isPlatformAdmin)return false;
-   if(roles.has("treasurer")&&!isPlatformAdmin&&!roles.has("chairman")&&!roles.has("secretary")&&!roles.has("team_manager")&&!roles.has("coach")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare")&&!roles.has("player"))return false;
-  }
+  if(entry.href==="workspace.html")return canUseWorkspace()&&(isAdmin||entry.roles.some(r=>roles.has(r)));
   return isAdmin||entry.roles.some(r=>roles.has(r));
  };
- if(canUseWorkspace()){
-  if(isWorkspace){
-   const currentType=new URLSearchParams(location.search).get("type")||"player";
-   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(tab(s.label,s.type,currentType===s.type));
-  }else{
-   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(link(s.label,"./workspace.html?type="+encodeURIComponent(s.type)));
+ if(canUseWorkspace()&&!isWorkspace){
+  for(const s of sections){
+   if(!(isAdmin||s.roles.some(r=>roles.has(r))))continue;
+   if(localLabels.has(s.label.toLowerCase()))continue;
+   nav.append(link(s.label,"./workspace.html?type="+encodeURIComponent(s.type)));
   }
  }
  for(const p of pages){
   if(!allowed(p))continue;
-  if(isWorkspace&&p.href==="workspace.html"){
-   nav.append(link(p.label,"./workspace.html",true));
-   continue;
-  }
-  if(isWorkspace&&p.href==="workspace.html")continue;
   const target=p.href.split("?")[0];
-  const href="./"+p.href;
-  nav.append(link(p.label,href,current===target));
- }
- // Section tabs on the Club workspace page are handled in place by workspace.js.
- if(isWorkspace&&canUseWorkspace()){
-  nav.querySelectorAll("button[data-nav-type]").forEach(b=>b.addEventListener("click",()=>{
-   const local=document.querySelector('.ws-tabs [data-type="'+b.dataset.navType+'"]');
-   if(local&&!local.classList.contains("ws-hidden")){
-    local.click();
-    nav.querySelectorAll("button[data-nav-type]").forEach(other=>other.setAttribute("aria-pressed",String(other===b)));
-   }
-  }));
+  nav.append(link(p.label,"./"+p.href,current===target));
  }
  main.insertBefore(nav,main.firstChild);
+ if(localSpec){
+  const moveLocalNav=()=>{
+   const local=$(localSpec.selector),gate=localSpec.gate?$(localSpec.gate):null;
+   if(!local||local.dataset.sharedNavigationMoved)return false;
+   if(gate&&(gate.hidden||["ws-hidden","coach-hidden","tw-hidden","sec-hidden","media-hidden","sp-hidden"].some(c=>gate.classList.contains(c))))return false;
+   local.dataset.sharedNavigationMoved="true";
+   local.classList.add("private-nav-rehomed");
+   nav.insertBefore(local,nav.firstChild);
+   return true;
+  };
+  if(!moveLocalNav()){
+   const observer=new MutationObserver(()=>{if(moveLocalNav())observer.disconnect()});
+   observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class","hidden"]});
+  }
+ }
 }
 async function setup(){
  addStyle();
