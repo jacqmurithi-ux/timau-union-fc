@@ -65,6 +65,13 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Browser test of proposal merge fields, verified-fact warnings, print/PDF and follow-up reminders.
 - 
 
+## Migration sequence reconciliation (2026-10-22)
+
+- [x] Removed duplicate timestamp filenames from the branch migration chain. The four corrective migrations now have unique, ordered source timestamps: `20261022230000_sponsor_lead_security_hardening.sql`, `20261022231000_sponsor_evaluation_insert_alignment.sql`, `20261022232000_sponsor_eval_receipt_security_fix.sql`, and `20261022233000_sponsor_contribution_payload_guard.sql`.
+- [x] Confirmed Union Test migration history shows the four corrective migrations were previously applied in order as `sponsor_lead_security_hardening_20261022230000`, `sponsor_evaluation_insert_alignment_20261022231000`, `sponsor_eval_receipt_security_fix_20261022230000`, and `sponsor_contribution_payload_guard_20261022231000` (Supabase generated unique applied versions). Renaming the repository files does not rewrite that existing history.
+- [x] Confirmed sponsor-specific private tables exist in Union Test after the persistent hardening migrations.
+- [ ] Fresh-database replay of the complete renamed source migration chain has not yet been performed; do not treat the source rename as proof of a clean bootstrap.
+
 ## Corrective migration verification (2026-10-22)
 
 - [x] Applied `20261022230000_sponsor_eval_receipt_security_fix.sql` to Union Test; Supabase reported success.
@@ -78,3 +85,15 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Public approved-only sponsor listing and browser proposal/PDF tests.
 
 **Evidence note:** the two corrective migrations are installed in Union Test and their installed function definitions were inspected. This is static/database-definition verification only; it is not evidence that authenticated role-specific tests pass. Production remains untouched; branch remains unmerged and undeployed.
+
+
+## Release-gate execution results (2026-10-22, refreshed)
+
+- [x] Inspected Union Test migration history and confirmed all four corrective migrations were applied successfully by the Supabase migration tool.
+- [x] Queried Union Test catalog and confirmed the sponsor private tables exist, including prospects, prospect evaluations, agreements, contributions, proposal templates/versions and audit records.
+- [x] Inspected installed function definitions: the evaluation RPC references the risk approval fields; the contribution save RPC rejects receipt-field payload keys for non-Treasurer/non-admin roles; the relevant functions remain SECURITY DEFINER with empty search paths.
+- [ ] **Authenticated role-by-role RPC, REST/RLS and Storage tests — NOT RUN.** The available SQL connector does not create authenticated PostgREST sessions, so SQL catalog checks cannot establish the caller identity/role enforcement behavior.
+- [ ] **Fixture coverage gap:** current Union Test membership query shows active Treasurer, Secretary, Chairman+Secretary and Media Team fixtures, but no confirmed active Sponsor Lead fixture; no disposable unauthorized-role fixture was confirmed in the query. A real Sponsor Lead account and a non-authorized account are required to complete the matrix.
+- [ ] Browser interactions, proposal printing/PDF, and end-to-end proposal-to-agreement linking remain unverified.
+- [ ] Fresh database migration replay remains unverified after filename reconciliation.
+- [ ] Production migration, merge, and deployment have not been performed. These remain blocked on the unchecked release gates above; no private sponsor or financial data should be exposed to production until they pass.
