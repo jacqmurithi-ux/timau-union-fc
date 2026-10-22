@@ -1,5 +1,6 @@
 -- Avoid linking an accepted proposal to an unrelated agreement by sponsor name/package.
--- Acceptance creates a new draft agreement for explicit review; no production application authorized.
+-- Create and link the draft agreement while the proposal is still sent, then transition it to accepted.
+-- This ordering is required by the database trigger that makes accepted proposals immutable.
 begin;
 
 create or replace function public.sponsor_proposal_set_status(_id uuid,_status text,_reason text default null)
@@ -60,16 +61,6 @@ begin
   raise exception 'Proposal must be marked sent before recording sponsor response';
  end if;
 
- update private.sponsor_proposals
- set status=_status,
-     approved_by=case when _status='approved' then auth.uid() else approved_by end,
-     approved_at=case when _status='approved' then now() else approved_at end,
-     sent_at=case when _status='sent' then now() else sent_at end,
-     sent_by=case when _status='sent' then auth.uid() else sent_by end,
-     updated_by=auth.uid(),
-     updated_at=now()
- where id=_id;
-
  if _status='accepted' then
   -- Never infer agreement identity from sponsor name/package: duplicates and
   -- closed/expired agreements can share those values. Always create a new
@@ -92,6 +83,17 @@ begin
   where id=_id;
 
  end if;
+
+ update private.sponsor_proposals
+ set status=_status,
+     approved_by=case when _status='approved' then auth.uid() else approved_by end,
+     approved_at=case when _status='approved' then now() else approved_at end,
+     sent_at=case when _status='sent' then now() else sent_at end,
+     sent_by=case when _status='sent' then auth.uid() else sent_by end,
+     updated_by=auth.uid(),
+     updated_at=now()
+ where id=_id;
+
 
  select to_jsonb(p) into new_j
  from private.sponsor_proposals p
