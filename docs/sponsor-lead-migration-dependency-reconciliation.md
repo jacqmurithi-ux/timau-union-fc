@@ -193,3 +193,10 @@ Two forward migrations have been added after the original eight files, as separa
 - The complete ten-migration ordered chain still needs a clean replay in an explicitly authorized disposable environment.
 - No production migration, data change, merge, or deployment occurred.
 - Release remains **NO-GO** until SQL parsing/replay, role-matrix tests, bucket policy interaction tests, signed-URL tests, agreement lifecycle/concurrency tests, and the previously listed proposal immutability/version-concurrency checks pass.
+
+
+### Follow-up static review note — Storage policy execution context
+
+A subsequent static review replaced direct policy subqueries against `private.sponsor_agreements` with `private.can_access_sponsor_agreement_object(text,text)`, a fixed-search-path `SECURITY DEFINER` helper that returns only a boolean decision. It validates the first path segment as a UUID, checks the agreement exists, and applies operation-specific roles. This avoids relying on authenticated users having direct table access inside policy expressions.
+
+This remains **unexecuted candidate SQL**. The helper's effective privileges, function ownership, role helpers, all permissive policies on `storage.objects`, and signed-URL behavior must be validated against the target schema before release. The migration's `grant usage on schema private to authenticated` should be reviewed against the repository's baseline privilege model; it is not a substitute for table-level least privilege.
