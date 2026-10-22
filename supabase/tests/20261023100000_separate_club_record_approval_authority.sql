@@ -12,6 +12,7 @@ declare
   media text[] := array['media_team'];
   sponsor_lead text[] := array['sponsor_lead'];
   chairman text[] := array['chairman'];
+  tm_secretary text[] := array['team_manager','secretary'];
 begin
   if private.role_can_approve_record(coach,'player') then
     raise exception 'FAIL: Coach must not approve shared player records';
@@ -31,10 +32,19 @@ begin
     raise exception 'FAIL: existing Team Manager approval path was not preserved';
   end if;
   if not private.role_can_approve_record(secretary,'news')
+     or not private.role_can_approve_record(secretary,'player')
      or not private.role_can_approve_record(media,'news')
      or not private.role_can_approve_record(sponsor_lead,'sponsor')
      or not private.role_can_approve_record(chairman,'player') then
     raise exception 'FAIL: existing record-type approval paths were not preserved';
+  end if;
+  if private.role_can_approve_record(media,'player')
+     or private.role_can_approve_record(sponsor_lead,'news') then
+    raise exception 'FAIL: media/sponsor approval crossed its existing record-type boundary';
+  end if;
+  if not private.role_can_approve_record(tm_secretary,'fixture')
+     or private.role_can_approve_record(tm_secretary,'news') then
+    raise exception 'FAIL: combined Team Manager/Secretary role precedence differs from the existing helper';
   end if;
 end
 $test$;
