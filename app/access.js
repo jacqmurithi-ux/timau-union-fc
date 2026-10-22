@@ -373,7 +373,7 @@ async function loadAdminQueue() {
       if (item.status === "approved" && item.email_verified) actions.append(roleControls);
       const cell = el("div"); cell.append(actions);
       const displayName = item.display_name && item.display_name !== "Member" ? item.display_name : "Name not provided";
-      return [displayName, item.email || "", item.email_verified ? "Verified" : "Not verified", item.requested_at ? new Date(item.requested_at).toLocaleString() : "—", item.role || "No role", cell];
+      return [displayName, item.email || "", item.email_verified ? "Verified" : "Not verified", item.requested_at ? new Date(item.requested_at).toLocaleString() : "—", item.role === "platform_admin" ? "Platform Admin" : (item.role || "No role"), cell];
     });
     container.replaceChildren(table(["Name", "Email", "Email verification", "Requested", "Active role", "Admin actions"], rendered));
   } catch (error) {
