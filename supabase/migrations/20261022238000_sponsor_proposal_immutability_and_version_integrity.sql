@@ -23,7 +23,17 @@ begin
   end if;
 
   if tg_op = 'UPDATE' and old.status = 'accepted' then
-    raise exception 'Accepted proposals are immutable';
+    -- Acceptance may attach its newly-created draft agreement in a follow-up
+    -- UPDATE. Permit that one-time link only; every other column must remain
+    -- byte-for-byte equivalent and an existing link cannot be replaced.
+    if old.agreement_id is null
+       and new.agreement_id is not null
+       and (to_jsonb(new) - 'agreement_id') = (to_jsonb(old) - 'agreement_id') then
+      return new;
+    end if;
+    if to_jsonb(new) is distinct from to_jsonb(old) then
+      raise exception 'Accepted proposals are immutable except for initial agreement linking';
+    end if;
   end if;
 
   return new;
