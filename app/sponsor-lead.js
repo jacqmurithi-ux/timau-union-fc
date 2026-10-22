@@ -185,7 +185,8 @@ $("panel").addEventListener("input",e=>{
   if(key){state.sections[key]=e.target.value;state.touched.add(key);renderProposalContent(f);}
   return;
  }
- if(["title","amount_kes","duration","club_contact","follow_up_date"].includes(e.target.name))renderProposalContent(f);
+ if(e.target.name==="title"){if(e.target.value!==e.target.dataset.autoTitle)state.touched.add("__title");else state.touched.delete("__title");renderProposalContent(f);return;}
+ if(["amount_kes","duration","club_contact","follow_up_date"].includes(e.target.name))renderProposalContent(f);
 });
 $("panel").addEventListener("submit",async e=>{
  const ef=e.target.closest("form[data-evaluation]");if(ef){e.preventDefault();const fd=new FormData(ef),scores={},risks={};for(const k of ["club_fit","financial_capacity","local_relevance","giving_history","decision_access","estimated_value","closing_likelihood"])scores[k]=Number(fd.get(k));for(const [k,v] of fd.entries())if(k.endsWith("_risk")||k.endsWith("_notes"))risks[k]=v;const {data:ev,error}=await db.rpc("sponsor_eval_save",{_prospect_id:ef.dataset.evaluation,_scores:scores,_risks:risks,_decision:fd.get("decision"),_reason:fd.get("decision_reason"),_chairman_approval:false});if(error){note(error.message,"error");return;}note("Evaluation saved to history.","success");await load();return;}
