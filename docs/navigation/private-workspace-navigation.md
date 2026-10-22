@@ -4,7 +4,7 @@
 
 The private management pages use app/private-nav.js as the single shared navigation component. It removes the header's page links, keeps the crest/name and Sign out button, then builds the in-content tab row from the signed-in session's existing role bundle. Public pages are not changed.
 
-The shared row reuses existing role checks and links. Public website and Member access links are retained as tabs so removing the old header links does not discard destinations. It does not grant database access or replace RPC/RLS authorization. The Club workspace's Players, Fixtures & results, News, Sponsors and Activities tabs remain in-place section switches on workspace.html; from other pages those tabs navigate back to the matching workspace section. Existing page-specific tabs remain in place for sections such as Treasurer reports, Media Team social statistics, Secretary Documents and Sponsor Lead portal requests.
+The shared row reuses existing role checks and links. Public website and Member access links are retained as tabs so removing the old header links does not discard destinations. It does not grant database access or replace RPC/RLS authorization. The Club workspace's Players, Fixtures & results, News, Sponsors and Activities tabs remain in-place section switches on workspace.html; from other pages those tabs navigate back to the matching workspace section. The shared component moves the existing page-specific tab controls into the same visual row after that workspace is authorized and visible. It reuses the existing buttons and their event handlers rather than copying them, so Treasurer reports, Media Team social statistics, Secretary Documents, Coach sections and Sponsor Lead/Sponsor portal sections continue switching in place.
 
 ## Shared page-tab visibility
 
@@ -49,6 +49,6 @@ Role-specific coverage:
 
 ## Files
 
-- app/private-nav.js — shared role-aware navigation, compact header styles, active-state and workspace section switching.
+- app/private-nav.js — shared role-aware navigation, compact header styles, active-state, and moving existing page section controls into the shared row without copying their handlers.
 - app/workspace.html, app/coach.html, app/treasurer.html, app/secretary.html, app/sponsor-lead.html, app/kit.html, app/home-attendance.html, app/media.html, app/sponsor-links.html — remove header links and subtitle.
 - app/sponsor.html — remove header links and subtitle, and load the shared component.
