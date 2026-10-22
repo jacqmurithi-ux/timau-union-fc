@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "index.html"
+      - "players.html"
+      - "season.html"
+      - "styles.css"
+      - "js/site-header.js"
       - "script.js"
       - "css/homepage-hero.css"
       - "js/homepage-hero.js"
@@ -27,8 +31,25 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --input-type=module --check < script.js
+          node --check js/site-header.js
           node --input-type=module --check < js/homepage-hero.js
           node --input-type=module --check < app/homepage-hero-manager.js
+      - name: Check shared public navigation contract
+        shell: bash
+        run: |
+          for page in index.html players.html season.html; do
+            grep -Fq 'js/site-header.js?v=20261022-menu-fix' "$page"
+            grep -Fq 'id="menu-toggle"' "$page"
+            grep -Fq 'aria-controls="primary-nav"' "$page"
+            grep -Fq 'aria-expanded="false"' "$page"
+            grep -Fq 'id="primary-nav"' "$page"
+          done
+          grep -Fq 'pointerdown' js/site-header.js
+          grep -Fq 'event.key === "Escape"' js/site-header.js
+          grep -Fq 'touchmove' js/site-header.js
+          grep -Fq 'site-search-toggle' script.js
+          grep -Fq 'z-index: 1000' styles.css
+          grep -Fq 'min-height: 44px' styles.css
       - name: Check SQL security contract
         shell: bash
         run: |

@@ -1,50 +1,7 @@
 "use strict";
 
 function initializePage() {
-  const menuToggle = document.getElementById("menu-toggle");
-  const primaryNav = document.getElementById("primary-nav");
-
-  if (menuToggle && primaryNav) {
-    const menuLabel = menuToggle.querySelector(".menu-label");
-    const menuIcon = menuToggle.querySelector(".menu-icon");
-
-    const setMenuState = (isOpen, returnFocus = false) => {
-      primaryNav.classList.toggle("is-open", isOpen);
-      menuToggle.setAttribute("aria-expanded", String(isOpen));
-      menuToggle.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
-      if (menuLabel) menuLabel.textContent = isOpen ? "Close" : "Menu";
-      if (menuIcon) {
-        menuIcon.textContent = isOpen ? "×" : "☰";
-        menuIcon.setAttribute("aria-hidden", "true");
-      }
-      if (returnFocus) menuToggle.focus();
-    };
-
-    setMenuState(false);
-    menuToggle.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setMenuState(menuToggle.getAttribute("aria-expanded") !== "true");
-    });
-    primaryNav.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", () => setMenuState(false));
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && primaryNav.classList.contains("is-open")) {
-        setMenuState(false, true);
-      }
-    });
-    const desktopLayout = window.matchMedia("(min-width: 900px)");
-    const handleLayoutChange = (event) => {
-      if (event.matches) setMenuState(false);
-    };
-    if (desktopLayout.addEventListener) {
-      desktopLayout.addEventListener("change", handleLayoutChange);
-    } else {
-      desktopLayout.addListener(handleLayoutChange);
-    }
-  }
-
+  // Shared public navigation is initialized by js/site-header.js on each public page.
 
   const searchToggle = document.getElementById("site-search-toggle");
   const searchPanel = document.getElementById("site-search-panel");
