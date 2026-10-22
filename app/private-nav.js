@@ -83,9 +83,13 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
   }
   return isAdmin||entry.roles.some(r=>roles.has(r));
  };
- if(isWorkspace&&canUseWorkspace()){
-  const currentType=new URLSearchParams(location.search).get("type")||"player";
-  for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(tab(s.label,s.type,currentType===s.type));
+ if(canUseWorkspace()){
+  if(isWorkspace){
+   const currentType=new URLSearchParams(location.search).get("type")||"player";
+   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(tab(s.label,s.type,currentType===s.type));
+  }else{
+   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(link(s.label,"./workspace.html?type="+encodeURIComponent(s.type)));
+  }
  }
  for(const p of pages){
   if(!allowed(p))continue;
