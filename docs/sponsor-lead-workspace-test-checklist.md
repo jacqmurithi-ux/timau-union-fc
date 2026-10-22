@@ -53,3 +53,22 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Production migration, merge and deployment have not been performed.
 
 **Evidence note:** static source review only for the new proposal transition guard. No production database or website changes were made by this commit.
+
+## Starter sponsorship packages and proposal linking
+
+- [ ] Apply `20261022250000_sponsor_package_starter_seed.sql` on a disposable test database before browser testing.
+- [ ] Open Sponsor Lead workspace twice; verify each of the six starter package names appears once, remains Draft, and no price, in-kind value or duration is invented.
+- [ ] Verify every requested benefit and bracketed placeholder is preserved exactly; saving a draft with placeholders is allowed.
+- [ ] Verify package seed RPC rejects unauthenticated and unauthorized roles, and audit records are created for starter inserts.
+- [ ] Create a package with price only, in-kind only, and both; verify blank duration displays the `e.g. 1 season` hint and blank price remains empty.
+- [ ] Verify entered price accepts numeric non-negative values only; reject negative, non-numeric, and empty price plus empty in-kind value for newly saved packages.
+- [ ] Edit a package and duplicate a package; confirm edits update the original and duplicates get a new ID, Draft status, and editable name.
+- [ ] Confirm package creation and edits add audit rows with actor and before/after values.
+- [ ] Confirm the package dropdown labels each option with name and tier and marks Draft packages.
+- [ ] Select a package with a price and duration; verify amount/duration fill only when the corresponding form fields are empty.
+- [ ] Select a package with no price or duration; verify the amount and duration fields remain empty with their placeholders.
+- [ ] Edit proposal content manually, then change package/amount/duration; verify manually edited sections are preserved.
+- [ ] Select matching Kit, Match day, or Community partner templates; verify a package suggestion is shown but no package is selected automatically.
+- [ ] Verify `{in_kind_value}` merges when supplied and remains an editable placeholder when absent.
+- [ ] Verify package price is not returned to Player, Supporter, Media Team, Secretary or other unauthorized roles; confirm Sponsor Lead, Chairman and platform admin access, and explicitly test Treasurer visibility policy.
+- [ ] Regression-check other role workspaces and proposal approval/state-transition controls.
