@@ -84,7 +84,10 @@ function proposalFactValue(f,key,value){
 }
 function proposalDisplaySection(f,key,raw,values){
  let s=proposalMergeSection(raw,values).trim();
- if(proposalFactKeys[key]&&s&&f.querySelector('[name="'+proposalFactKeys[key].replace("fact_","fact_")+'_verified"]')?.checked!==true&&!/^UNVERIFIED\s*[—-]/i.test(s))s="UNVERIFIED — "+s;
+ const verifiedName=proposalFactKeys[key]?proposalFactKeys[key]+"_verified":null;
+ const verified=verifiedName?f.querySelector('[name="'+verifiedName+'"]')?.checked===true:false;
+ if(proposalFactKeys[key]&&verified)s=s.replace(/^UNVERIFIED\s*[—-]\s*/i,"");
+ else if(proposalFactKeys[key]&&s&&!/^UNVERIFIED\s*[—-]/i.test(s))s="UNVERIFIED — "+s;
  return s;
 }
 function renderProposalContent(f){
@@ -195,9 +198,7 @@ if(f.dataset.table==="sponsor_proposal"){
  let body=String(fd.get("content_html")||"");
  if(!body.trim()&&template)body=Object.entries(template.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\\n"+String(v)).join("\\n\\n");
  body=body.replace(/\{(proposal_name|sponsor_name|contact_person|package_name|benefits|amount|duration|club_contact|date)\}/g,(_,k)=>String(fields[k]));
- const facts=[["Club history",fd.get("fact_history"),fd.get("fact_history_verified")==="true"],["Achievements",fd.get("fact_achievements"),fd.get("fact_achievements_verified")==="true"],["Audience / reach",fd.get("fact_reach"),fd.get("fact_reach_verified")==="true"]];
- const factText=facts.filter(x=>x[1]).map(x=>x[0]+(x[2]?"":" — UNVERIFIED")+"\n"+x[1]).join("\n\n");
- const fullText="TIMAU UNION FC\n"+fd.get("title")+"\n\n"+body+(factText?"\n\n"+factText:"");
+ const fullText="TIMAU UNION FC\n"+fd.get("title")+"\n\n"+body;
  const safeHtml=fullText.split(/\n{2,}/).map(part=>"<p>"+esc(part).replace(/\n/g,"<br>")+"</p>").join("");
  const {error}=await db.rpc("sponsor_proposal_save",{_id:f.dataset.id||null,_prospect_id:fd.get("prospect_id"),_package_id:fd.get("package_id")||null,_template_id:fd.get("template_id")||null,_title:fd.get("title"),_content_html:safeHtml,_amount_kes:fd.get("amount_kes")?Number(fd.get("amount_kes")):null,_duration:fd.get("duration"),_follow_up_date:fd.get("follow_up_date")||null,_reason:null});
  if(error){note(error.message,"error");return;}note(f.dataset.id?"Draft proposal updated. Your edits have been saved.":"Proposal saved as draft.", "success");await load();const savedProposal=(data.proposals||[]).find(x=>x.title===proposalName);if(savedProposal){const editButton=[...$("panel").querySelectorAll("[data-proposal-edit]")].find(b=>b.dataset.proposalEdit===savedProposal.id);if(editButton)editButton.click();}return;}
