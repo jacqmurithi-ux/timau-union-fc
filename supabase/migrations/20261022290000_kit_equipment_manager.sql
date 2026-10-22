@@ -97,6 +97,15 @@ create or replace function private.kit_is_writer()
 returns boolean language sql stable security definer set search_path = ''
 as $$ select coalesce(private.kit_can_manage(),false) or coalesce(private.kit_is_coach(),false); $$;
 
+revoke all on function private.kit_can_manage() from public,anon;
+revoke all on function private.kit_can_read() from public,anon;
+revoke all on function private.kit_is_coach() from public,anon;
+revoke all on function private.kit_is_writer() from public,anon;
+grant execute on function private.kit_can_manage() to authenticated;
+grant execute on function private.kit_can_read() to authenticated;
+grant execute on function private.kit_is_coach() to authenticated;
+grant execute on function private.kit_is_writer() to authenticated;
+
 create or replace function private.kit_guard_insert()
 returns trigger language plpgsql security definer set search_path = ''
 as $$
