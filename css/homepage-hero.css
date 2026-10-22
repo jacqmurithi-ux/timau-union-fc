@@ -175,7 +175,7 @@
 .hero-arrow:disabled { display:none; }
 
 /* Keep the menu and search on opposite edges while the brand stays centered. */
-@media(max-width:700px) {
+@media(max-width:959px) {
   .header-inner { position:relative; min-height:68px; justify-content:center; gap:0; }
   .site-header .brand {
     position:absolute;
@@ -214,6 +214,8 @@
   }
   .site-header #site-search-toggle { position:absolute; right:0; }
   .site-header .primary-nav { top:100%; left:50%; right:auto; z-index:1001; width:100vw; height:auto; max-height:calc(100dvh - 68px); overflow-y:auto; overscroll-behavior:contain; transform:translateX(-50%); border-left:0; border-top:1px solid rgba(255,255,255,.18); }
+}
+@media(max-width:700px) {
   #homepage-hero { width:calc(100% - 32px); margin-top:20px; margin-bottom:30px; }
   .hero-slider-viewport { aspect-ratio:4 / 5; border-radius:20px; }
   .hero-slide-caption { padding:1.1rem .9rem 3.35rem; }
