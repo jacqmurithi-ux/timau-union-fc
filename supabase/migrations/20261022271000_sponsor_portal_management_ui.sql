@@ -5,7 +5,7 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 begin
  if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then
-   raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501';
+   raise exception 'Sponsor Lead or Platform Admin required' using errcode='42501';
  end if;
  return jsonb_build_object(
   'sponsor_users',coalesce((select jsonb_agg(jsonb_build_object('user_id',u.id,'email',u.email,'linked_sponsor_id',l.sponsor_record_id,'link_id',l.id)
