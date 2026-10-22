@@ -92,3 +92,21 @@ No migration was applied, no production data was changed, and no deployment or m
 ## Current release decision
 
 **NO-GO.** This is a static dependency and metadata reconciliation, not a runtime security certification. The production database has no Sponsor Lead objects according to the read-only checks performed, so applying later corrective migrations alone would fail or leave an incomplete feature. Keep PR #42 unmerged and production untouched until the prerequisite contract is verified and every P0 release gate has test evidence.
+
+
+## Follow-up production contract inspection (read-only)
+
+**Evidence captured after the initial report commit**; no writes were performed.
+
+- Production still has no `private.sponsor_%` tables, no `public.sponsor_%` functions, and no sponsor-specific triggers/policies in the queried schemas.
+- Production migration history currently ends at `20261022043737 current_club_roles_authenticated_acl`; no Sponsor Lead migration versions appear in the list.
+- `private.current_club_roles()` exists with no arguments and returns `text[]`.
+- `private.is_active_platform_admin(uuid)` exists and returns `boolean`.
+- `private.club_records` exists with columns `id`, `record_type`, `data`, `publication_status`, `created_by`, `updated_by`, `approved_by`, `approved_at`, `created_at`, and `updated_at`. Its `record_type` constraint permits `player`, `fixture`, `news`, `sponsor`, and `activity`; publication status permits `draft`, `approved`, and `archived`. The approval consistency constraint requires approver and timestamp when approved.
+- Existing Storage policies include gallery, homepage hero, secretary documents, and Treasurer receipts. The inspected output did not show any sponsor-specific Storage policies or a `sponsor-agreements` bucket row. Because the candidate migration intends to create the bucket and its policies, confirm bucket/policy creation and the interaction with existing broad Storage policies in an isolated test before production.
+- The PR description says the first two Sponsor Lead SQL migrations were executed inside a transaction and rolled back on Union Test. That supports a limited transactional syntax smoke test only; it is not evidence of persistent installation, production compatibility, role isolation, Storage safety, or full replay of all eight migrations.
+
+### Updated concrete blocker
+
+The base Sponsor Lead migration references `private.club_records(id)`, which exists in production, but the read-only contract query alone does not prove all referenced function bodies, grants, Storage policy semantics, or table ownership/permissions are compatible. In addition, because no Sponsor Lead objects are installed, migrations 3–8 cannot be safely treated as standalone hotfixes. Reconcile the entire chain as one ordered release candidate and verify it from a clean schema before release.
+
