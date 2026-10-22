@@ -1170,10 +1170,11 @@ body.navigation-open {
 
   .primary-nav {
     top: 100%;
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
     z-index: 1001;
-    width: 100%;
+    width: 100vw;
+    transform: translateX(-50%);
     max-height: calc(100dvh - 68px);
     overflow-y: auto;
     overscroll-behavior: contain;
