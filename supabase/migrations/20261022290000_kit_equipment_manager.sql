@@ -74,6 +74,7 @@ alter table public.kit_managers enable row level security;
 alter table public.kit_alerts enable row level security;
 revoke all on public.kit_items, public.first_aid_items, public.kit_movements, public.kit_managers, public.kit_alerts from public, anon;
 grant select, insert, update on public.kit_items, public.first_aid_items, public.kit_movements, public.kit_managers, public.kit_alerts to authenticated;
+grant delete on public.kit_managers to authenticated;
 
 create or replace function private.kit_can_manage()
 returns boolean language sql stable security definer set search_path = ''
