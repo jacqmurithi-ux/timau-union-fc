@@ -1,6 +1,6 @@
 # Sponsor Lead workspace — test checklist
 
-The candidate migration was syntax/DDL-checked on Union Test inside a transaction that was rolled back. This validates migration execution only; it does not prove authenticated role behavior. Complete the interactive checks below in a disposable test fixture with one account per role before merge. Do not run against production until reviewed and approved.
+The base Sponsor Lead migration and the evaluation/proposal migration were executed together on Union Test inside a transaction that was rolled back. This validates migration execution only; it does not prove authenticated role behavior. Complete the interactive checks below in a disposable test fixture with one account per role before merge. Do not run against production until reviewed and approved.
 
 - [ ] Sponsor Lead can create/edit pipeline, packages, agreements, communications, benefits, requests, and pledge drafts.
 - [ ] Sponsor Lead cannot write to `private.treasurer_records`, `private.tm_records`, or confirm a contribution receipt; attempts fail at the database boundary.
@@ -18,12 +18,13 @@ The candidate migration was syntax/DDL-checked on Union Test inside a transactio
 
 ## Verification evidence (2026-10-22)
 
-- [x] Base Sponsor Lead migration and evaluation/proposal migration execute together on Union Test in a transaction that was rolled back.
-- [x] Sponsor Lead JavaScript syntax passes after import declarations are removed for parser validation.
-- [ ] Authenticated role-by-role RPC and Storage tests are still required; migration execution is not authorization proof.
+- [x] Executed the full candidate chain in order: `20261022210000_sponsor_lead_workspace.sql`, then `20261022220000_sponsor_evaluation_proposals.sql`, inside a single transaction on Union Test.
+- [x] The database tool returned without SQL error; the transaction was rolled back. No migration changes from this test were persisted.
+- [x] Inspected the test project's migration history and catalog: the candidate migrations are not recorded as installed, and the sponsor-specific tables were not present before the rollback-only run.
+- [x] Sponsor Lead JavaScript syntax had previously passed parser validation after import declarations were removed.
+- [ ] Authenticated role-by-role RPC, direct-table and Storage tests remain required; migration execution is not authorization proof.
 - [ ] Browser verification of scoring, Chairman risk approval, proposal merge fields, verified-fact warnings, version history, print/PDF, accepted-agreement linking and reminders remains required.
 - [ ] Review stored proposal HTML for safe rendering before treating the UI as production-ready.
-
 
 ## Prospect evaluation and proposals (added 2026-10-22)
 
