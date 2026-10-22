@@ -110,7 +110,7 @@ create trigger guard_attendance_fixture_update
 before update of data, record_type on private.club_records
 for each row execute function private.guard_attendance_fixture_update();
 
-create or replace view public.home_attendance_monthly as
+create or replace view private.home_attendance_monthly with (security_invoker = true) as
 with completed_home as (
   select c.id, nullif(c.data->>'match_date','')::date as match_date
   from private.club_records c
@@ -140,8 +140,7 @@ select m.month, m.matches_played,
        a.average_attendance_per_match,
        a.highest_attendance, a.lowest_attendance
 from monthly_matches m left join monthly_attendance a using (month);
-revoke all on public.home_attendance_monthly from public, anon;
-grant select on public.home_attendance_monthly to authenticated;
+revoke all on private.home_attendance_monthly from public, anon, authenticated;
 
 create or replace function public.home_attendance_get_report()
 returns jsonb
@@ -172,7 +171,7 @@ begin
           or lower(coalesce(c.data->>'is_home','false')) in ('true','1','yes'))
         and lower(coalesce(c.data->>'match_status',c.data->>'status',''))='completed'
     ), '[]'::jsonb),
-    'monthly', coalesce((select jsonb_agg(to_jsonb(m) order by m.month desc) from public.home_attendance_monthly m), '[]'::jsonb)
+    'monthly', coalesce((select jsonb_agg(to_jsonb(m) order by m.month desc) from private.home_attendance_monthly m), '[]'::jsonb)
   );
 end;
 $$;
