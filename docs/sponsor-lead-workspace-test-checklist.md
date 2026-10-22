@@ -64,7 +64,17 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Public sponsor query verified to return approved public sponsor records only.
 - [ ] Browser test of proposal merge fields, verified-fact warnings, print/PDF and follow-up reminders.
 - 
-**Evidence note:** migration installation and static source checks are complete. Authenticated role-specific runtime tests are still pending; do not treat unchecked items as passed. Production remains untouched, and this branch remains unmerged/undeployed.
 
-- [x] Follow-up migration `20261022231000_sponsor_evaluation_insert_alignment.sql` applied to Union Test after source review found that the evaluation insert column list omitted `requested_decision` and `approval_requested`; the follow-up aligns those columns with the values supplied.
-- [x] Front-end JavaScript syntax parsed successfully after removing ES module import declarations for parser validation.
+## Corrective migration verification (2026-10-22)
+
+- [x] Applied `20261022230000_sponsor_eval_receipt_security_fix.sql` to Union Test; Supabase reported success.
+- [x] Applied `20261022231000_sponsor_contribution_payload_guard.sql` to Union Test; Supabase reported success.
+- [x] Queried installed function catalog: `sponsor_eval_save` and `sponsor_lead_save_record` remain SECURITY DEFINER with an empty search_path.
+- [x] Confirmed the installed evaluation function references `requested_decision` and the approval-request fields.
+- [x] Confirmed the installed contribution save RPC rejects receipt-related keys for non-Treasurer/non-admin callers, for inserts and updates.
+- [ ] Authenticated Sponsor Lead/Treasurer/Chairman/Admin runtime tests. Not run: this SQL connection does not provide role-specific signed-in sessions.
+- [ ] Verify risk approval/rejection transitions using authenticated sessions.
+- [ ] Verify private RLS reads, proposal version history, agreement linking and administrative audit events end-to-end.
+- [ ] Public approved-only sponsor listing and browser proposal/PDF tests.
+
+**Evidence note:** the two corrective migrations are installed in Union Test and their installed function definitions were inspected. This is static/database-definition verification only; it is not evidence that authenticated role-specific tests pass. Production remains untouched; branch remains unmerged and undeployed.
