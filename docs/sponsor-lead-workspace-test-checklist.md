@@ -48,3 +48,20 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [x] Both Sponsor Lead SQL migrations execute together on Union Test inside a transaction and roll back cleanly (no migration changes persisted).
 - [x] Sponsor Lead JavaScript syntax check passed after the evaluation/proposal additions.
 - [ ] Browser workflows and authenticated multi-role tests are still pending; migration rollback alone is not proof of RLS correctness.
+
+## Security hardening follow-up — 2026-10-22
+
+- [x] Added `20261022230000_sponsor_lead_security_hardening.sql` on `feature/sponsor-lead-workspace`.
+- [x] Applied the hardening migration to Union Test after the base and evaluation/proposal migrations; Supabase migration tool returned `success: true`.
+- [x] Static source check: `sponsor_lead_save_record` now rejects receipt-related keys for non-Treasurer/non-admin callers on both create and update paths.
+- [x] Static source check: `sponsor_eval_save` rejects a missing or non-object risk-check payload.
+- [ ] Runtime role test: Sponsor Lead cannot create a pledge containing receipt fields, change receipt fields on an existing pledge, or invoke receipt confirmation.
+- [ ] Runtime role test: Treasurer can confirm receipts; other roles are denied.
+- [ ] Runtime role test: a risk-flagged pursuit request remains on hold until a Chairman/admin decision; decline does not mark it pursued.
+- [ ] Runtime role test: non-authorized roles cannot read prospect evaluations, proposal contents, templates, agreement terms, or signed documents.
+- [ ] Runtime role test: proposal version history and accepted-proposal agreement linking behave as expected.
+- [ ] Runtime role test: admin override reason and before/after audit data are recorded.
+- [ ] Public sponsor query verified to return approved public sponsor records only.
+- [ ] Browser test of proposal merge fields, verified-fact warnings, print/PDF and follow-up reminders.
+- 
+**Evidence note:** migration installation and static source checks are complete. Authenticated role-specific runtime tests are still pending; do not treat unchecked items as passed. Production remains untouched, and this branch remains unmerged/undeployed.
