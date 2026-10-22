@@ -61,9 +61,31 @@ This matrix is a reconciliation of the existing roles and the previously provide
 - Verify function EXECUTE grants, error paths, and security-definer search paths.
 - Test a transaction/rollback in a non-production test project before applying any migration.
 
+## Findings from live RPC review
+
+The deployed database was inspected read-only. The relevant current authorization paths are:
+
+- `club_set_publication_status`: currently calls `role_can_manage_record`, so the Coach's shared-record management eligibility also permits publication-status changes for player, fixture, and activity records.
+- `club_get_workspace_bundle`: uses the management predicate for both record inclusion and each record's `can_approve` flag, so the UI metadata repeats the same conflation.
+- `coach_set_publication_status`: already restricts Coach-record status changes to Chairman or active Platform Admin and requires a reason. Preserve it.
+- `tm_set_publication_status`: separately permits Team Manager, Chairman, and Platform Admin; preserve this independent workflow.
+- `secretary_set_status`: Secretary may review their own record status, but approval itself is explicitly limited to Chairman or Platform Admin. Preserve it.
+- `sponsor_proposal_set_status`: publication/proposal transitions are separately limited to Chairman or Platform Admin; Sponsor Lead management eligibility does not itself authorize the state transition.
+- `homepage_hero_save/remove/expire_from_workspace`: explicitly use the existing Admin-or-Media-Team helper and audit changes. No role changes are proposed for these functions.
+- `get_published_club_content`: returns only approved records and projects allowlisted public fields by record type. Preserve that public-safe filtering.
+
+This is a scoped first correction, not a claim that every publishing surface has been exhaustively penetration-tested. The candidate migration leaves the above separate workflows untouched and does not change direct-table RLS policies or function grants for existing public RPCs.
+
+## Candidate correction in this branch
+
+- `supabase/migrations/20261023100000_separate_club_record_approval_authority.sql` introduces a private approval predicate distinct from `role_can_manage_record`, changes `club_set_publication_status` to use the approval predicate, and updates `club_get_workspace_bundle` so record visibility remains based on the existing management rules while `can_approve` is based on the approval predicate.
+- The candidate preserves the current Chairman, Secretary/news, Media/news, Sponsor Lead/sponsor, and Team Manager shared-record approval paths represented by the deployed helper. It excludes Coach from approval for shared player, fixture, and activity records, as required by the existing guidance.
+- `supabase/tests/20261023100000_separate_club_record_approval_authority.sql` contains rollback-only predicate regression checks for Coach denial, retained Coach internal management eligibility, and preservation of existing Team Manager/Secretary/Media/Sponsor Lead/Chairman approval paths.
+- No database migration has been applied. These files are proposals only and still require syntax verification and a full transaction/rollback run against the non-production test project before merge.
+
 ## Deployment guardrails
 
-- This document is a review artifact only.
-- No migration is included or applied here because the full approved approval matrix is not yet established and the publication RPCs need complete cross-workspace reconciliation before rewriting.
-- Next implementation step: reconcile each current RPC against the existing approved role/approval guidance, then prepare a candidate SQL migration plus rollback and RPC-level tests on a separate review change. Do not ask to redesign or reapprove the role matrix.
+- This PR remains a review artifact; production was only inspected read-only.
+- Do not redesign or reapprove the role matrix. Correct implementation to match existing guidance.
+- Before merge, run the candidate migration and regression checks in a non-production project inside a controlled transaction/rollback, then verify Coach dashboard navigation, direct RPC denials, unaffected roles' allowed workflows, audit trails, RLS and function grants.
 - Do not merge or deploy until the SQL diff, regression results, and navigation check have been reviewed.
