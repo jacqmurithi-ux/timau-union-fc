@@ -17,7 +17,7 @@ Private schemas currently have explicit deny-all direct-access RLS policies for 
 
 ## Role-by-role reconciliation
 
-This matrix distinguishes observed/current paths from the recommended security boundary. It is not a grant of new permissions.
+This matrix is a reconciliation of the existing roles and the previously provided role/approval guidance. **Keep every role and its current approval authority exactly as already defined.** This work must not redesign, broaden, narrow, or reassign role responsibilities; it only separates internal record access/editing from approval and public publication enforcement.
 
 | Role | Internal access/editing (existing intent) | Approval/publication boundary |
 |---|---|---|
@@ -33,18 +33,18 @@ This matrix distinguishes observed/current paths from the recommended security b
 | Player Welfare | Restricted welfare/discipline access through purpose-specific paths | No public publication of restricted welfare data; Coach receives only allowlisted summaries |
 | Sponsor / Supporter / Player / other read-only roles | Only the scoped read-only or own-record views implemented for that role | No approval, editing, or publication unless separately authorized by an explicit database rule |
 
-**Important:** The live database and current repository do not provide a single, unambiguous approved matrix for every role's approval authority. In particular, Vice Chairman delegation and the exact publishing rights for Team Manager, Secretary, and Media Team must not be guessed. The correction should separate the concepts first, then encode only the confirmed approval matrix.
+**Role-preservation instruction:** Do not change or reinterpret the existing role/approval guidance to resolve the implementation gap. Treat the current approved role matrix as authoritative. Inspect the existing functions and policies to recover each role's current rights, then enforce those same rights through separate checks for internal access/editing, approval, and public publication. Where code paths disagree with the existing guidance, correct the implementation to match the guidance; do not change the guidance to match a faulty code path.
 
 ## Recommended correction design
 
-1. Introduce separate internal-management and approval predicates, with distinct names and explicit role/type allowlists.
+1. Introduce separate internal-management, approval, and publication predicates with explicit role/type allowlists that preserve the current approved role matrix exactly.
 2. Keep `role_can_manage_record` (or its replacement) for read/edit eligibility only; do not call it from a publication RPC as a substitute for approval authorization.
 3. Update `club_set_publication_status` to use the approval predicate, checking the active Platform Admin status separately. The Coach must fail closed for shared `player`, `fixture`, and `activity` publication changes.
 4. Update `club_get_workspace_bundle` so its `can_approve` field reflects the approval predicate, while record visibility/editing continues to use the internal-access predicate.
 5. Preserve `coach_get_dashboard`, `coach_save_record`, `coach_set_publication_status`, and current Coach navigation. Coach must retain its legitimate read-only and own-record editing paths.
 6. Audit all other publication RPCs and their grants: `tm_set_publication_status`, Secretary publication functions, media/public-content functions, sponsor/content functions, and homepage/public-gallery publishing functions. No frontend-only check is sufficient.
 7. Keep private-schema direct client access denied. Retain audit records and reason requirements for privileged overrides and publication decisions.
-8. Verify every public-facing query/view/RPC filters to explicitly approved content and does not expose private draft or restricted records.
+8. Verify every public-facing query/view/RPC filters to explicitly approved content and does not expose private draft or restricted records. Preserve each role's existing authorized publishing rights; this is a separation-of-permissions change, not a role redesign.
 
 ## Regression test matrix (required before merge/deployment)
 
@@ -65,5 +65,5 @@ This matrix distinguishes observed/current paths from the recommended security b
 
 - This document is a review artifact only.
 - No migration is included or applied here because the full approved approval matrix is not yet established and the publication RPCs need complete cross-workspace reconciliation before rewriting.
-- Next implementation step: agree the approver matrix, then prepare a candidate SQL migration plus rollback and RPC-level tests on a separate review change.
+- Next implementation step: reconcile each current RPC against the existing approved role/approval guidance, then prepare a candidate SQL migration plus rollback and RPC-level tests on a separate review change. Do not ask to redesign or reapprove the role matrix.
 - Do not merge or deploy until the SQL diff, regression results, and navigation check have been reviewed.
