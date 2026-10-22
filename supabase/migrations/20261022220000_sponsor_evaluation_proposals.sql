@@ -114,7 +114,7 @@ begin
  if not (admin or 'chairman'=any(r)) then raise exception 'Chairman or admin required'; end if;
  select to_jsonb(s) into old_j from private.sponsor_evaluation_settings s where id=true for update;
  if jsonb_typeof(_weights)<>'object' or jsonb_object_length(_weights)<>7 or not (_weights ?& array['club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood']) then raise exception 'Exactly all seven weight keys are required'; end if;
- if exists(select 1 from jsonb_each_text(_weights) x where x.key not in ('club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood') or x.value !~ '^[0-9]+(\\.[0-9]+)?$' or x.value::numeric<0 or x.value::numeric>100) then raise exception 'Weights must be numbers from 0 to 100'; end if;
+ if exists(select 1 from jsonb_each_text(_weights) x where x.key not in ('club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood') or x.value !~ '^[0-9]+([.][0-9]+)?$' or x.value::numeric<0 or x.value::numeric>100) then raise exception 'Weights must be numbers from 0 to 100'; end if;
  total:=coalesce((select sum(value::numeric) from jsonb_each_text(_weights)),0);
  if abs(total-100)>0.01 then raise exception 'Weights must total 100 percent'; end if;
  insert into private.sponsor_evaluation_settings(id,weights,restricted_categories,updated_by,updated_at) values(true,_weights,coalesce(_restricted_categories,'{}'),auth.uid(),now())
