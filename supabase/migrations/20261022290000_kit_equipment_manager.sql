@@ -127,7 +127,7 @@ begin
  end if;
  if new.quantity_usable+new.quantity_damaged+new.quantity_missing>new.quantity_total then raise exception 'Usable + damaged + missing cannot exceed total'; end if;
  new.updated_at:=now(); new.updated_by:=auth.uid();
- if v_coach and not v_manager then
+ if v_coach and not v_manager and coalesce(current_setting('app.kit_manual_movement',true),'false') <> 'true' then
   v_qty:=greatest(1,abs(new.quantity_missing-old.quantity_missing),abs(new.quantity_damaged-old.quantity_damaged),abs(new.quantity_usable-old.quantity_usable));
   if new.quantity_missing>old.quantity_missing then v_action:='lost';
   elsif new.quantity_damaged>old.quantity_damaged or new.status in ('needs_repair','unusable') and old.status is distinct from new.status then v_action:='damaged';
@@ -261,5 +261,49 @@ drop trigger if exists kit_item_attention_alert on public.kit_items;
 create trigger kit_item_attention_alert after insert or update on public.kit_items for each row execute function private.kit_notify_attention();
 drop trigger if exists kit_first_aid_attention_alert on public.first_aid_items;
 create trigger kit_first_aid_attention_alert after insert or update on public.first_aid_items for each row execute function private.kit_notify_attention();
+
+
+create or replace function public.kit_record_movement(
+ p_kit_item_id uuid, p_action text, p_quantity integer,
+ p_from_person uuid default null, p_to_person uuid default null,
+ p_fixture_id uuid default null, p_movement_date date default current_date, p_notes text default null
+)
+returns uuid language plpgsql security definer set search_path=''
+as $
+declare v_item public.kit_items%rowtype;
+declare v_id uuid;
+declare v_coach boolean:=coalesce(private.kit_is_coach(),false);
+declare v_manager boolean:=coalesce(private.kit_can_manage(),false);
+begin
+ if auth.uid() is null or not coalesce(private.kit_is_writer(),false) then raise exception 'You cannot record kit movements'; end if;
+ if p_quantity is null or p_quantity<1 then raise exception 'Quantity must be a positive whole number'; end if;
+ if p_action not in ('issued','returned','lost','damaged','repaired','replaced') then raise exception 'Invalid movement action'; end if;
+ select * into v_item from public.kit_items where id=p_kit_item_id for update;
+ if not found then raise exception 'Kit item not found'; end if;
+ if p_action in ('issued','lost','damaged') and v_item.quantity_usable<p_quantity then raise exception 'Not enough usable quantity'; end if;
+ if p_action='returned' and v_item.quantity_usable+p_quantity+v_item.quantity_damaged+v_item.quantity_missing>v_item.quantity_total then raise exception 'Return quantity exceeds available total'; end if;
+ if p_action='lost' and v_item.quantity_missing+p_quantity+v_item.quantity_damaged+v_item.quantity_usable-p_quantity>v_item.quantity_total then raise exception 'Missing quantity exceeds total'; end if;
+ if p_action='damaged' and v_item.quantity_damaged+p_quantity+v_item.quantity_missing+v_item.quantity_usable-p_quantity>v_item.quantity_total then raise exception 'Damaged quantity exceeds total'; end if;
+ perform set_config('app.kit_manual_movement','true',true);
+ insert into public.kit_movements(kit_item_id,action,quantity,from_person,to_person,fixture_id,movement_date,recorded_by,notes)
+ values(p_kit_item_id,p_action,p_quantity,p_from_person,p_to_person,p_fixture_id,coalesce(p_movement_date,current_date),auth.uid(),p_notes)
+ returning id into v_id;
+ if p_action='issued' then
+  update public.kit_items set quantity_usable=quantity_usable-p_quantity,updated_by=auth.uid() where id=p_kit_item_id;
+ elsif p_action='returned' then
+  update public.kit_items set quantity_usable=quantity_usable+p_quantity,updated_by=auth.uid() where id=p_kit_item_id;
+ elsif p_action='lost' then
+  update public.kit_items set quantity_usable=quantity_usable-p_quantity,quantity_missing=quantity_missing+p_quantity,updated_by=auth.uid() where id=p_kit_item_id;
+ elsif p_action='damaged' then
+  update public.kit_items set quantity_usable=quantity_usable-p_quantity,quantity_damaged=quantity_damaged+p_quantity,status=case when quantity_usable-p_quantity=0 and quantity_damaged+p_quantity>0 then 'needs_repair' else status end,updated_by=auth.uid() where id=p_kit_item_id;
+ elsif p_action='repaired' then
+  if v_item.quantity_damaged<p_quantity then raise exception 'Repair quantity exceeds damaged stock'; end if;
+  update public.kit_items set quantity_damaged=quantity_damaged-p_quantity,quantity_usable=quantity_usable+p_quantity,status=case when status='needs_repair' then 'fair' else status end,updated_by=auth.uid() where id=p_kit_item_id;
+ end if;
+ return v_id;
+end; $;
+revoke all on function public.kit_record_movement(uuid,text,integer,uuid,uuid,uuid,date,text) from public,anon;
+grant execute on function public.kit_record_movement(uuid,text,integer,uuid,uuid,uuid,date,text) to authenticated;
+
 
 commit;
