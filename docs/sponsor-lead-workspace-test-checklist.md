@@ -67,4 +67,4 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 **Evidence note:** migration installation and static source checks are complete. Authenticated role-specific runtime tests are still pending; do not treat unchecked items as passed. Production remains untouched, and this branch remains unmerged/undeployed.
 
 - [x] Follow-up migration `20261022231000_sponsor_evaluation_insert_alignment.sql` applied to Union Test after source review found that the evaluation insert column list omitted `requested_decision` and `approval_requested`; the follow-up aligns those columns with the values supplied.
-- [x] Front-end JavaScript syntax parsed successfully in the current source check.
+- [x] Front-end JavaScript syntax parsed successfully after removing ES module import declarations for parser validation.
