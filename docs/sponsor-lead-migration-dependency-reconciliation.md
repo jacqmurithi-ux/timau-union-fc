@@ -110,3 +110,56 @@ No migration was applied, no production data was changed, and no deployment or m
 
 The base Sponsor Lead migration references `private.club_records(id)`, which exists in production, but the read-only contract query alone does not prove all referenced function bodies, grants, Storage policy semantics, or table ownership/permissions are compatible. In addition, because no Sponsor Lead objects are installed, migrations 3–8 cannot be safely treated as standalone hotfixes. Reconcile the entire chain as one ordered release candidate and verify it from a clean schema before release.
 
+
+
+## Focused code-level findings from the eight-migration review
+
+These are static findings from the current PR head; they are not runtime test results.
+
+### High priority: prevent post-send proposal content changes
+
+The final `sponsor_proposal_save` replacement rejects edits to accepted proposals, but still permits Chairman/platform-admin edits to proposals whose status is `sent` or `declined` and leaves the status unchanged. That can alter the stored content of a proposal already sent to a sponsor without a fresh approval/send cycle. Decide the business rule explicitly. Recommended default: treat `sent`, `accepted`, and `declined` content as immutable; require a new proposal for changed terms, or explicitly return a changed sent proposal to draft with a new version and approval cycle. Preserve accepted immutability in all cases.
+
+### High priority: proposal version concurrency
+
+The final `sponsor_proposal_save` computes `version_no` with `max(version_no)+1`. Concurrent saves for the same proposal can select the same number and cause a unique-key violation; retries and audit/version writes need deterministic handling. Serialize per proposal (row lock on proposal before version calculation, or an equivalent safe sequence strategy) and test simultaneous saves.
+
+### High priority: accepted-proposal immutability must cover every write path
+
+The accepted-proposal guard is implemented in `public.sponsor_proposal_save`. The status RPC updates status and agreement linkage directly. Review every function and trigger that writes `private.sponsor_proposals`; enforce accepted-row immutability in a database trigger or a single controlled write path so no alternate RPC can mutate accepted content, status, or agreement linkage after acceptance. Verify table privileges prevent direct writes.
+
+### High priority: agreement auto-linking uses a weak matching key
+
+The acceptance RPC links the latest agreement matching sponsor name and package (including a null package match), without checking agreement status, dates, amount, or an explicit prospect/agreement identity. Similar sponsor names or a closed/expired agreement could be linked incorrectly. Prefer explicit selection/confirmation of an agreement or require a reviewed strong key and eligibility rules; otherwise always create a new draft agreement for Chairman review. Test duplicate sponsor/package combinations and concurrent acceptance.
+
+### High priority: storage policy contract is incomplete
+
+The base migration creates/forces the bucket to `public=false`, but the complete effective Storage authorization depends on every policy for `storage.objects`, bucket ID checks, folder/path checks, and any signed-URL issuing RPC. A private bucket flag alone is insufficient. The production inspection showed other feature policies on `storage.objects`; exact policy expressions and their behavior for the proposed bucket must be evaluated. Add explicit bucket-scoped policies and verify no existing policy unintentionally authorizes cross-feature access.
+
+### Medium priority: trigger role matrix and audit completeness
+
+The base `private.sponsor_workspace_guard()` allows Sponsor Lead/Chairman/admin to insert contributions and Treasurer/admin to change receipt fields; the corrected save RPC separately blocks receipt-related keys for callers without Treasurer/admin. Keep both checks, and ensure all paths (including insert payloads, future RPCs and any direct grants) enforce the same rule. The trigger's audit insert is specifically for administrative updates, while normal save RPCs write their own audit rows; test delete behavior and confirm deletes have an audit trail if deletes are intended to be supported.
+
+### Medium priority: evaluation settings and risk approval tests
+
+The settings RPC validates seven weights summing to 100, while evaluation scoring relies on the persisted JSON weights. Confirm no alternate write path can bypass that validator, validate restricted-category normalization, and test risk flags and restricted-category matches across all caller roles. The boolean `_chairman_approval` parameter exists on the evaluation RPC signature but should not be treated as proof of approval; only a verified Chairman/admin identity and the dedicated approval workflow should authorize risky pursuit.
+
+## Evidence status matrix
+
+| Area | Current evidence | Status |
+|---|---|---|
+| Production prerequisites | Read-only catalog inspection confirms club_records and two role helpers; no Sponsor Lead objects | Partial |
+| Migration order | File-level dependency order inferred from references/comments | Static only |
+| SQL execution | PR description reports first two migrations executed in rollback-only transaction on Union Test | Limited smoke test; not independently re-run here |
+| Remaining six migrations | No clean full-chain execution evidence provided | Unverified |
+| RPC authorization | Role checks visible in source; no runtime role matrix | Unverified |
+| Receipt anti-spoofing | JSON key guard and trigger guard visible in source; no adversarial RPC tests | Unverified |
+| Storage private access | Bucket is created private in source; effective policy behavior not verified | Unverified |
+| Public-data isolation | Workspace RPCs shape role-specific payloads; no anonymous/public-page leakage test | Unverified |
+| Proposal workflow | State guards and accepted-save guard visible in source; lifecycle tests outstanding | Static only |
+| Concurrency | Version allocation uses max + 1; no concurrent test evidence | Concern identified |
+| Audit completeness | Multiple RPCs write audit rows; delete/alternate path coverage not established | Unverified |
+
+## Revised release gate
+
+**NO-GO remains in effect.** Before any production change, correct or explicitly approve the sent/declined proposal edit semantics, make proposal version allocation concurrency-safe, establish database-wide accepted-proposal immutability, strengthen agreement matching, and complete the Storage policy contract. Then produce test evidence for the complete ordered migration chain and the role/security matrix. This review made no database writes.
