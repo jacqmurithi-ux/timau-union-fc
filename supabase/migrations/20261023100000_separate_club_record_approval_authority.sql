@@ -142,9 +142,12 @@ begin
   return jsonb_build_object(
     'roles',to_jsonb(r),
     'is_platform_admin',adm,
-    'can_approve',adm or exists (
-      select 1 from unnest(r) role_name
-      where role_name in ('chairman','secretary')
+    'can_approve',adm or (
+      private.role_can_approve_record(r,'player')
+      or private.role_can_approve_record(r,'fixture')
+      or private.role_can_approve_record(r,'activity')
+      or private.role_can_approve_record(r,'news')
+      or private.role_can_approve_record(r,'sponsor')
     ),
     'records',coalesce((
       select jsonb_agg(jsonb_build_object(
