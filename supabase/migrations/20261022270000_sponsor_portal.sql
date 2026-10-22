@@ -38,6 +38,18 @@ create table if not exists private.sponsor_profile_edits (
 alter table private.sponsor_profile_edits enable row level security;
 revoke all on private.sponsor_profile_edits from public, anon, authenticated;
 
+create table if not exists private.sponsor_private_details (
+  sponsor_record_id uuid primary key references private.club_records(id) on delete cascade,
+  contact_person text,
+  contact_email text,
+  contact_phone text,
+  updated_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table private.sponsor_private_details enable row level security;
+revoke all on private.sponsor_private_details from public, anon, authenticated;
+
 create table if not exists private.sponsor_portal_notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_user_id uuid not null references auth.users(id) on delete cascade,
@@ -180,8 +192,9 @@ begin
  end if;
  select jsonb_build_object('id',c.id,'name',c.data->>'name','tier',c.data->>'tier','benefits',c.data->>'benefits',
    'support_type',c.data->>'support_type','description',c.data->>'details','website',c.data->>'website',
-   'logo_url',c.data->>'logo_url','status',c.publication_status)
- into v_sponsor from private.club_records c where c.id=v_record;
+   'logo_url',c.data->>'logo_url','status',c.publication_status,
+   'contact_person',d.contact_person,'contact_email',d.contact_email,'contact_phone',d.contact_phone)
+ into v_sponsor from private.club_records c left join private.sponsor_private_details d on d.sponsor_record_id=c.id where c.id=v_record;
  select coalesce(jsonb_agg(jsonb_build_object('id',a.id,'package',p.name,'tier',p.tier,'benefits',p.benefits,
    'start_date',a.start_date,'end_date',a.end_date,'status',a.status,'amount_kes',a.amount_kes,
    'payment_schedule',a.payment_schedule,'signed_document_path',a.signed_document_path,'in_kind_value',a.in_kind_value)
@@ -305,7 +318,7 @@ grant execute on function public.sponsor_portal_save_details(text,text,text,text
 create or replace function public.sponsor_lead_review_profile_edit(_edit_id uuid,_decision text,_reason text)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
-declare v_edit private.sponsor_profile_edits%rowtype; v_admin boolean; v_record private.club_records%rowtype; v_old jsonb;
+declare v_edit private.sponsor_profile_edits%rowtype; v_admin boolean; v_record private.club_records%rowtype; v_old jsonb; v_private_old jsonb;
 begin
  if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then raise exception 'Sponsor Lead or Platform Admin required' using errcode='42501'; end if;
  if _decision not in ('approved','declined') then raise exception 'Invalid decision'; end if;
@@ -314,14 +327,23 @@ begin
  if not found then raise exception 'Profile draft not found'; end if;
  select * into v_record from private.club_records where id=v_edit.sponsor_record_id for update;
  v_old:=to_jsonb(v_record);
+ select to_jsonb(d) into v_private_old from private.sponsor_private_details d where d.sponsor_record_id=v_edit.sponsor_record_id for update;
  if _decision='approved' then
-   update private.club_records set data=data || jsonb_build_object('name',v_edit.company_name,'contact_person',v_edit.contact_person,'contact_email',v_edit.contact_email,'contact_phone',v_edit.contact_phone,'logo_url',v_edit.logo_url,'details',v_edit.public_description),updated_by=auth.uid(),updated_at=now(),publication_status='approved',approved_by=auth.uid(),approved_at=now()
+   -- Only public-facing fields go into club_records; contact details stay in a private table.
+   update private.club_records set data=data || jsonb_build_object('name',v_edit.company_name,'logo_url',v_edit.logo_url,'details',v_edit.public_description),updated_by=auth.uid(),updated_at=now(),publication_status='approved',approved_by=auth.uid(),approved_at=now()
    where id=v_edit.sponsor_record_id;
+   insert into private.sponsor_private_details(sponsor_record_id,contact_person,contact_email,contact_phone,updated_by)
+   values(v_edit.sponsor_record_id,v_edit.contact_person,v_edit.contact_email,v_edit.contact_phone,auth.uid())
+   on conflict(sponsor_record_id) do update set contact_person=excluded.contact_person,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,updated_by=auth.uid(),updated_at=now();
  end if;
  update private.sponsor_profile_edits set status=_decision,reviewed_by=auth.uid(),reviewed_at=now(),review_note=btrim(_reason),updated_at=now() where id=_edit_id;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
- values(auth.uid(),'sponsor_profile_edits',_edit_id,'profile_edit_'||_decision,v_old,
-   jsonb_build_object('edit_id',_edit_id,'decision',_decision,'sponsor_record_id',v_edit.sponsor_record_id),btrim(_reason));
+ values(auth.uid(),'sponsor_profile_edits',_edit_id,'profile_edit_'||_decision,
+   jsonb_build_object('public_record',v_old,'private_contact_details',v_private_old),
+   jsonb_build_object('edit_id',_edit_id,'decision',_decision,'sponsor_record_id',v_edit.sponsor_record_id,
+     'approved_public_fields',jsonb_build_object('name',v_edit.company_name,'logo_url',v_edit.logo_url,'details',v_edit.public_description),
+     'private_contact_details',jsonb_build_object('contact_person',v_edit.contact_person,'contact_email',v_edit.contact_email,'contact_phone',v_edit.contact_phone)),
+   btrim(_reason));
  return jsonb_build_object('ok',true,'status',_decision);
 end $$;
 revoke all on function public.sponsor_lead_review_profile_edit(uuid,text,text) from public, anon;
