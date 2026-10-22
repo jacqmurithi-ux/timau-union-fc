@@ -59,10 +59,9 @@ $("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if
 const proposalSectionLabels={cover:"COVER",about_club:"ABOUT THE CLUB",achievements:"ACHIEVEMENTS",audience_reach:"AUDIENCE AND REACH",packages:"SPONSORSHIP PACKAGES",benefits:"BENEFITS",investment:"INVESTMENT",terms:"TERMS",next_steps:"NEXT STEPS / CONTACT"};
 const proposalFactKeys={about_club:"fact_history",achievements:"fact_achievements",audience_reach:"fact_reach"};
 const proposalFieldNames=["proposal_name","sponsor_name","contact_person","package_name","benefits","amount","duration","club_contact","date"];
-function cleanProposalBenefits(value,packageBenefits){
+function cleanProposalBenefits(value){
  let s=String(value||"");
  s=s.replace(/^\s*Suggested benefits for the .*? type:\s*$/gim,"");
- s=s.replace(/\{benefits\}/g,packageBenefits||"[Describe agreed benefits]");
  return s.replace(/\n{3,}/g,"\n\n").trim();
 }
 function proposalValues(f){
@@ -140,7 +139,7 @@ function applyProposalTemplate(f,template,confirmReplace){
  const sections={};
  for(const key of proposalSectionOrder){
   let value=String((template.sections||{})[key]||"");
-  if(key==="benefits")value=cleanProposalBenefits(value,proposalValues(f).benefits);
+  if(key==="benefits")value=cleanProposalBenefits(value);
   sections[key]=value;
  }
  f.querySelector('[name="fact_history"]').value=sections.about_club;
