@@ -295,7 +295,7 @@ begin
  elsif p_action='lost' then
   update public.kit_items set quantity_usable=quantity_usable-p_quantity,quantity_missing=quantity_missing+p_quantity,updated_by=auth.uid() where id=p_kit_item_id;
  elsif p_action='damaged' then
-  update public.kit_items set quantity_usable=quantity_usable-p_quantity,quantity_damaged=quantity_damaged+p_quantity,status=case when quantity_usable-p_quantity=0 and quantity_damaged+p_quantity>0 then 'needs_repair' else status end,updated_by=auth.uid() where id=p_kit_item_id;
+  update public.kit_items set quantity_usable=quantity_usable-p_quantity,quantity_damaged=quantity_damaged+p_quantity,status='needs_repair',updated_by=auth.uid() where id=p_kit_item_id;
  elsif p_action='repaired' then
   if v_item.quantity_damaged<p_quantity then raise exception 'Repair quantity exceeds damaged stock'; end if;
   update public.kit_items set quantity_damaged=quantity_damaged-p_quantity,quantity_usable=quantity_usable+p_quantity,status=case when status='needs_repair' then 'fair' else status end,updated_by=auth.uid() where id=p_kit_item_id;
