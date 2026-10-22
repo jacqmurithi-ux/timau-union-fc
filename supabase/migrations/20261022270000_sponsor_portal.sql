@@ -109,7 +109,7 @@ create or replace function public.sponsor_lead_get_links()
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 begin
- if auth.uid() is null or not private.can_access_sponsor_workspace('sponsor_lead') then
+ if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then
    raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501';
  end if;
  return coalesce((select jsonb_agg(jsonb_build_object(
@@ -129,7 +129,7 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare v_actor uuid:=auth.uid(); v_roles text[]; v_link_id uuid; v_old jsonb; v_new jsonb;
 begin
- if v_actor is null or not private.can_access_sponsor_workspace('sponsor_lead') then
+ if v_actor is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then
    raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501';
  end if;
  if _user_id is null or _user_id=v_actor then raise exception 'Choose a different sponsor account' using errcode='22023'; end if;
@@ -297,7 +297,7 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare v_edit private.sponsor_profile_edits%rowtype; v_admin boolean; v_record private.club_records%rowtype; v_old jsonb;
 begin
- if auth.uid() is null or not private.can_access_sponsor_workspace('sponsor_lead') then raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501'; end if;
+ if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501'; end if;
  if _decision not in ('approved','declined') then raise exception 'Invalid decision'; end if;
  if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Review reason required'; end if;
  select * into v_edit from private.sponsor_profile_edits where id=_edit_id for update;
