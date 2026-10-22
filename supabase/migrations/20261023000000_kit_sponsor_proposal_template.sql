@@ -130,7 +130,7 @@ begin
   insert into private.sponsor_workspace_audit
     (actor_user_id,record_table,record_id,action_key,after_data,reason)
   values
-    (seed_user,'sponsor_proposal_templates',seed_id,'template_seeded',
+    (null,'sponsor_proposal_templates',seed_id,'template_seeded',
      jsonb_build_object('name','Kit Sponsor Proposal','template_kind','kit_sponsor','status','draft','is_starter',true,'sections',seed_sections),
      'One-time idempotent starter seed. No unverified figures or achievements have been added.');
 end
