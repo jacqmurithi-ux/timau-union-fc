@@ -84,6 +84,32 @@ create trigger validate_home_attendance_fixture
 before insert or update of fixture_id, attendance_count, notes on public.match_attendance
 for each row execute function private.validate_home_attendance_fixture();
 
+
+create or replace function private.guard_attendance_fixture_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.record_type = 'fixture'
+     and exists (select 1 from public.match_attendance a where a.fixture_id = new.id)
+     and (
+       (lower(coalesce(new.data->>'match_type','')) not in ('home','home match')
+         and lower(coalesce(new.data->>'is_home','false')) not in ('true','1','yes'))
+       or lower(coalesce(new.data->>'match_status',new.data->>'status','')) <> 'completed'
+     ) then
+    raise exception 'A fixture with recorded attendance must remain a completed home match; remove attendance before changing its status or venue type';
+  end if;
+  return new;
+end;
+$;
+revoke all on function private.guard_attendance_fixture_update() from public, anon, authenticated;
+drop trigger if exists guard_attendance_fixture_update on private.club_records;
+create trigger guard_attendance_fixture_update
+before update of data, record_type on private.club_records
+for each row execute function private.guard_attendance_fixture_update();
+
 create or replace view public.home_attendance_monthly as
 with completed_home as (
   select c.id, nullif(c.data->>'match_date','')::date as match_date
