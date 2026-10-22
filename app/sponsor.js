@@ -4,7 +4,8 @@ const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g
 let data={},active="partnership";
 const tabs=[["partnership","My partnership"],["agreement","My agreement"],["contributions","My contributions"],["benefits","Benefits delivered"],["updates","Updates"],["media","Sponsor media"],["requests","Requests"],["report","My report"],["details","My details"]];
 const note=(s,kind="info")=>{$("notice").textContent=s;$("notice").dataset.kind=kind};
-const money=n=>"KES "+Number(n||0).toLocaleString("en-KE",{maximumFractionDigits:2});\nconst numAttendance=n=>Number(n).toLocaleString("en-KE",{maximumFractionDigits:1});
+const money=n=>"KES "+Number(n||0).toLocaleString("en-KE",{maximumFractionDigits:2});
+const numAttendance=n=>Number(n).toLocaleString("en-KE",{maximumFractionDigits:1});
 const date=d=>d?new Date(String(d).slice(0,10)+"T00:00:00").toLocaleDateString("en-KE",{day:"numeric",month:"short",year:"numeric"}):"Not set";
 const safeUrl=v=>{try{const u=new URL(String(v||""),location.href);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return ""}};
 const card=(title,body,meta="")=>`<article class="sp-card"><div class="sp-row"><h2>${esc(title)}</h2>${meta?`<span class="sp-status">${esc(meta)}</span>`:""}</div>${body}</article>`;
