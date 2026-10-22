@@ -197,7 +197,7 @@ if(f.dataset.table==="sponsor_proposal"){
  const prospect=(data.prospects||[]).find(x=>x.id===fd.get("prospect_id")),pack=(data.packages||[]).find(x=>x.id===fd.get("package_id")),template=(data.proposal_templates||[]).find(x=>x.id===fd.get("template_id"));
  const proposalName=String(fd.get("title")||"").trim();if(!proposalName){note("Enter a proposal name before saving.","error");f.querySelector("[name=title]").focus();return;}const fields={proposal_name:proposalName,sponsor_name:prospect?.sponsor_name||"",contact_person:prospect?.contact_person||"",package_name:pack?.name||"",benefits:pack?.benefits||"",amount:fd.get("amount_kes")||"[Enter proposed amount]",duration:fd.get("duration")||"[Enter duration]",club_contact:fd.get("club_contact")||"[Enter official club contact]",date:new Date().toISOString().slice(0,10)};
  let body=String(fd.get("content_html")||"");
- if(!body.trim()&&template)body=Object.entries(template.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\\n"+String(v)).join("\\n\\n");
+ if(!body.trim()&&template)body=proposalSectionOrder.map(k=>proposalSectionLabels[k]+"\\n"+(k==="benefits"?cleanProposalBenefits(template.sections?.[k]||""):String(template.sections?.[k]||""))).join("\\n\\n");
  body=body.replace(/\{(proposal_name|sponsor_name|contact_person|package_name|benefits|amount|duration|club_contact|date)\}/g,(_,k)=>String(fields[k]));
  const fullText="TIMAU UNION FC\n"+fd.get("title")+"\n\n"+body;
  const safeHtml=fullText.split(/\n{2,}/).map(part=>"<p>"+esc(part).replace(/\n/g,"<br>")+"</p>").join("");
