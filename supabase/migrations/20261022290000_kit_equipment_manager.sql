@@ -127,12 +127,12 @@ begin
  end if;
  if new.quantity_usable+new.quantity_damaged+new.quantity_missing>new.quantity_total then raise exception 'Usable + damaged + missing cannot exceed total'; end if;
  new.updated_at:=now(); new.updated_by:=auth.uid();
- if v_coach and not v_manager and coalesce(current_setting('app.kit_manual_movement',true),'false') <> 'true' then
+ if v_coach and coalesce(current_setting('app.kit_manual_movement',true),'false') <> 'true' then
   v_qty:=greatest(1,abs(new.quantity_missing-old.quantity_missing),abs(new.quantity_damaged-old.quantity_damaged),abs(new.quantity_usable-old.quantity_usable));
   if new.quantity_missing>old.quantity_missing then v_action:='lost';
   elsif new.quantity_damaged>old.quantity_damaged or new.status in ('needs_repair','unusable') and old.status is distinct from new.status then v_action:='damaged';
   elsif new.quantity_damaged<old.quantity_damaged or old.status in ('needs_repair','unusable') and new.status in ('good','fair') then v_action:='repaired';
-  else v_action:='returned'; end if;
+  elsif new.quantity_usable<old.quantity_usable then v_action:='issued';\n  elsif new.quantity_usable>old.quantity_usable then v_action:='returned';\n  else v_action:='returned'; end if;
   insert into public.kit_movements(kit_item_id,action,quantity,recorded_by,notes)
   values(old.id,v_action,v_qty,auth.uid(),'Automatic audit from coach kit update.');
  end if;
