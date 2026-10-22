@@ -200,3 +200,39 @@ Two forward migrations have been added after the original eight files, as separa
 A subsequent static review replaced direct policy subqueries against `private.sponsor_agreements` with `private.can_access_sponsor_agreement_object(text,text)`, a fixed-search-path `SECURITY DEFINER` helper that returns only a boolean decision. It validates the first path segment as a UUID, checks the agreement exists, and applies operation-specific roles. This avoids relying on authenticated users having direct table access inside policy expressions.
 
 This remains **unexecuted candidate SQL**. The helper's effective privileges, function ownership, role helpers, all permissive policies on `storage.objects`, and signed-URL behavior must be validated against the target schema before release. The migration's `grant usage on schema private to authenticated` should be reviewed against the repository's baseline privilege model; it is not a substitute for table-level least privilege.
+
+## Follow-up release blocker review — 2026-10-22
+
+### Current branch state
+
+- PR #42 remains open, draft, and unmerged.
+- Added candidate migration `20261022238000_sponsor_proposal_immutability_and_version_integrity.sql` at commit `01a99fb609bdf9b71130791f7c2f275848d76701`.
+- The migration adds a unique `(proposal_id, version_no)` index, a trigger blocking UPDATE/DELETE of accepted proposals, and a version trigger that locks the parent proposal and prevents version changes for accepted proposals. This is source-level candidate SQL only; it has not been executed. Before testing, verify the base tables' exact columns and constraints and confirm the unique index can be created against the full fresh chain.
+- The save RPC already takes `FOR UPDATE` on an existing proposal before allocating the next version; the new version trigger additionally serializes version writes by locking the parent proposal. Concurrent save tests are still required, including duplicate-key/retry behavior and status changes racing with saves.
+
+### Read-only Storage policy inspection
+
+A read-only query of the current production `storage.objects` policies returned the existing gallery, homepage hero, Secretary documents, and Treasurer receipts policies. Their displayed predicates scope operations to their own bucket IDs (`fans-gallery`, `homepage-hero`, `secretary-official-documents`, `secretary-restricted-documents`, and `club-financial-receipts`). No policy in this result referenced `sponsor-agreements`. This is useful evidence that the currently observed policies are bucket-scoped, but does not prove no future/broader policy exists or that the proposed migration's effective policies behave correctly after installation. PostgreSQL permissive policies OR together, so re-check the complete policy set after replay in the test environment.
+
+### Storage helper privilege finding
+
+The production catalog query for `private.can_access_sponsor_agreement_object(text,text)` returned no rows, as expected because the candidate migration has not been applied there. Therefore the helper's owner, SECURITY DEFINER effective privileges, ACL, and schema-usage implications cannot be confirmed from production. The migration currently grants `USAGE ON SCHEMA private` to all `authenticated` users, which broadens namespace access relative to a least-privilege baseline. Do not assume this is harmless: inventory existing `private` schema grants and object grants in the test database, then choose a narrow policy-function placement/grant strategy that works with Postgres schema resolution without exposing private tables. Keep direct table privileges revoked.
+
+### CI check
+
+For the previously reviewed head `6205758bf725a88d88671bd2c6750cce936b4c44`, GitHub reported no commit status entries and only two PR-triggered workflow runs in the connector result: Treasurer workspace validation and Homepage hero validation, both successful. Neither result is Sponsor Lead SQL replay, Storage policy validation, role matrix, proposal concurrency, or immutability evidence. Recheck the latest head after all commits; a green unrelated workflow is not a Sponsor Lead release pass.
+
+### Test-environment gate
+
+The connected Supabase account lists a separate project named `Union Test` (`dzpquzfghapjodmrmavw`) as well as production (`owvvimydkjsjlrmnzvdi`). This confirms a candidate test project exists, but does not establish that it is disposable, resettable, isolated from real users/data, or authorized for a persistent full-chain install. No migration or test write was run in either project during this pass. The full ordered chain and role-by-role Storage tests remain pending until the test project's safety and authorization are confirmed.
+
+### Remaining release blockers
+
+- [ ] Verify all `private` schema and helper-function ACLs in Union Test; revise the broad schema `USAGE` grant if possible without breaking policy evaluation.
+- [ ] Replay all eleven candidate migrations from a clean, explicitly authorized test database, checking filename version ordering/runner compatibility and migration dependencies.
+- [ ] Test Storage read/upload/update/delete for Sponsor Lead, Chairman, Treasurer, platform admin, Secretary, Media Team, Player/Supporter, and anonymous users; include cross-agreement path attempts and signed URL issuance/expiry.
+- [ ] Test two simultaneous saves to the same proposal, version-number uniqueness, save-vs-accept race, accepted proposal UPDATE/DELETE attempts through every available RPC/direct table path, and version-row UPDATE/DELETE attempts.
+- [ ] Review the new trigger behavior with proposal status transition RPC and ensure all relevant table/function grants, trigger ownership and SECURITY DEFINER execution context are correct.
+- [ ] Recheck CI on the current head and obtain SQL replay, role matrix, browser and release evidence specific to Sponsor Lead.
+
+**Release decision: NO-GO.** No production changes, migrations, merges, or deployments were made. The new migration is a candidate, not verified protection until tested against the complete schema and every write path.
