@@ -193,7 +193,7 @@ grant execute on function public.sponsor_proposal_save(uuid,uuid,uuid,uuid,text,
 create or replace function public.sponsor_proposal_set_status(_id uuid,_status text,_reason text default null)
 returns void language plpgsql security definer set search_path=''
 as $$
-declare r text[]; admin boolean; chairman boolean; old_j jsonb; new_j jsonb;
+declare r text[]; admin boolean; chairman boolean; old_j jsonb; new_j jsonb; rid uuid;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid()); chairman:=admin or 'chairman'=any(r);
