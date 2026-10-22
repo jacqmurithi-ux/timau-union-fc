@@ -163,3 +163,33 @@ The settings RPC validates seven weights summing to 100, while evaluation scorin
 ## Revised release gate
 
 **NO-GO remains in effect.** Before any production change, correct or explicitly approve the sent/declined proposal edit semantics, make proposal version allocation concurrency-safe, establish database-wide accepted-proposal immutability, strengthen agreement matching, and complete the Storage policy contract. Then produce test evidence for the complete ordered migration chain and the role/security matrix. This review made no database writes.
+
+
+## Follow-up corrective candidates (not runtime-verified)
+
+Two forward migrations have been added after the original eight files, as separate commits on `feature/sponsor-lead-workspace`.
+
+### 9. `20261022236000_sponsor_acceptance_no_ambiguous_agreement_match.sql`
+
+- Replaces `public.sponsor_proposal_set_status(uuid,text,text)` with the same role checks, state machine, audit logging and function grants.
+- Removes automatic lookup by sponsor name/package.
+- On acceptance, creates a new draft agreement associated with the accepted proposal for explicit human review rather than silently reusing an existing agreement.
+- This is a safety-first interim rule, not an explicit agreement-picker UI. If the business requires selecting an existing agreement, add a separate authenticated, role-guarded linking RPC with eligibility checks and audit logging.
+- Still requires tests for duplicate sponsor/package records, expired/closed agreements, repeated acceptance, rollback behavior, and concurrent status calls.
+
+### 10. `20261022237000_sponsor_agreement_storage_policies.sql`
+
+- Adds explicit `storage.objects` policies scoped to bucket `sponsor-agreements`.
+- Requires the first path segment to be a UUID for an existing sponsor agreement.
+- Allows read access to Sponsor Lead/Chairman/admin and Treasurer/finance roles through the existing helper; upload/update to Sponsor Lead/Chairman/admin; delete to Chairman/admin.
+- The current upload code uses `<agreement UUID>/<random UUID>-<filename>`, which matches the first-segment contract.
+- The policies do not make the bucket public; the base migration sets `public=false`.
+
+**Important Storage caveat:** PostgreSQL permissive RLS policies combine with OR. These new policies do not override or neutralize any other permissive policy that may also match `storage.objects`. Before release, inspect the exact installed policy expressions and prove every other policy is bucket-scoped so none grants access to `sponsor-agreements` unintentionally. Also test signed URL issuance and use, since an already-issued signed URL may remain usable until expiry according to Storage behavior.
+
+### Evidence and release status
+
+- Both files are source-level corrective candidates only; no SQL execution or authenticated Storage test was run by this update.
+- The complete ten-migration ordered chain still needs a clean replay in an explicitly authorized disposable environment.
+- No production migration, data change, merge, or deployment occurred.
+- Release remains **NO-GO** until SQL parsing/replay, role-matrix tests, bucket policy interaction tests, signed-URL tests, agreement lifecycle/concurrency tests, and the previously listed proposal immutability/version-concurrency checks pass.
