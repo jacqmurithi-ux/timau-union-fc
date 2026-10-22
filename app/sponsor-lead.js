@@ -68,8 +68,8 @@ $("panel").addEventListener("change",e=>{
  const pack=(data.packages||[]).find(x=>x.id===f.elements.package_id.value);
  const fd=new FormData(f);
  const fields={proposal_name:String(fd.get("title")||"").trim()||"[Enter proposal title]",sponsor_name:prospect?.sponsor_name||"[Enter prospect name]",contact_person:prospect?.contact_person||"[Enter contact person]",package_name:pack?.name||"[Choose sponsorship package]",benefits:pack?.benefits||"[Describe agreed benefits]",amount:fd.get("amount_kes")||"[Enter proposed amount]",duration:fd.get("duration")||"[Enter duration]",club_contact:fd.get("club_contact")||"[Enter official club contact]",date:new Date().toISOString().slice(0,10)};
- let body=Object.entries(template.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\\n"+String(v||"")).join("\\n\\n");
- body=body.replace(/\\{(proposal_name|sponsor_name|contact_person|package_name|benefits|amount|duration|club_contact|date)\\}/g,(_,k)=>String(fields[k]));
+ let body=Object.entries(template.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\n"+String(v||"")).join("\n\n");
+ for(const [key,value] of Object.entries(fields))body=body.replaceAll("{"+key+"}",String(value));
  editor.value=body;
  editor.dispatchEvent(new Event("input",{bubbles:true}));
  const preview=$("proposal-live-preview");
