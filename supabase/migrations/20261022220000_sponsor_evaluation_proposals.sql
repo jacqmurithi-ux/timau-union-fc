@@ -112,7 +112,7 @@ begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
  if not (admin or 'chairman'=any(r)) then raise exception 'Chairman or admin required'; end if;
- if jsonb_typeof(_weights)<>'object' or (_weights ?| array['club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood']) is false then raise exception 'All seven weight keys are required'; end if;
+ if jsonb_typeof(_weights)<>'object' or jsonb_object_length(_weights)<>7 or not (_weights ?& array['club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood']) then raise exception 'Exactly all seven weight keys are required'; end if;
  if exists(select 1 from jsonb_each_text(_weights) x where x.key not in ('club_fit','financial_capacity','local_relevance','giving_history','decision_access','estimated_value','closing_likelihood') or x.value !~ '^[0-9]+(\\.[0-9]+)?$' or x.value::numeric<0 or x.value::numeric>100) then raise exception 'Weights must be numbers from 0 to 100'; end if;
  total:=coalesce((select sum(value::numeric) from jsonb_each_text(_weights)),0);
  if abs(total-100)>0.01 then raise exception 'Weights must total 100 percent'; end if;
@@ -240,8 +240,11 @@ begin
  if not private.sponsor_eval_can_manage() then raise exception 'Sponsor Lead, Chairman or admin required'; end if;
  if _status not in ('approved','sent','accepted','declined') then raise exception 'Invalid proposal status'; end if;
  if _status in ('approved','sent','accepted','declined') and not chairman then raise exception 'Chairman or admin approval required'; end if;
+ if admin and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Admin override reason required'; end if;
  select to_jsonb(p) into old_j from private.sponsor_proposals p where id=_id for update;
  if old_j is null then raise exception 'Proposal not found'; end if;
+ if not admin and _status='sent' and old_j->>'status'<>'approved' then raise exception 'Proposal must be approved before it can be marked sent'; end if;
+ if not admin and _status in ('accepted','declined') and old_j->>'status'<>'sent' then raise exception 'Proposal must be marked sent before recording sponsor response'; end if;
  update private.sponsor_proposals set status=_status,approved_by=case when _status='approved' then auth.uid() else approved_by end,approved_at=case when _status='approved' then now() else approved_at end,sent_at=case when _status='sent' then now() else sent_at end,sent_by=case when _status='sent' then auth.uid() else sent_by end,updated_by=auth.uid(),updated_at=now() where id=_id;
  if _status='accepted' then
    update private.sponsor_proposals p set agreement_id=coalesce(p.agreement_id,(select a.id from private.sponsor_agreements a where a.sponsor_name=(select sp.sponsor_name from private.sponsor_prospects sp where sp.id=p.prospect_id) and a.package_id is not distinct from p.package_id order by a.created_at desc limit 1)) where p.id=_id;
