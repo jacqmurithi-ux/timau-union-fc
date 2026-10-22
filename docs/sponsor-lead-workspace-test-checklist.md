@@ -18,8 +18,8 @@ The candidate migration was syntax/DDL-checked on Union Test inside a transactio
 
 ## Verification evidence (2026-10-22)
 
-- [x] Candidate migration executes on Union Test inside a transaction and rolls back cleanly.
-- [x] Sponsor Lead page JavaScript parses when treated as an ES module body.
-- [x] Shared workspace link is present and hidden by the role-visibility code unless the user has the Sponsor Lead role or admin access.
-- [ ] Authenticated role-by-role RPC and Storage tests are still required. Union Test does not currently have a dedicated Sponsor Lead test identity, so the migration rollback check must not be represented as a completed authorization test.
-- [ ] Real browser verification of upload, reminder rendering, request workflow, edit/override UX, and report output remains required.
+- [x] Base Sponsor Lead migration and evaluation/proposal migration execute together on Union Test in a transaction that was rolled back.
+- [x] Sponsor Lead JavaScript syntax passes after import declarations are removed for parser validation.
+- [ ] Authenticated role-by-role RPC and Storage tests are still required; migration execution is not authorization proof.
+- [ ] Browser verification of scoring, Chairman risk approval, proposal merge fields, verified-fact warnings, version history, print/PDF, accepted-agreement linking and reminders remains required.
+- [ ] Review stored proposal HTML for safe rendering before treating the UI as production-ready.
