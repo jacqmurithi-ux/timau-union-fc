@@ -151,19 +151,17 @@ grant execute on function public.sponsor_eval_save(uuid,jsonb,jsonb,text,text,bo
 
 create or replace function public.sponsor_template_save(_name text,_kind text,_sections jsonb)
 returns uuid language plpgsql security definer set search_path=''
-as $
+as $sponsor_template$
 declare r text[]; admin boolean; rid uuid;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
  if not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) then raise exception 'Sponsor Lead, Chairman or admin required'; end if;
  if length(btrim(coalesce(_name,'')))<2 or _kind not in ('kit_sponsor','match_day_sponsor','community_partner','custom') or jsonb_typeof(_sections)<>'object' then raise exception 'Valid template name, kind and sections required'; end if;
- insert into private.sponsor_proposal_templates(name,template_kind,sections,is_starter,created_by,updated_by)
- values(_name,_kind,_sections,false,auth.uid(),auth.uid()) returning id into rid;
- insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,after_data)
- values(auth.uid(),'sponsor_proposal_templates',rid,'template_created',jsonb_build_object('name',_name,'template_kind',_kind,'sections',_sections));
+ insert into private.sponsor_proposal_templates(name,template_kind,sections,is_starter,created_by,updated_by) values(_name,_kind,_sections,false,auth.uid(),auth.uid()) returning id into rid;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,after_data) values(auth.uid(),'sponsor_proposal_templates',rid,'template_created',jsonb_build_object('name',_name,'template_kind',_kind,'sections',_sections));
  return rid;
-end $;
+end $sponsor_template$;
 revoke all on function public.sponsor_template_save(text,text,jsonb) from public,anon;
 grant execute on function public.sponsor_template_save(text,text,jsonb) to authenticated;
 
