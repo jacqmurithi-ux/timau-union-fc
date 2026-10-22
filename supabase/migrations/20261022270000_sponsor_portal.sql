@@ -215,7 +215,7 @@ grant execute on function public.sponsor_portal_get() to authenticated;
 create or replace function private.sponsor_workspace_guard()
 returns trigger language plpgsql security definer set search_path=''
 as $
-declare admin boolean; r text[]; before_j jsonb; after_j jsonb; record_key uuid; table_key text;
+declare admin boolean; r text[]; before_j jsonb; after_j jsonb; record_key uuid; table_key text; sponsor_request_allowed boolean:=false;
 begin
  admin:=private.is_active_platform_admin(auth.uid());
  r:=private.current_club_roles();
@@ -228,7 +228,10 @@ begin
    if tg_op='UPDATE' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r) or 'treasurer'=any(r)) then raise exception 'Not authorized'; end if;
    if tg_op='UPDATE' and (new.receipt_status is distinct from old.receipt_status or new.received_amount_kes is distinct from old.received_amount_kes or new.treasurer_confirmed_by is distinct from old.treasurer_confirmed_by or new.treasurer_confirmed_at is distinct from old.treasurer_confirmed_at) and not (admin or 'treasurer'=any(r)) then raise exception 'Only Treasurer or admin can confirm received money'; end if;
  end if;
- if tg_table_name<>'sponsor_contributions' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) and not (tg_table_name='sponsor_role_requests' and tg_op='INSERT' and 'sponsor'=any(r) and new.requested_by=auth.uid() and new.sponsor_record_id=private.current_sponsor_record_id() and new.target_role='sponsor_lead' and new.status='submitted') then
+ if tg_table_name='sponsor_role_requests' and tg_op='INSERT' and 'sponsor'=any(r) then
+   sponsor_request_allowed:=new.requested_by=auth.uid() and new.sponsor_record_id=private.current_sponsor_record_id() and new.target_role='sponsor_lead' and new.status='submitted';
+ end if;
+ if tg_table_name<>'sponsor_contributions' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) and not sponsor_request_allowed then
    if tg_table_name='sponsor_role_requests' and tg_op='UPDATE' and ((new.status is distinct from old.status) and (('media_team'=any(r) and old.target_role='media_team') or ('secretary'=any(r) and old.target_role='secretary'))) then
      null;
    else raise exception 'Sponsor Lead, Chairman or admin required'; end if;
