@@ -73,6 +73,9 @@ begin
   new.updated_at := now();
   if tg_op = 'INSERT' then
     new.recorded_at := now();
+  else
+    new.recorded_by := old.recorded_by;
+    new.recorded_at := old.recorded_at;
   end if;
   return new;
 end;
