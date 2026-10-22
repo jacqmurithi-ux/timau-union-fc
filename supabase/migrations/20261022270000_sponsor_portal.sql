@@ -112,7 +112,7 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 begin
  if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then
-   raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501';
+   raise exception 'Sponsor Lead or Platform Admin required' using errcode='42501';
  end if;
  return coalesce((select jsonb_agg(jsonb_build_object(
    'id',l.id,'user_id',l.user_id,'sponsor_record_id',l.sponsor_record_id,'active',l.active,
@@ -132,7 +132,7 @@ as $$
 declare v_actor uuid:=auth.uid(); v_roles text[]; v_link_id uuid; v_old jsonb; v_new jsonb;
 begin
  if v_actor is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then
-   raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501';
+   raise exception 'Sponsor Lead or Platform Admin required' using errcode='42501';
  end if;
  if _user_id is null or _user_id=v_actor then raise exception 'Choose a different sponsor account' using errcode='22023'; end if;
  if length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000 then raise exception 'A reason of 3 to 1000 characters is required' using errcode='22023'; end if;
@@ -240,7 +240,7 @@ begin
  if tg_table_name<>'sponsor_contributions' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) and not sponsor_request_allowed then
    if tg_table_name='sponsor_role_requests' and tg_op='UPDATE' and ((new.status is distinct from old.status) and (('media_team'=any(r) and old.target_role='media_team') or ('secretary'=any(r) and old.target_role='secretary'))) then
      null;
-   else raise exception 'Sponsor Lead, Chairman or admin required'; end if;
+   else raise exception 'Sponsor Lead or Platform Admin required'; end if;
  end if;
  if tg_op='INSERT' then before_j:=null; after_j:=to_jsonb(new); record_key:=new.id;
  elsif tg_op='UPDATE' then before_j:=to_jsonb(old); after_j:=to_jsonb(new); record_key:=new.id;
@@ -272,7 +272,7 @@ begin
  select u.id,v_record,v_id,'sponsor_request','New sponsor request: '||btrim(_title),
    'A linked sponsor submitted a '||_type||' request.'
  from auth.users u
- where exists(select 1 from private.role_assignments r where r.user_id=u.id and r.active and r.role_key in ('sponsor_lead','chairman'))
+ where exists(select 1 from private.role_assignments r where r.user_id=u.id and r.active and r.role_key='sponsor_lead')
  or private.is_active_platform_admin(u.id);
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,after_data)
  values(v_user,'sponsor_role_requests',v_id,'sponsor_submitted_request',jsonb_build_object('sponsor_record_id',v_record,'request_type',_type,'title',_title));
@@ -307,7 +307,7 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare v_edit private.sponsor_profile_edits%rowtype; v_admin boolean; v_record private.club_records%rowtype; v_old jsonb;
 begin
- if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then raise exception 'Sponsor Lead, Chairman or admin required' using errcode='42501'; end if;
+ if auth.uid() is null or not (private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles())) then raise exception 'Sponsor Lead or Platform Admin required' using errcode='42501'; end if;
  if _decision not in ('approved','declined') then raise exception 'Invalid decision'; end if;
  if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Review reason required'; end if;
  select * into v_edit from private.sponsor_profile_edits where id=_edit_id for update;
