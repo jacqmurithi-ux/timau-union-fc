@@ -79,6 +79,8 @@ as $$
   select l.sponsor_record_id
   from private.sponsor_user_links l
   join private.club_records c on c.id=l.sponsor_record_id
+  join private.account_access aa on aa.user_id=l.user_id and aa.status='approved'
+  join auth.users u on u.id=l.user_id and u.email_confirmed_at is not null
   where l.user_id=auth.uid() and l.active
     and c.record_type='sponsor' and c.publication_status='approved'
   limit 1
@@ -136,6 +138,10 @@ begin
  if length(btrim(coalesce(_reason,'')))<3 or length(_reason)>1000 then raise exception 'A reason of 3 to 1000 characters is required' using errcode='22023'; end if;
  select coalesce(array_agg(role_key),array[]::text[]) into v_roles from private.role_assignments where user_id=_user_id and active;
  if not ('sponsor'=any(v_roles)) then raise exception 'Target account must have the Sponsor role' using errcode='22023'; end if;
+ if not exists(select 1 from private.account_access aa join auth.users u on u.id=aa.user_id
+   where aa.user_id=_user_id and aa.status='approved' and u.email_confirmed_at is not null) then
+   raise exception 'Target account must be email-verified and approved' using errcode='22023';
+ end if;
  select to_jsonb(l) into v_old from private.sponsor_user_links l where l.user_id=_user_id and l.active for update;
  if not _link then
    if v_old is null then raise exception 'No active sponsor link exists for this user'; end if;
