@@ -23,6 +23,8 @@ create table if not exists private.sponsor_prospect_evaluations (
  restricted_category boolean not null default false, restricted_notes text not null default '',
  youth_risk boolean not null default false, youth_notes text not null default '',
  decision text not null default 'hold' check(decision in ('pursue','hold','decline')),
+ requested_decision text check(requested_decision in ('pursue','hold','decline')),
+ approval_requested boolean not null default false,
  decision_reason text not null default '',
  chairman_approved_by uuid references auth.users(id), chairman_approved_at timestamptz,
  evaluated_by uuid not null references auth.users(id), evaluated_at timestamptz not null default now(),
@@ -140,14 +142,33 @@ begin
  score:=round((score/(5*total_weight))*100,2);
  band:=case when score>=75 then 'strong' when score>=50 then 'medium' else 'weak' end;
  risk:=coalesce((_risks->>'reputation_risk')::boolean,false) or coalesce((_risks->>'sponsor_conflict')::boolean,false) or coalesce((_risks->>'restricted_category')::boolean,false) or coalesce((_risks->>'youth_risk')::boolean,false);
- if _decision='pursue' and risk and not chairman then raise exception 'Risk-flagged prospect requires Chairman approval before pursuing'; end if;
+ if exists(select 1 from private.sponsor_prospects p cross join private.sponsor_evaluation_settings s where p.id=_prospect_id and s.id=true and lower(p.sponsor_category)=any(select lower(x) from unnest(s.restricted_categories) x)) then risk:=true; end if;
+
  insert into private.sponsor_prospect_evaluations(prospect_id,scores,weights,weighted_score,rating_band,reputation_risk,reputation_notes,sponsor_conflict,conflict_notes,restricted_category,restricted_notes,youth_risk,youth_notes,decision,decision_reason,chairman_approved_by,chairman_approved_at,evaluated_by)
- values(_prospect_id,_scores,w,score,band,coalesce((_risks->>'reputation_risk')::boolean,false),coalesce(_risks->>'reputation_notes',''),coalesce((_risks->>'sponsor_conflict')::boolean,false),coalesce(_risks->>'conflict_notes',''),coalesce((_risks->>'restricted_category')::boolean,false),coalesce(_risks->>'restricted_notes',''),coalesce((_risks->>'youth_risk')::boolean,false),coalesce(_risks->>'youth_notes',''),_decision,coalesce(_reason,''),case when _decision='pursue' and risk and chairman then auth.uid() end,case when _decision='pursue' and risk and chairman then now() end,auth.uid()) returning id into rid;
+ values(_prospect_id,_scores,w,score,band,coalesce((_risks->>'reputation_risk')::boolean,false),coalesce(_risks->>'reputation_notes',''),coalesce((_risks->>'sponsor_conflict')::boolean,false),coalesce(_risks->>'conflict_notes',''),coalesce((_risks->>'restricted_category')::boolean,false) or exists(select 1 from private.sponsor_prospects p cross join private.sponsor_evaluation_settings s where p.id=_prospect_id and s.id=true and lower(p.sponsor_category)=any(select lower(x) from unnest(s.restricted_categories) x)),coalesce(_risks->>'restricted_notes',''),coalesce((_risks->>'youth_risk')::boolean,false),coalesce(_risks->>'youth_notes',''),case when _decision='pursue' and risk and not chairman then 'hold' else _decision end,case when _decision='pursue' and risk and not chairman then 'pursuit requested; Chairman approval required. '||coalesce(_reason,'') else coalesce(_reason,'') end,case when _decision='pursue' and risk and not chairman then 'pursue' end,(_decision='pursue' and risk and not chairman),case when _decision='pursue' and risk and chairman then auth.uid() end,case when _decision='pursue' and risk and chairman then now() end,auth.uid()) returning id into rid;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,after_data,reason) values(auth.uid(),'sponsor_prospect_evaluations',rid,'evaluation_created',jsonb_build_object('prospect_id',_prospect_id,'scores',_scores,'weights',w,'weighted_score',score,'rating_band',band,'risks',_risks,'decision',_decision),_reason);
  return rid;
 end $$;
 revoke all on function public.sponsor_eval_save(uuid,jsonb,jsonb,text,text,boolean) from public,anon;
 grant execute on function public.sponsor_eval_save(uuid,jsonb,jsonb,text,text,boolean) to authenticated;
+
+create or replace function public.sponsor_eval_approve_risky(_evaluation_id uuid,_approve boolean,_reason text)
+returns void language plpgsql security definer set search_path=''
+as $sponsor_approval$
+declare r text[]; admin boolean; old_j jsonb; new_j jsonb;
+begin
+ if auth.uid() is null then raise exception 'Authentication required'; end if;
+ r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
+ if not (admin or 'chairman'=any(r)) then raise exception 'Chairman or admin required'; end if;
+ if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Approval/decline reason required'; end if;
+ select to_jsonb(e) into old_j from private.sponsor_prospect_evaluations e where id=_evaluation_id for update;
+ if old_j is null or coalesce((old_j->>'approval_requested')::boolean,false) is not true then raise exception 'No pending risk approval found'; end if;
+ update private.sponsor_prospect_evaluations set decision=case when _approve then 'pursue' else 'hold' end,decision_reason=coalesce(old_j->>'decision_reason','')||' | Chairman: '||_reason,approval_requested=false,chairman_approved_by=case when _approve then auth.uid() end,chairman_approved_at=case when _approve then now() end where id=_evaluation_id;
+ select to_jsonb(e) into new_j from private.sponsor_prospect_evaluations e where id=_evaluation_id;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason) values(auth.uid(),'sponsor_prospect_evaluations',_evaluation_id,case when admin then 'admin_override' else 'chairman_risk_decision' end,old_j,new_j,_reason);
+end $sponsor_approval$;
+revoke all on function public.sponsor_eval_approve_risky(uuid,boolean,text) from public,anon;
+grant execute on function public.sponsor_eval_approve_risky(uuid,boolean,text) to authenticated;
 
 create or replace function public.sponsor_template_save(_name text,_kind text,_sections jsonb)
 returns uuid language plpgsql security definer set search_path=''
