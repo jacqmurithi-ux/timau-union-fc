@@ -14,8 +14,10 @@ begin
     join private.account_access aa on aa.user_id=u.id and aa.status='approved'
     left join private.sponsor_user_links l on l.user_id=u.id and l.active
     where u.email_confirmed_at is not null),'[]'::jsonb),
-  'sponsors',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.data->>'name','details',c.data->>'details')
+  'sponsors',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.data->>'name','details',c.data->>'details',
+    'logo_url',c.data->>'logo_url','contact_person',d.contact_person,'contact_email',d.contact_email,'contact_phone',d.contact_phone)
     order by c.data->>'name') from private.club_records c
+    left join private.sponsor_private_details d on d.sponsor_record_id=c.id
     where c.record_type='sponsor' and c.publication_status='approved'),'[]'::jsonb),
   'profile_edits',coalesce((select jsonb_agg(jsonb_build_object('id',e.id,'sponsor_record_id',e.sponsor_record_id,
     'sponsor_name',c.data->>'name','requested_by',e.requested_by,'company_name',e.company_name,
