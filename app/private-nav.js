@@ -45,7 +45,7 @@ const sections=[
  {label:"Activities",type:"activity",roles:["team_manager","secretary"]}
 ];
 const pages=[
- {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","vice_chairman","player_welfare"],admin:true},
+ {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","player_welfare"],admin:true},
  {label:"Coach workspace",href:"coach.html",roles:["coach"]},
  {label:"Secretary workspace",href:"secretary.html",roles:["secretary"]},
  {label:"Treasurer workspace",href:"treasurer.html",roles:["treasurer","chairman","secretary","vice_chairman","sponsor","sponsor_lead","team_manager","coach","player"]},
@@ -60,11 +60,21 @@ function currentPage(){return location.pathname.split("/").pop()||"workspace.htm
 function buildTabs(roles,isAdmin,isPlatformAdmin){
  const main=$("main");if(!main)return;
  const current=currentPage(),isWorkspace=current==="workspace.html";
+ const canUseWorkspace=()=>{
+  if(isPlatformAdmin||roles.has("chairman"))return true;
+  if(roles.has("sponsor"))return false;
+  if(roles.has("coach")&&!roles.has("team_manager")&&!roles.has("secretary")&&!roles.has("treasurer")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare"))return false;
+  if(roles.has("media_team")&&roles.size===1)return false;
+  if(roles.has("sponsor_lead")&&roles.size===1)return false;
+  if(roles.has("treasurer")&&!roles.has("secretary")&&!roles.has("team_manager")&&!roles.has("coach")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare")&&!roles.has("player"))return false;
+  return roles.has("team_manager")||roles.has("secretary")||roles.has("player_welfare")||roles.has("coach")||roles.has("media_team")||roles.has("sponsor_lead")||roles.has("treasurer");
+ };
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Private workspace navigation");
  const allowed=(entry)=>{
   if(entry.href==="sponsor.html")return roles.has("sponsor");
   if(entry.href==="sponsor-links.html")return roles.has("sponsor_lead")||isAdmin;
   if(entry.href==="workspace.html"){
+   if(!canUseWorkspace())return false;
    if(roles.has("sponsor")&&!isPlatformAdmin)return false;
    if(roles.has("coach")&&!isPlatformAdmin&&!roles.has("team_manager")&&!roles.has("chairman")&&!roles.has("secretary")&&!roles.has("treasurer")&&!roles.has("media_team")&&!roles.has("sponsor_lead")&&!roles.has("player_welfare"))return false;
    if(roles.has("media_team")&&roles.size===1&&!isPlatformAdmin)return false;
@@ -73,7 +83,7 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
   }
   return isAdmin||entry.roles.some(r=>roles.has(r));
  };
- if(isWorkspace){
+ if(isWorkspace&&canUseWorkspace()){
   const currentType=new URLSearchParams(location.search).get("type")||"player";
   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(tab(s.label,s.type,currentType===s.type));
  }
@@ -89,7 +99,7 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
   nav.append(link(p.label,href,current===target));
  }
  // Section tabs on the Club workspace page are handled in place by workspace.js.
- if(isWorkspace){
+ if(isWorkspace&&canUseWorkspace()){
   nav.querySelectorAll("button[data-nav-type]").forEach(b=>b.addEventListener("click",()=>{
    const local=document.querySelector('.ws-tabs [data-type="'+b.dataset.navType+'"]');
    if(local&&!local.classList.contains("ws-hidden")){
