@@ -34,7 +34,7 @@ begin
  if not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) then raise exception 'Sponsor Lead, Chairman or admin required'; end if;
  if length(btrim(coalesce(_name,'')))<2 or _kind not in ('kit_sponsor','match_day_sponsor','community_partner','custom') or jsonb_typeof(_sections)<>'object' then raise exception 'Valid template name, kind and sections required'; end if;
  if lower(btrim(_name)) in ('kit sponsor proposal','match day sponsor proposal','community partner proposal') and not (admin or 'sponsor_lead'=any(r)) then
-   raise exception 'Only Sponsor Lead or admin can create the Kit Sponsor Proposal or Match Day Sponsor Proposal template';
+   raise exception 'Only Sponsor Lead or admin can create these restricted starter templates';
  end if;
  insert into private.sponsor_proposal_templates(name,template_kind,sections,is_starter,status,created_by,updated_by)
  values(_name,_kind,_sections,false,'draft',auth.uid(),auth.uid()) returning id into rid;
