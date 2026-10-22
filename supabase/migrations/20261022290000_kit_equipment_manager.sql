@@ -258,11 +258,11 @@ begin
  if tg_table_name='kit_movements' and new.action in ('lost','damaged') then
   insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.kit_item_id,case when new.action='lost' then 'missing' else 'damaged' end,case when new.action='lost' then 'Kit reported lost ('||new.quantity||').' else 'Kit reported damaged ('||new.quantity||').' end);
  elsif tg_table_name='kit_items' then
-  if new.status='unusable' then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.id,'unusable','Item marked unusable: '||new.name||'.'); end if;
-  if new.quantity_missing>0 then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.id,'missing','Missing quantity reported for '||new.name||': '||new.quantity_missing||'.'); end if;
+  if new.status='unusable' and not exists(select 1 from public.kit_alerts a where a.kit_item_id=new.id and a.alert_type='unusable' and a.resolved_at is null) then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.id,'unusable','Item marked unusable: '||new.name||'.'); end if;
+  if new.quantity_missing>0 and not exists(select 1 from public.kit_alerts a where a.kit_item_id=new.id and a.alert_type='missing' and a.resolved_at is null) then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.id,'missing','Missing quantity reported for '||new.name||': '||new.quantity_missing||'.'); end if;
  elsif tg_table_name='first_aid_items' then
-  if new.current_qty<new.required_qty then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.kit_item_id,'first_aid_incomplete','First aid item below required quantity: '||new.item_name||'.'); end if;
-  if new.expiry_date is not null and new.expiry_date<current_date then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.kit_item_id,'first_aid_expired','Expired first aid item: '||new.item_name||'.'); end if;
+  if new.current_qty<new.required_qty and not exists(select 1 from public.kit_alerts a where a.kit_item_id=new.kit_item_id and a.alert_type='first_aid_incomplete' and a.message like '%'||new.item_name||'%' and a.resolved_at is null) then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.kit_item_id,'first_aid_incomplete','First aid item below required quantity: '||new.item_name||'.'); end if;
+  if new.expiry_date is not null and new.expiry_date<current_date and not exists(select 1 from public.kit_alerts a where a.kit_item_id=new.kit_item_id and a.alert_type='first_aid_expired' and a.message like '%'||new.item_name||'%' and a.resolved_at is null) then insert into public.kit_alerts(kit_item_id,alert_type,message) values(new.kit_item_id,'first_aid_expired','Expired first aid item: '||new.item_name||'.'); end if;
  end if;
  return new;
 end; $$;
@@ -289,6 +289,7 @@ begin
  if auth.uid() is null or not coalesce(private.kit_is_writer(),false) then raise exception 'You cannot record kit movements'; end if;
  if p_quantity is null or p_quantity<1 then raise exception 'Quantity must be a positive whole number'; end if;
  if p_action not in ('issued','returned','lost','damaged','repaired','replaced') then raise exception 'Invalid movement action'; end if;
+ if p_action='replaced' and not v_manager then raise exception 'Only kit managers can record replacement stock'; end if;
  select * into v_item from public.kit_items where id=p_kit_item_id for update;
  if not found then raise exception 'Kit item not found'; end if;
  if p_action in ('issued','lost','damaged') and v_item.quantity_usable<p_quantity then raise exception 'Not enough usable quantity'; end if;
@@ -310,6 +311,8 @@ begin
  elsif p_action='repaired' then
   if v_item.quantity_damaged<p_quantity then raise exception 'Repair quantity exceeds damaged stock'; end if;
   update public.kit_items set quantity_damaged=quantity_damaged-p_quantity,quantity_usable=quantity_usable+p_quantity,status=case when status='needs_repair' then 'fair' else status end,updated_by=auth.uid() where id=p_kit_item_id;
+ elsif p_action='replaced' then
+  update public.kit_items set quantity_total=quantity_total+p_quantity,quantity_usable=quantity_usable+p_quantity,updated_by=auth.uid() where id=p_kit_item_id;
  end if;
  return v_id;
 end; $kit$;
