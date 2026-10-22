@@ -97,3 +97,11 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Browser interactions, proposal printing/PDF, and end-to-end proposal-to-agreement linking remain unverified.
 - [ ] Fresh database migration replay remains unverified after filename reconciliation.
 - [ ] Production migration, merge, and deployment have not been performed. These remain blocked on the unchecked release gates above; no private sponsor or financial data should be exposed to production until they pass.
+
+
+## Follow-up review — 2026-10-22
+
+- [x] Corrected the value ordering in `20261022231000_sponsor_evaluation_insert_alignment.sql` so the evaluation insert values align with the declared `decision, requested_decision, approval_requested, decision_reason` columns. The later receipt/evaluation correction migration already installs the aligned definition on the current Union Test database; this source fix prevents the intermediate migration from defining a broken function on fresh installs.
+- [x] Rechecked the PR's GitHub Actions runs for the latest head. At inspection, Homepage hero validation was `in_progress` and Treasurer workspace validation was `queued`; neither can be reported as passed at that point.
+- [ ] Re-run the complete migration chain on a fresh disposable database and exercise evaluation inserts for both risk-flagged Sponsor Lead submissions and Chairman decisions.
+- [ ] Complete authenticated role matrix, browser checks and confirm all required GitHub Actions checks pass before marking the PR ready or merging.
