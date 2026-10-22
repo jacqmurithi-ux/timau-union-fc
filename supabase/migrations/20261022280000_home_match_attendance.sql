@@ -90,7 +90,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if new.record_type = 'fixture'
      and exists (select 1 from public.match_attendance a where a.fixture_id = new.id)
@@ -103,7 +103,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 revoke all on function private.guard_attendance_fixture_update() from public, anon, authenticated;
 drop trigger if exists guard_attendance_fixture_update on private.club_records;
 create trigger guard_attendance_fixture_update
