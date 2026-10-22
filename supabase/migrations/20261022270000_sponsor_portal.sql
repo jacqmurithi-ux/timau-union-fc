@@ -62,8 +62,16 @@ alter table private.sponsor_role_requests drop constraint if exists sponsor_role
 alter table private.sponsor_role_requests add constraint sponsor_role_requests_request_type_check
   check(request_type in ('sponsor_post_or_graphic','letter_or_document','change','report','logo_update','meeting','other'));
 
-alter table public.social_posts add column if not exists share_with_sponsor_ids uuid[] not null default '{}'::uuid[];
-alter table public.fan_gallery add column if not exists share_with_sponsor_ids uuid[] not null default '{}'::uuid[];
+create table if not exists private.sponsor_media_shares (
+  media_table text not null check(media_table in ('social_posts','fan_gallery')),
+  media_record_id uuid not null,
+  sponsor_record_id uuid not null references private.club_records(id) on delete cascade,
+  shared_by uuid not null references auth.users(id),
+  shared_at timestamptz not null default now(),
+  primary key(media_table,media_record_id,sponsor_record_id)
+);
+alter table private.sponsor_media_shares enable row level security;
+revoke all on private.sponsor_media_shares from public, anon, authenticated;
 
 create or replace function private.current_sponsor_record_id()
 returns uuid language sql stable security definer set search_path=''
@@ -195,9 +203,9 @@ begin
    'updates',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'type',c.record_type,'data',c.data,'approved_at',c.approved_at)
     order by c.approved_at desc) from private.club_records c where c.record_type in ('fixture','news') and c.publication_status='approved'),'[]'::jsonb),
    'media_posts',coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'title',p.title,'copy_text',p.copy_text,'channel',p.channel,'planned_for',p.planned_for,'posted_at',p.posted_at,'post_url',p.post_url)
-    order by coalesce(p.posted_at,p.planned_for) desc) from public.social_posts p where p.status in ('approved','posted') and p.share_with_sponsor_ids @> array[v_record]),'[]'::jsonb),
+    order by coalesce(p.posted_at,p.planned_for) desc) from public.social_posts p where p.status in ('approved','posted') and exists(select 1 from private.sponsor_media_shares sh where sh.media_table='social_posts' and sh.media_record_id=p.id and sh.sponsor_record_id=v_record)),'[]'::jsonb),
    'media_photos',coalesce((select jsonb_agg(jsonb_build_object('id',g.id,'caption',g.caption,'image_path',g.image_path,'photo_date',g.photo_date,'alt_text',g.alt_text)
-    order by g.photo_date desc) from public.fan_gallery g where g.status='approved' and g.share_with_sponsor_ids @> array[v_record]),'[]'::jsonb),
+    order by g.photo_date desc) from public.fan_gallery g where g.status='approved' and exists(select 1 from private.sponsor_media_shares sh where sh.media_table='fan_gallery' and sh.media_record_id=g.id and sh.sponsor_record_id=v_record)),'[]'::jsonb),
    'requests',coalesce((select jsonb_agg(jsonb_build_object('id',q.id,'title',q.title,'request_type',q.request_type,'details',q.details,'status',q.status,'created_at',q.created_at)
     order by q.created_at desc) from private.sponsor_role_requests q where q.requested_by=auth.uid() and q.sponsor_record_id=v_record),'[]'::jsonb));
 end $$;
@@ -289,14 +297,16 @@ begin
    if v_old is null then raise exception 'Social post not found'; end if;
    if not admin and not ('chairman'=any(r) or (v_old->>'created_by')::uuid=auth.uid()) then raise exception 'Only the author, Media Team lead or admin may change sharing'; end if;
    if exists(select 1 from unnest(v_ids) x where not exists(select 1 from private.club_records c where c.id=x and c.record_type='sponsor' and c.publication_status='approved')) then raise exception 'Every shared sponsor must be an approved sponsor record'; end if;
-   update public.social_posts set share_with_sponsor_ids=v_ids,updated_by=auth.uid() where id=_record_id;
+   delete from private.sponsor_media_shares where media_table='social_posts' and media_record_id=_record_id;
+   insert into private.sponsor_media_shares(media_table,media_record_id,sponsor_record_id,shared_by) select 'social_posts',_record_id,x,auth.uid() from unnest(v_ids) x;
    v_new:=jsonb_build_object('share_with_sponsor_ids',v_ids);
  elsif _table='fan_gallery' then
    select to_jsonb(p) into v_old from public.fan_gallery p where p.id=_record_id for update;
    if v_old is null then raise exception 'Gallery photo not found'; end if;
    if not admin and not ('chairman'=any(r) or (v_old->>'created_by')::uuid=auth.uid()) then raise exception 'Only the author, Media Team lead or admin may change sharing'; end if;
    if exists(select 1 from unnest(v_ids) x where not exists(select 1 from private.club_records c where c.id=x and c.record_type='sponsor' and c.publication_status='approved')) then raise exception 'Every shared sponsor must be an approved sponsor record'; end if;
-   update public.fan_gallery set share_with_sponsor_ids=v_ids,updated_by=auth.uid() where id=_record_id;
+   delete from private.sponsor_media_shares where media_table='fan_gallery' and media_record_id=_record_id;
+   insert into private.sponsor_media_shares(media_table,media_record_id,sponsor_record_id,shared_by) select 'fan_gallery',_record_id,x,auth.uid() from unnest(v_ids) x;
    v_new:=jsonb_build_object('share_with_sponsor_ids',v_ids);
  else raise exception 'Unsupported media record type'; end if;
  insert into private.media_record_audit(actor_user_id,record_id,record_type,action_key,reason,is_admin_override,old_data,new_data)
