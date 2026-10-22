@@ -325,6 +325,7 @@ begin
  if length(btrim(coalesce(_reason,'')))<3 then raise exception 'Review reason required'; end if;
  select * into v_edit from private.sponsor_profile_edits where id=_edit_id for update;
  if not found then raise exception 'Profile draft not found'; end if;
+ if v_edit.status not in ('draft','submitted') then raise exception 'Only pending sponsor detail drafts can be reviewed'; end if;
  select * into v_record from private.club_records where id=v_edit.sponsor_record_id for update;
  v_old:=to_jsonb(v_record);
  select to_jsonb(d) into v_private_old from private.sponsor_private_details d where d.sponsor_record_id=v_edit.sponsor_record_id for update;
