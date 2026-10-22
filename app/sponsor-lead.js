@@ -55,26 +55,138 @@ p.innerHTML=html; }
 async function rpcWithTimeout(name,args={},timeoutMs=20000){let timer;try{return await Promise.race([db.rpc(name,args),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Database request timed out while loading "+name+". Check your connection and tap Refresh.")),timeoutMs);})]);}finally{clearTimeout(timer);}}
 async function load(){note("Loading your sponsor workspace…");try{const {data:d,error}=await rpcWithTimeout("sponsor_lead_get_workspace");if(error)throw error;data=d||{};roles=data.roles||[];isAdmin=!!data.is_admin;const {data:extra,error:extraError}=await rpcWithTimeout("sponsor_eval_get_workspace");if(!extraError&&extra){data.evaluation_settings=extra.settings||{};data.evaluations=extra.evaluations||[];data.proposal_templates=extra.templates||[];data.proposals=extra.proposals||[];data.proposal_versions=extra.proposal_versions||[];data.is_chairman=!!extra.is_chairman;}else if(extraError){console.warn("Sponsor evaluation workspace unavailable:",extraError.message);}const {data:bundle,error:bundleError}=await rpcWithTimeout("club_get_workspace_bundle");if(!bundleError&&bundle){data.public_sponsors=(bundle.records||[]).filter(r=>r.record_type==="sponsor");}else if(bundleError){console.warn("Public sponsor records unavailable:",bundleError.message);}render();note(extraError||bundleError?"Workspace loaded; some optional sections could not refresh. Use Refresh or contact an administrator if this persists.":"Sponsor workspace loaded.",extraError||bundleError?"error":"success");}catch(error){console.error("Sponsor workspace load failed:",error);note("Could not load sponsor workspace: "+(error?.message||"Unknown error")+". Tap Refresh to retry.","error");throw error;}}
 $("refresh-workspace")?.addEventListener("click",()=>load().catch(()=>{}));
-$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){active=b.dataset.tab;render();}});$("panel").addEventListener("change",e=>{if(e.target.id==="pipeline-sort"){const u=new URL(location.href);u.searchParams.set("pipelineSort",e.target.value);history.replaceState(null,"",u);render();}if(e.target.name==="template_id"||e.target.name==="prospect_id"||e.target.name==="package_id"){const f=e.target.closest("form[data-table='sponsor_proposal']");if(f){const fd=new FormData(f),t=(data.proposal_templates||[]).find(x=>x.id===fd.get("template_id")),p=(data.prospects||[]).find(x=>x.id===fd.get("prospect_id")),pack=(data.packages||[]).find(x=>x.id===fd.get("package_id"));const titleField=f.querySelector("[name=title]");const nameLabel=f.querySelector("[data-proposal-name-field]");if(nameLabel){nameLabel.childNodes[0].textContent="Proposal title";titleField.placeholder="Enter proposal title";}titleField.dataset.previousTemplateKind=t?.template_kind||"";const vals={proposal_name:custom?"{proposal_name}":(titleField.value.trim()||"{proposal_name}"),sponsor_name:p?.sponsor_name||"{sponsor_name}",contact_person:p?.contact_person||"{contact_person}",package_name:pack?.name||"{package_name}",benefits:pack?.benefits||"{benefits}",amount:fd.get("amount_kes")||"{amount}",duration:fd.get("duration")||"{duration}",club_contact:fd.get("club_contact")||"{club_contact}",date:new Date().toISOString().slice(0,10)};if(t){const text=Object.entries(t.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\n"+String(v).replace(/\{(proposal_name|sponsor_name|contact_person|package_name|benefits|amount|duration|club_contact|date)\}/g,(_,k)=>vals[k])).join("\n\n");f.elements.content_html.value=text;}const preview=$("proposal-live-preview");if(preview){const facts=[["Club history",fd.get("fact_history"),fd.get("fact_history_verified")==="true"],["Achievements",fd.get("fact_achievements"),fd.get("fact_achievements_verified")==="true"],["Audience / reach",fd.get("fact_reach"),fd.get("fact_reach_verified")==="true"]].filter(x=>x[1]).map(x=>x[0]+(x[2]?"":" — UNVERIFIED")+"\\n"+x[1]).join("\\n\\n");preview.textContent=(f.elements.content_html.value||"Enter proposal content to preview.")+(facts?"\\n\\n"+facts:"");}}}});$("panel").addEventListener("input",e=>{const templateForm=e.target.closest("form");if(templateForm&&templateForm.dataset.table==="sponsor_template"&&e.target.name?.startsWith("section_")){const field=e.target.name;if(field==="section_achievements")templateForm.querySelector("[name=verified_achievements]").checked=false;if(field==="section_audience_reach")templateForm.querySelector("[name=verified_audience_reach]").checked=false;const preview=[...templateForm.querySelectorAll("[data-placeholder-preview-for]")].find(x=>x.dataset.placeholderPreviewFor===field);if(preview)preview.innerHTML="<strong>Placeholder highlights:</strong> "+(highlightedPlaceholders(e.target.value)||"<span class=sl-meta>No bracketed placeholders in this section.</span>");const remaining=[...templateForm.querySelectorAll("textarea[name^=section_]")].reduce((n,x)=>n+placeholderCount(x.value),0);const counter=templateForm.closest("details")?.parentElement?.querySelector("[data-template-counter]");if(counter)counter.textContent=remaining+" placeholder"+(remaining===1?"":"s")+" left";}const f=e.target.closest("form[data-table='sponsor_proposal']");if(f&&(e.target.name==="content_html"||e.target.name==="title"||e.target.name.startsWith("fact_"))){const fd=new FormData(f),preview=$("proposal-live-preview");if(preview){const facts=[["Club history",fd.get("fact_history"),fd.get("fact_history_verified")==="true"],["Achievements",fd.get("fact_achievements"),fd.get("fact_achievements_verified")==="true"],["Audience / reach",fd.get("fact_reach"),fd.get("fact_reach_verified")==="true"]].filter(x=>x[1]).map(x=>x[0]+(x[2]?"":" — UNVERIFIED")+"\\n"+x[1]).join("\\n\\n");preview.textContent=(fd.get("content_html")||"Enter proposal content to preview.").replace(/\\{proposal_name\\}/g,String(fd.get("title")||"").trim()||"{proposal_name}")+(facts?"\\n\\n"+facts:"");}}});
-$("panel").addEventListener("change",e=>{const kind=e.target.closest("select[name=template_kind]");if(kind){const f=kind.closest("form[data-table=sponsor_template]");if(f&&!f.dataset.id){const input=f.querySelector("[name=name]"),label=f.querySelector("[data-template-name-field]");const custom=kind.value==="custom";label.childNodes[0].textContent=custom?"Proposal name":"Template name";input.placeholder=custom?"Enter the name of this proposal":"Enter template name";if(custom){input.value="";input.dataset.customSelected="true";}else{if(input.dataset.customSelected==="true"||!input.value.trim()||input.value.trim()===input.dataset.autoDefault){const defaults={kit_sponsor:"Kit Sponsor Proposal",match_day_sponsor:"Match Day Sponsor Proposal",community_partner:"Community Partner Proposal"};input.value=defaults[kind.value]||"";input.dataset.autoDefault=input.value;}input.dataset.customSelected="false";}}}const tid=e.target.closest("select[name=template_id]");if(tid){const f=tid.closest("form[data-table=sponsor_proposal]");if(f){const template=(data.proposal_templates||[]).find(x=>x.id===tid.value),title=f.querySelector("[name=title]"),label=f.querySelector("[data-proposal-name-field]"),custom=template?.template_kind==="custom";label.childNodes[0].textContent=custom?"Proposal name":"Proposal title";title.placeholder=custom?"Enter the name of this proposal":"Enter proposal title";if(custom){title.value="";title.dataset.previousTemplateKind="custom";}else{title.dataset.previousTemplateKind=template?.template_kind||"";}}}});
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){active=b.dataset.tab;render();}});const proposalSectionOrder=["cover","about_club","achievements","audience_reach","packages","benefits","investment","terms","next_steps"];
+const proposalSectionLabels={cover:"COVER",about_club:"ABOUT THE CLUB",achievements:"ACHIEVEMENTS",audience_reach:"AUDIENCE AND REACH",packages:"SPONSORSHIP PACKAGES",benefits:"BENEFITS",investment:"INVESTMENT",terms:"TERMS",next_steps:"NEXT STEPS / CONTACT"};
+const proposalFactKeys={about_club:"fact_history",achievements:"fact_achievements",audience_reach:"fact_reach"};
+const proposalFieldNames=["proposal_name","sponsor_name","contact_person","package_name","benefits","amount","duration","club_contact","date"];
+function cleanProposalBenefits(value){
+ let s=String(value||"");
+ s=s.replace(/^\s*Suggested benefits for the .*? type:\s*$/gim,"");
+ return s.replace(/\n{3,}/g,"\n\n").trim();
+}
+function proposalValues(f){
+ const fd=new FormData(f),prospect=(data.prospects||[]).find(x=>x.id===fd.get("prospect_id")),pack=(data.packages||[]).find(x=>x.id===fd.get("package_id")),template=(data.proposal_templates||[]).find(x=>x.id===fd.get("template_id"));
+ const title=String(fd.get("title")||"").trim(),custom=template?.template_kind==="custom";
+ return {proposal_name:custom&&!title?"{proposal_name}":(title||"[Enter proposal title]"),sponsor_name:prospect?.sponsor_name||"[Enter prospect name]",contact_person:prospect?.contact_person||"[Enter contact person]",package_name:pack?.name||"[Choose sponsorship package]",benefits:pack?.benefits||"[Describe agreed benefits]",amount:fd.get("amount_kes")||"[Enter proposed amount]",duration:fd.get("duration")||"[Enter duration]",club_contact:fd.get("club_contact")||"[Enter official club contact]",date:fd.get("follow_up_date")||new Date().toISOString().slice(0,10)};
+}
+function proposalMergeSection(value,values){
+ let s=String(value??"");
+ for(const key of proposalFieldNames)s=s.replaceAll("{"+key+"}",String(values[key]??"["+key+"]"));
+ const replacements={"[Enter proposal title]":values.proposal_name,"[Enter prospect name]":values.sponsor_name,"[Enter contact person]":values.contact_person,"[Choose sponsorship package]":values.package_name,"[Describe agreed benefits]":values.benefits,"[Enter proposed amount]":values.amount,"[Enter duration]":values.duration,"[Enter official club contact]":values.club_contact};
+ for(const [placeholder,value] of Object.entries(replacements))if(value&&!String(value).startsWith("["))s=s.replaceAll(placeholder,String(value));
+ return s;
+}
+function proposalFactValue(f,key,value){
+ const el=f.querySelector('[name="'+proposalFactKeys[key]+'"]');
+ if(!el)return value;
+ return value.replace(/^UNVERIFIED\s*[—-]\s*/i,"");
+}
+function proposalDisplaySection(f,key,raw,values){
+ let s=proposalMergeSection(raw,values).trim();
+ const verifiedName=proposalFactKeys[key]?proposalFactKeys[key]+"_verified":null;
+ const verified=verifiedName?f.querySelector('[name="'+verifiedName+'"]')?.checked===true:false;
+ if(proposalFactKeys[key]&&verified)s=s.replace(/^UNVERIFIED\s*[—-]\s*/i,"");
+ else if(proposalFactKeys[key]&&s&&!/^UNVERIFIED\s*[—-]/i.test(s))s="UNVERIFIED — "+s;
+ return s;
+}
+function renderProposalContent(f){
+ const state=f._proposalState;if(!state)return;
+ const values=proposalValues(f),editor=f.querySelector('[name="content_html"]');
+ for(const key of ["about_club","achievements","audience_reach"]){const name=proposalFactKeys[key],field=f.querySelector('[name="'+name+'"]');if(field)field.value=proposalFactValue(f,key,proposalMergeSection(state.sections[key]||"",values));}
+ const parts=[];
+ for(const key of proposalSectionOrder){
+  const body=proposalDisplaySection(f,key,state.sections[key]||"",values);
+  state.lastRendered[key]=body;
+  parts.push(proposalSectionLabels[key]+"\n"+body);
+ }
+ const text=parts.join("\n\n");
+ editor.value=text;
+ state.lastEditor=text;
+ const preview=$("proposal-live-preview");if(preview)preview.textContent=text||"Choose a template to preview the proposal.";
+}
+function parseProposalEditor(text){
+ const labels=proposalSectionOrder.map(k=>proposalSectionLabels[k]);
+ const re=/^(COVER|ABOUT THE CLUB|ACHIEVEMENTS|AUDIENCE AND REACH|SPONSORSHIP PACKAGES|BENEFITS|INVESTMENT|TERMS|NEXT STEPS \/ CONTACT)\n/gm;
+ const matches=[...String(text||"").matchAll(re)],out={};
+ for(let i=0;i<matches.length;i++){
+  const key=proposalSectionOrder[labels.indexOf(matches[i][1])],start=matches[i].index+matches[i][0].length,end=i+1<matches.length?matches[i+1].index:String(text||"").length;
+  if(key)out[key]=String(text||"").slice(start,end).replace(/\n+$/,"").trim();
+ }
+ return out;
+}
+function syncProposalFactsFromEditor(f,changedSections){
+ const state=f._proposalState;
+ for(const key of ["about_club","achievements","audience_reach"]){
+  const field=f.querySelector('[name="'+proposalFactKeys[key]+'"]');
+  if(field&&changedSections.has(key))field.value=proposalFactValue(f,key,state.sections[key]||"");
+ }
+}
+function applyProposalTemplate(f,template,confirmReplace){
+ const editor=f.querySelector('[name="content_html"]'),state=f._proposalState;
+ if(confirmReplace&&state?.templateId){
+  const changed=(state.touched.size>0||editor.value!==state.lastEditor);
+  if(changed&&!window.confirm("Replace current content with this template?")){f.querySelector('[name="template_id"]').value=state.templateId;return;}
+ }
+ const prospect=(data.prospects||[]).find(x=>x.id===f.elements.prospect_id.value),title=f.querySelector('[name="title"]');
+ const custom=template.template_kind==="custom";
+ if(custom){title.value="";title.placeholder="Enter the name of this proposal";title.dataset.autoTitle="";}
+ else{
+  title.placeholder="Enter proposal title";
+  title.value=template.name+" - "+(prospect?.sponsor_name||"[Enter prospect name]");
+  title.dataset.autoTitle=title.value;
+ }
+ const nameLabel=f.querySelector("[data-proposal-name-field]");if(nameLabel)nameLabel.childNodes[0].textContent=custom?"Proposal name":"Proposal title";
+ const sections={};
+ for(const key of proposalSectionOrder){
+  let value=String((template.sections||{})[key]||"");
+  if(key==="benefits")value=cleanProposalBenefits(value);
+  sections[key]=value;
+ }
+ f.querySelector('[name="fact_history"]').value=sections.about_club;
+ f.querySelector('[name="fact_achievements"]').value=sections.achievements;
+ f.querySelector('[name="fact_reach"]').value=sections.audience_reach;
+ for(const name of ["fact_history_verified","fact_achievements_verified","fact_reach_verified"])f.querySelector('[name="'+name+'"]').checked=false;
+ f._proposalState={sections,touched:new Set(),lastRendered:{},lastEditor:"",templateId:template.id};
+ renderProposalContent(f);
+ note("Template loaded into the title, fact fields and ordered editor. Review facts and placeholders before saving.","success");
+}
 $("panel").addEventListener("change",e=>{
- if(e.target.name!=="template_id")return;
- const f=e.target.closest("form[data-table='sponsor_proposal']");
- if(!f)return;
- const template=(data.proposal_templates||[]).find(x=>x.id===e.target.value);
- const editor=f.querySelector("[name=content_html]");
- if(!template||!editor)return;
- const prospect=(data.prospects||[]).find(x=>x.id===f.elements.prospect_id.value);
- const pack=(data.packages||[]).find(x=>x.id===f.elements.package_id.value);
- const fd=new FormData(f);
- const fields={proposal_name:String(fd.get("title")||"").trim()||"[Enter proposal title]",sponsor_name:prospect?.sponsor_name||"[Enter prospect name]",contact_person:prospect?.contact_person||"[Enter contact person]",package_name:pack?.name||"[Choose sponsorship package]",benefits:pack?.benefits||"[Describe agreed benefits]",amount:fd.get("amount_kes")||"[Enter proposed amount]",duration:fd.get("duration")||"[Enter duration]",club_contact:fd.get("club_contact")||"[Enter official club contact]",date:new Date().toISOString().slice(0,10)};
- let body=Object.entries(template.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\n"+String(v||"")).join("\n\n");
- for(const [key,value] of Object.entries(fields))body=body.replaceAll("{"+key+"}",String(value));
- editor.value=body;
- editor.dispatchEvent(new Event("input",{bubbles:true}));
- const preview=$("proposal-live-preview");
- if(preview)preview.textContent=body||"This template has no content yet. Add content to the template first.";
- note("Template content loaded into the editor. Replace bracketed placeholders, then save as draft.","success");
+ if(e.target.id==="pipeline-sort"){const u=new URL(location.href);u.searchParams.set("pipelineSort",e.target.value);history.replaceState(null,"",u);render();return;}
+ const kind=e.target.closest('select[name="template_kind"]');
+ if(kind){const f=kind.closest('form[data-table="sponsor_template"]');if(f&&!f.dataset.id){const input=f.querySelector("[name=name]"),label=f.querySelector("[data-template-name-field]"),custom=kind.value==="custom";label.childNodes[0].textContent=custom?"Proposal name":"Template name";input.placeholder=custom?"Enter the name of this proposal":"Enter template name";if(custom){input.value="";input.dataset.customSelected="true";}else if(input.dataset.customSelected==="true"||!input.value.trim()||input.value.trim()===input.dataset.autoDefault){const defaults={kit_sponsor:"Kit Sponsor Proposal",match_day_sponsor:"Match Day Sponsor Proposal",community_partner:"Community Partner Proposal"};input.value=defaults[kind.value]||"";input.dataset.autoDefault=input.value;input.dataset.customSelected="false";}}
+  return;
+ }
+ if(e.target.name==="template_id"){
+  const f=e.target.closest('form[data-table="sponsor_proposal"]'),template=(data.proposal_templates||[]).find(x=>x.id===e.target.value);
+  if(f&&template)applyProposalTemplate(f,template,true);
+  return;
+ }
+ const f=e.target.closest('form[data-table="sponsor_proposal"]');if(!f)return;
+ if(["prospect_id","package_id","amount_kes","duration","follow_up_date","club_contact","title","fact_history_verified","fact_achievements_verified","fact_reach_verified"].includes(e.target.name)){
+  if(e.target.name==="prospect_id"&&f._proposalState){const template=(data.proposal_templates||[]).find(x=>x.id===f._proposalState.templateId),title=f.querySelector('[name="title"]');if(template&&template.template_kind!=="custom"&&title.value===title.dataset.autoTitle){const prospect=(data.prospects||[]).find(x=>x.id===e.target.value);title.value=template.name+" - "+(prospect?.sponsor_name||"[Enter prospect name]");title.dataset.autoTitle=title.value;}}
+  if(f._proposalState)renderProposalContent(f);
+ }
+});
+$("panel").addEventListener("input",e=>{
+ const templateForm=e.target.closest("form");if(templateForm&&templateForm.dataset.table==="sponsor_template"&&e.target.name?.startsWith("section_")){const field=e.target.name;if(field==="section_achievements")templateForm.querySelector('[name="verified_achievements"]').checked=false;if(field==="section_audience_reach")templateForm.querySelector('[name="verified_audience_reach"]').checked=false;const preview=[...templateForm.querySelectorAll("[data-placeholder-preview-for]")].find(x=>x.dataset.placeholderPreviewFor===field);if(preview)preview.innerHTML="<strong>Placeholder highlights:</strong> "+(highlightedPlaceholders(e.target.value)||"<span class=sl-meta>No bracketed placeholders in this section.</span>");const remaining=[...templateForm.querySelectorAll("textarea[name^=section_]")].reduce((n,x)=>n+placeholderCount(x.value),0);const counter=templateForm.closest("details")?.parentElement?.querySelector("[data-template-counter]");if(counter)counter.textContent=remaining+" placeholder"+(remaining===1?"":"s")+" left";}
+ const f=e.target.closest('form[data-table="sponsor_proposal"]');if(!f)return;
+ const state=f._proposalState;
+ if(!state)return;
+ if(e.target.name==="content_html"){
+  const parsed=parseProposalEditor(e.target.value),changed=new Set();
+  for(const key of proposalSectionOrder)if(Object.prototype.hasOwnProperty.call(parsed,key)&&parsed[key]!==state.lastRendered[key]){state.sections[key]=parsed[key];state.touched.add(key);changed.add(key);}
+  syncProposalFactsFromEditor(f,changed);
+  state.lastEditor=e.target.value;
+  const preview=$("proposal-live-preview");if(preview)preview.textContent=e.target.value;
+  return;
+ }
+ if(e.target.name==="fact_history"||e.target.name==="fact_achievements"||e.target.name==="fact_reach"){
+  const key=Object.keys(proposalFactKeys).find(k=>proposalFactKeys[k]===e.target.name);
+  if(key){state.sections[key]=e.target.value;state.touched.add(key);renderProposalContent(f);}
+  return;
+ }
+ if(e.target.name==="title"){if(e.target.value!==e.target.dataset.autoTitle)state.touched.add("__title");else state.touched.delete("__title");renderProposalContent(f);return;}
+ if(["amount_kes","duration","club_contact","follow_up_date"].includes(e.target.name))renderProposalContent(f);
 });
 $("panel").addEventListener("submit",async e=>{
  const ef=e.target.closest("form[data-evaluation]");if(ef){e.preventDefault();const fd=new FormData(ef),scores={},risks={};for(const k of ["club_fit","financial_capacity","local_relevance","giving_history","decision_access","estimated_value","closing_likelihood"])scores[k]=Number(fd.get(k));for(const [k,v] of fd.entries())if(k.endsWith("_risk")||k.endsWith("_notes"))risks[k]=v;const {data:ev,error}=await db.rpc("sponsor_eval_save",{_prospect_id:ef.dataset.evaluation,_scores:scores,_risks:risks,_decision:fd.get("decision"),_reason:fd.get("decision_reason"),_chairman_approval:false});if(error){note(error.message,"error");return;}note("Evaluation saved to history.","success");await load();return;}
@@ -85,11 +197,9 @@ if(f.dataset.table==="sponsor_proposal"){
  const prospect=(data.prospects||[]).find(x=>x.id===fd.get("prospect_id")),pack=(data.packages||[]).find(x=>x.id===fd.get("package_id")),template=(data.proposal_templates||[]).find(x=>x.id===fd.get("template_id"));
  const proposalName=String(fd.get("title")||"").trim();if(!proposalName){note("Enter a proposal name before saving.","error");f.querySelector("[name=title]").focus();return;}const fields={proposal_name:proposalName,sponsor_name:prospect?.sponsor_name||"",contact_person:prospect?.contact_person||"",package_name:pack?.name||"",benefits:pack?.benefits||"",amount:fd.get("amount_kes")||"[Enter proposed amount]",duration:fd.get("duration")||"[Enter duration]",club_contact:fd.get("club_contact")||"[Enter official club contact]",date:new Date().toISOString().slice(0,10)};
  let body=String(fd.get("content_html")||"");
- if(!body.trim()&&template)body=Object.entries(template.sections||{}).filter(([k])=>!k.startsWith("_")).map(([k,v])=>k.replaceAll("_"," ").toUpperCase()+"\\n"+String(v)).join("\\n\\n");
+ if(!body.trim()&&template)body=proposalSectionOrder.map(k=>proposalSectionLabels[k]+"\\n"+(k==="benefits"?cleanProposalBenefits(template.sections?.[k]||""):String(template.sections?.[k]||""))).join("\\n\\n");
  body=body.replace(/\{(proposal_name|sponsor_name|contact_person|package_name|benefits|amount|duration|club_contact|date)\}/g,(_,k)=>String(fields[k]));
- const facts=[["Club history",fd.get("fact_history"),fd.get("fact_history_verified")==="true"],["Achievements",fd.get("fact_achievements"),fd.get("fact_achievements_verified")==="true"],["Audience / reach",fd.get("fact_reach"),fd.get("fact_reach_verified")==="true"]];
- const factText=facts.filter(x=>x[1]).map(x=>x[0]+(x[2]?"":" — UNVERIFIED")+"\n"+x[1]).join("\n\n");
- const fullText="TIMAU UNION FC\n"+fd.get("title")+"\n\n"+body+(factText?"\n\n"+factText:"");
+ const fullText="TIMAU UNION FC\n"+fd.get("title")+"\n\n"+body;
  const safeHtml=fullText.split(/\n{2,}/).map(part=>"<p>"+esc(part).replace(/\n/g,"<br>")+"</p>").join("");
  const {error}=await db.rpc("sponsor_proposal_save",{_id:f.dataset.id||null,_prospect_id:fd.get("prospect_id"),_package_id:fd.get("package_id")||null,_template_id:fd.get("template_id")||null,_title:fd.get("title"),_content_html:safeHtml,_amount_kes:fd.get("amount_kes")?Number(fd.get("amount_kes")):null,_duration:fd.get("duration"),_follow_up_date:fd.get("follow_up_date")||null,_reason:null});
  if(error){note(error.message,"error");return;}note(f.dataset.id?"Draft proposal updated. Your edits have been saved.":"Proposal saved as draft.", "success");await load();const savedProposal=(data.proposals||[]).find(x=>x.title===proposalName);if(savedProposal){const editButton=[...$("panel").querySelectorAll("[data-proposal-edit]")].find(b=>b.dataset.proposalEdit===savedProposal.id);if(editButton)editButton.click();}return;}
