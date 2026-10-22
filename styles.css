@@ -976,7 +976,7 @@ body.navigation-open {
 
 /* DESKTOP NAVIGATION */
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .menu-toggle {
     display: none;
   }
@@ -1095,7 +1095,7 @@ body.navigation-open {
 
 
 /* COMPACT, CLUB-FIRST MOBILE HEADER */
-@media (max-width: 899px) {
+@media (max-width: 959px) {
   .site-header {
     color: var(--white);
     background: var(--red);
