@@ -56,24 +56,26 @@ end $$;
 revoke all on function public.media_set_sponsor_shares(text,uuid,uuid[],text) from public, anon;
 grant execute on function public.media_set_sponsor_shares(text,uuid,uuid[],text) to authenticated;
 
-do $$
+create or replace function private.sponsor_can_read_agreement_path(_name text)
+returns boolean language sql stable security definer set search_path=''
+as $ select exists(select 1 from private.sponsor_user_links l join private.sponsor_agreements a on a.sponsor_record_id=l.sponsor_record_id where l.user_id=auth.uid() and l.active and a.signed_document_path=_name) $;
+create or replace function private.sponsor_can_read_tagged_media_path(_name text)
+returns boolean language sql stable security definer set search_path=''
+as $ select exists(select 1 from private.sponsor_user_links l join private.sponsor_media_shares sh on sh.sponsor_record_id=l.sponsor_record_id and sh.media_table='fan_gallery' join public.fan_gallery g on g.id=sh.media_record_id and g.image_path=_name and g.status='approved' where l.user_id=auth.uid() and l.active) $;
+revoke all on function private.sponsor_can_read_agreement_path(text) from public, anon;
+revoke all on function private.sponsor_can_read_tagged_media_path(text) from public, anon;
+grant execute on function private.sponsor_can_read_agreement_path(text) to authenticated;
+grant execute on function private.sponsor_can_read_tagged_media_path(text) to authenticated;
+
+do $
 begin
  if not exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='sponsor_can_read_tagged_agreements') then
   create policy sponsor_can_read_tagged_agreements on storage.objects for select to authenticated
-  using (bucket_id='sponsor-agreements' and exists(
-    select 1 from private.sponsor_user_links l
-    join private.sponsor_agreements a on a.sponsor_record_id=l.sponsor_record_id
-    where l.user_id=auth.uid() and l.active and a.signed_document_path=name
-  ));
+  using (bucket_id='sponsor-agreements' and private.sponsor_can_read_agreement_path(name));
  end if;
  if not exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='sponsor_can_read_tagged_media') then
   create policy sponsor_can_read_tagged_media on storage.objects for select to authenticated
-  using (bucket_id='fans-gallery' and exists(
-    select 1 from private.sponsor_user_links l
-    join private.sponsor_media_shares sh on sh.sponsor_record_id=l.sponsor_record_id and sh.media_table='fan_gallery'
-    join public.fan_gallery g on g.id=sh.media_record_id and g.image_path=name and g.status='approved'
-    where l.user_id=auth.uid() and l.active
-  ));
+  using (bucket_id='fans-gallery' and private.sponsor_can_read_tagged_media_path(name));
  end if;
-end $$;
+end $;
 commit;
