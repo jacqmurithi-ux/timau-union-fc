@@ -54,7 +54,9 @@ const pages=[
  {label:"Sponsor portal",href:"sponsor.html",roles:["sponsor"]},
  {label:"Sponsor account links",href:"sponsor-links.html",roles:["sponsor_lead"]},
  {label:"Kit & equipment",href:"kit.html",roles:["team_manager","coach","assistant_coach","secretary"]},
- {label:"Home attendance",href:"home-attendance.html",roles:["team_manager","secretary","chairman","vice_chairman","treasurer","coach","media_team","sponsor_lead"]}
+ {label:"Home attendance",href:"home-attendance.html",roles:["team_manager","secretary","chairman","vice_chairman","treasurer","coach","media_team","sponsor_lead"]},
+ {label:"Public website",href:"../index.html",roles:[],publicLink:true},
+ {label:"Member access",href:"index.html",roles:[],memberAccess:true}
 ];
 function currentPage(){return location.pathname.split("/").pop()||"workspace.html";}
 function buildTabs(roles,isAdmin,isPlatformAdmin){
@@ -71,6 +73,7 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
  };
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Private workspace navigation");
  const allowed=(entry)=>{
+  if(entry.publicLink||entry.memberAccess)return true;
   if(entry.href==="sponsor.html")return roles.has("sponsor");
   if(entry.href==="sponsor-links.html")return roles.has("sponsor_lead")||isAdmin;
   if(entry.href==="workspace.html"){
