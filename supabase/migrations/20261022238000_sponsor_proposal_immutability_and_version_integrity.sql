@@ -3,6 +3,14 @@
 -- Candidate migration only; do not apply to production without explicit approval.
 begin;
 
+-- Remove the earlier permissive sponsor bucket policies. PostgreSQL permissive
+-- policies are OR-combined, so retaining them would bypass the role-specific
+-- agreement helper introduced by the newer policies.
+drop policy if exists "sponsor agreements private read" on storage.objects;
+drop policy if exists "sponsor agreements private upload" on storage.objects;
+drop policy if exists "sponsor agreements private update" on storage.objects;
+drop policy if exists "sponsor agreements private delete" on storage.objects;
+
 -- The save RPC locks the parent proposal before allocating the next version.
 -- This unique index is the final integrity guard if another write path is added.
 create unique index if not exists sponsor_proposal_versions_proposal_version_uq
