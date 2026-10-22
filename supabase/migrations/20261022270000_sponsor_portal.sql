@@ -173,7 +173,7 @@ begin
    v_new:=jsonb_build_object('active',true,'sponsor_record_id',_sponsor_record_id);
  end if;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
- values(v_actor,'sponsor_user_links',v_link_id,case when _link then 'sponsor_user_linked_or_changed' else 'sponsor_user_unlinked' end,v_old,v_new,btrim(_reason));
+ values(v_actor,'sponsor_user_links',v_link_id,case when private.is_active_platform_admin(v_actor) then case when _link then 'admin_override_sponsor_user_linked_or_changed' else 'admin_override_sponsor_user_unlinked' end else case when _link then 'sponsor_user_linked_or_changed' else 'sponsor_user_unlinked' end end,v_old,v_new,btrim(_reason));
  return jsonb_build_object('ok',true,'link_id',v_link_id,'active',_link,'sponsor_record_id',case when _link then _sponsor_record_id else null end);
 end $$;
 revoke all on function public.sponsor_lead_set_user_link(uuid,uuid,boolean,text) from public, anon;
@@ -339,7 +339,7 @@ begin
  end if;
  update private.sponsor_profile_edits set status=_decision,reviewed_by=auth.uid(),reviewed_at=now(),review_note=btrim(_reason),updated_at=now() where id=_edit_id;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
- values(auth.uid(),'sponsor_profile_edits',_edit_id,'profile_edit_'||_decision,
+ values(auth.uid(),'sponsor_profile_edits',_edit_id,case when private.is_active_platform_admin(auth.uid()) then 'admin_override_profile_edit_'||_decision else 'profile_edit_'||_decision end,
    jsonb_build_object('public_record',v_old,'private_contact_details',v_private_old),
    jsonb_build_object('edit_id',_edit_id,'decision',_decision,'sponsor_record_id',v_edit.sponsor_record_id,
      'approved_public_fields',jsonb_build_object('name',v_edit.company_name,'logo_url',v_edit.logo_url,'details',v_edit.public_description),
