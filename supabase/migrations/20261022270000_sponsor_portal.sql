@@ -100,7 +100,7 @@ begin
  end if;
  return jsonb_build_object('roles',to_jsonb(r),'is_platform_admin',adm,'can_approve',adm or coalesce(array_length(r,1),0)>0,
  'records',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'record_type',c.record_type,'data',c.data,'publication_status',c.publication_status,'created_at',c.created_at,'updated_at',c.updated_at,'approved_at',c.approved_at,'can_approve',adm or private.role_can_manage_record(r,c.record_type))) from private.club_records c where adm or chair or (private.role_can_manage_record(r,c.record_type) and private.can_manage_club_record(r,false,c.created_by))),'[]'::jsonb),
- 'tm_records',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'record_type','tm_'||t.section_key,'section_key',t.section_key,'data',t.data,'publication_status',t.publication_status,'created_at',t.created_at,'updated_at',t.updated_at,'approved_at',t.approved_at,'can_approve',adm or chair or tm)) from private.tm_records t where adm or chair or tm or (welfare and t.section_key='discipline_welfare') or ('treasurer'=any(r) and t.section_key='transport_logistics' and lower(coalesce(t.data->>'treasurer_submission','')) like 'submitted%'),'[]'::jsonb));
+ 'tm_records',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'record_type','tm_'||t.section_key,'section_key',t.section_key,'data',t.data,'publication_status',t.publication_status,'created_at',t.created_at,'updated_at',t.updated_at,'approved_at',t.approved_at,'can_approve',adm or chair or tm)) from private.tm_records t where adm or chair or tm or (welfare and t.section_key='discipline_welfare') or ('treasurer'=any(r) and t.section_key='transport_logistics' and lower(coalesce(t.data->>'treasurer_submission','')) like 'submitted%')),'[]'::jsonb));
 end $function$;
 revoke all on function public.club_get_workspace_bundle() from public, anon;
 grant execute on function public.club_get_workspace_bundle() to authenticated;
@@ -211,6 +211,40 @@ begin
 end $$;
 revoke all on function public.sponsor_portal_get() from public, anon;
 grant execute on function public.sponsor_portal_get() to authenticated;
+
+create or replace function private.sponsor_workspace_guard()
+returns trigger language plpgsql security definer set search_path=''
+as $
+declare admin boolean; r text[]; before_j jsonb; after_j jsonb; record_key uuid; table_key text;
+begin
+ admin:=private.is_active_platform_admin(auth.uid());
+ r:=private.current_club_roles();
+ if auth.uid() is null then raise exception 'Authentication required'; end if;
+ if tg_table_name='sponsor_contributions' then
+   if tg_op='UPDATE' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r) or 'treasurer'=any(r)) then
+     raise exception 'Not authorized to update sponsor contribution';
+   end if;
+   if tg_op='INSERT' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) then raise exception 'Sponsor Lead or admin required'; end if;
+   if tg_op='UPDATE' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r) or 'treasurer'=any(r)) then raise exception 'Not authorized'; end if;
+   if tg_op='UPDATE' and (new.receipt_status is distinct from old.receipt_status or new.received_amount_kes is distinct from old.received_amount_kes or new.treasurer_confirmed_by is distinct from old.treasurer_confirmed_by or new.treasurer_confirmed_at is distinct from old.treasurer_confirmed_at) and not (admin or 'treasurer'=any(r)) then raise exception 'Only Treasurer or admin can confirm received money'; end if;
+ end if;
+ if tg_table_name<>'sponsor_contributions' and not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) and not (tg_table_name='sponsor_role_requests' and tg_op='INSERT' and 'sponsor'=any(r) and new.requested_by=auth.uid() and new.sponsor_record_id=private.current_sponsor_record_id() and new.target_role='sponsor_lead' and new.status='submitted') then
+   if tg_table_name='sponsor_role_requests' and tg_op='UPDATE' and ((new.status is distinct from old.status) and (('media_team'=any(r) and old.target_role='media_team') or ('secretary'=any(r) and old.target_role='secretary'))) then
+     null;
+   else raise exception 'Sponsor Lead, Chairman or admin required'; end if;
+ end if;
+ if tg_op='INSERT' then before_j:=null; after_j:=to_jsonb(new); record_key:=new.id;
+ elsif tg_op='UPDATE' then before_j:=to_jsonb(old); after_j:=to_jsonb(new); record_key:=new.id;
+ else before_j:=to_jsonb(old); after_j:=null; record_key:=old.id; end if;
+ table_key:=tg_table_name;
+ if admin and tg_op='UPDATE' and before_j is distinct from after_j then
+  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
+  values(auth.uid(),table_key,record_key,'admin_override',before_j,after_j,'Administrative override');
+ end if;
+ if tg_op='DELETE' then return old; end if;
+ new.updated_by:=auth.uid(); new.updated_at:=now(); return new;
+end $;
+revoke all on function private.sponsor_workspace_guard() from public,anon,authenticated;
 
 create or replace function public.sponsor_portal_submit_request(_type text,_title text,_details text)
 returns uuid language plpgsql security definer set search_path=''
