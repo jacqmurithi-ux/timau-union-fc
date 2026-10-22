@@ -67,7 +67,7 @@ revoke all on function private.sponsor_can_read_tagged_media_path(text) from pub
 grant execute on function private.sponsor_can_read_agreement_path(text) to authenticated;
 grant execute on function private.sponsor_can_read_tagged_media_path(text) to authenticated;
 
-do $
+do $$
 begin
  if not exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='sponsor_can_read_tagged_agreements') then
   create policy sponsor_can_read_tagged_agreements on storage.objects for select to authenticated
@@ -77,5 +77,5 @@ begin
   create policy sponsor_can_read_tagged_media on storage.objects for select to authenticated
   using (bucket_id='fans-gallery' and private.sponsor_can_read_tagged_media_path(name));
  end if;
-end $;
+end $$;
 commit;
