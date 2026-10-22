@@ -94,6 +94,7 @@ function buildTabs(roles,isAdmin,isPlatformAdmin){
   for(const s of sections){
    if(!(isAdmin||s.roles.some(r=>roles.has(r))))continue;
    if(localLabels.has(s.label.toLowerCase()))continue;
+   if(current==="sponsor-lead.html"&&s.type==="sponsor")continue;
    nav.append(link(s.label,"./workspace.html?type="+encodeURIComponent(s.type)));
   }
  }
