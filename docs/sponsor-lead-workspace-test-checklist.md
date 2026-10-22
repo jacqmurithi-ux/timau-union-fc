@@ -15,18 +15,7 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Existing Sponsors tab and Finance / requisitions link still work; verify Chairman, Treasurer, Media Team, Secretary, Player, and Supporter workspaces remain unchanged.
 - [ ] Validate all functions, RLS/storage policies, role combinations, and migrations against actual deployed schema before production.
 
-
-## Verification evidence (2026-10-22)
-
-- [x] Executed the full candidate chain in order: `20261022210000_sponsor_lead_workspace.sql`, then `20261022220000_sponsor_evaluation_proposals.sql`, inside a single transaction on Union Test.
-- [x] The database tool returned without SQL error; the transaction was rolled back. No migration changes from this test were persisted.
-- [x] Inspected the test project's migration history and catalog: the candidate migrations are not recorded as installed, and the sponsor-specific tables were not present before the rollback-only run.
-- [x] Sponsor Lead JavaScript syntax had previously passed parser validation after import declarations were removed.
-- [ ] Authenticated role-by-role RPC, direct-table and Storage tests remain required; migration execution is not authorization proof.
-- [ ] Browser verification of scoring, Chairman risk approval, proposal merge fields, verified-fact warnings, version history, print/PDF, accepted-agreement linking and reminders remains required.
-- [ ] Review stored proposal HTML for safe rendering before treating the UI as production-ready.
-
-## Prospect evaluation and proposals (added 2026-10-22)
+## Prospect evaluation and proposals
 
 - [ ] Set evaluation weights in Chairman settings to values totalling 100%; verify invalid totals and missing keys are rejected.
 - [ ] Score each criterion from 1–5 and compare the weighted percentage with a hand calculation; confirm strong (75–100), medium (50–74.99), weak (below 50) bands.
@@ -41,67 +30,26 @@ The base Sponsor Lead migration and the evaluation/proposal migration were execu
 - [ ] Confirm accepted proposal is linked to an agreement; review the generated agreement draft before using it operationally.
 - [ ] Confirm Treasurer receives proposal amount/status only, not private proposal text, evaluation scores, risk notes, or templates.
 - [ ] Confirm non-authorized roles cannot call evaluation/template/proposal RPCs or read the private tables; public sponsor pages remain unchanged.
-- [ ] As admin, edit a template or override proposal status with a reason; verify the audit row includes actor, record, before/after values, and reason.
+- [ ] As admin, edit a template or change proposal status with a reason; verify the audit row includes actor, record, before/after values, and reason.
 
-## Current validation evidence
+## Security hardening and migration verification
 
-- [x] Both Sponsor Lead SQL migrations execute together on Union Test inside a transaction and roll back cleanly (no migration changes persisted).
-- [x] Sponsor Lead JavaScript syntax check passed after the evaluation/proposal additions.
-- [ ] Browser workflows and authenticated multi-role tests are still pending; migration rollback alone is not proof of RLS correctness.
+- [x] Added the receipt payload guard migration, rejecting receipt-related keys for non-Treasurer/non-admin callers on contribution inserts and updates.
+- [x] Added the proposal transition guard migration `20261022234000_sponsor_proposal_state_transition_guard.sql` on `feature/sponsor-lead-workspace`.
+- [x] Static review of the new transition function: `approved` requires a draft (or already-approved) proposal; `sent` requires approved; `accepted` or `declined` requires sent. These transition checks apply to Chairman and platform admin as well as other callers.
+- [x] Static review: platform-admin status changes require a reason and are audit logged; elevated privileges do not bypass proposal state transitions.
+- [ ] Apply the new transition migration to a disposable database or rollback-only transaction and verify it compiles against the full migration chain.
+- [ ] Authenticated role test: Chairman cannot mark a draft as sent, nor record accepted/declined before sent.
+- [ ] Authenticated role test: platform admin cannot skip states; admin status changes without a reason fail; authorized changes include reason in the audit row.
+- [ ] Authenticated role test: Sponsor Lead cannot change proposal status; unauthorized roles cannot call proposal RPCs or read private proposal data.
+- [ ] Runtime tests for Treasurer receipt confirmation, private Storage, accepted-proposal agreement linking and audit events remain outstanding.
+- [ ] Browser proposal merge fields, verified-fact warnings, print/PDF, follow-up reminders, and clean migration replay remain unverified.
 
-## Security hardening follow-up — 2026-10-22
+## Release status
 
-- [x] Added `20261022230000_sponsor_lead_security_hardening.sql` on `feature/sponsor-lead-workspace`.
-- [x] Applied the hardening migration to Union Test after the base and evaluation/proposal migrations; Supabase migration tool returned `success: true`.
-- [x] Static source check: `sponsor_lead_save_record` now rejects receipt-related keys for non-Treasurer/non-admin callers on both create and update paths.
-- [x] Static source check: `sponsor_eval_save` rejects a missing or non-object risk-check payload.
-- [ ] Runtime role test: Sponsor Lead cannot create a pledge containing receipt fields, change receipt fields on an existing pledge, or invoke receipt confirmation.
-- [ ] Runtime role test: Treasurer can confirm receipts; other roles are denied.
-- [ ] Runtime role test: a risk-flagged pursuit request remains on hold until a Chairman/admin decision; decline does not mark it pursued.
-- [ ] Runtime role test: non-authorized roles cannot read prospect evaluations, proposal contents, templates, agreement terms, or signed documents.
-- [ ] Runtime role test: proposal version history and accepted-proposal agreement linking behave as expected.
-- [ ] Runtime role test: admin override reason and before/after audit data are recorded.
-- [ ] Public sponsor query verified to return approved public sponsor records only.
-- [ ] Browser test of proposal merge fields, verified-fact warnings, print/PDF and follow-up reminders.
-- 
+- [ ] Authenticated role-by-role RPC, direct REST/RLS and Storage tests — NOT RUN.
+- [ ] Browser workflows and fresh database migration replay — NOT RUN.
+- [ ] GitHub Actions results must be rechecked on the latest branch head before merge.
+- [ ] Production migration, merge and deployment have not been performed.
 
-## Migration sequence reconciliation (2026-10-22)
-
-- [x] Removed duplicate timestamp filenames from the branch migration chain. The four corrective migrations now have unique, ordered source timestamps: `20261022230000_sponsor_lead_security_hardening.sql`, `20261022231000_sponsor_evaluation_insert_alignment.sql`, `20261022232000_sponsor_eval_receipt_security_fix.sql`, and `20261022233000_sponsor_contribution_payload_guard.sql`.
-- [x] Confirmed Union Test migration history shows the four corrective migrations were previously applied in order as `sponsor_lead_security_hardening_20261022230000`, `sponsor_evaluation_insert_alignment_20261022231000`, `sponsor_eval_receipt_security_fix_20261022230000`, and `sponsor_contribution_payload_guard_20261022231000` (Supabase generated unique applied versions). Renaming the repository files does not rewrite that existing history.
-- [x] Confirmed sponsor-specific private tables exist in Union Test after the persistent hardening migrations.
-- [ ] Fresh-database replay of the complete renamed source migration chain has not yet been performed; do not treat the source rename as proof of a clean bootstrap.
-
-## Corrective migration verification (2026-10-22)
-
-- [x] Applied `20261022230000_sponsor_eval_receipt_security_fix.sql` to Union Test; Supabase reported success.
-- [x] Applied `20261022231000_sponsor_contribution_payload_guard.sql` to Union Test; Supabase reported success.
-- [x] Queried installed function catalog: `sponsor_eval_save` and `sponsor_lead_save_record` remain SECURITY DEFINER with an empty search_path.
-- [x] Confirmed the installed evaluation function references `requested_decision` and the approval-request fields.
-- [x] Confirmed the installed contribution save RPC rejects receipt-related keys for non-Treasurer/non-admin callers, for inserts and updates.
-- [ ] Authenticated Sponsor Lead/Treasurer/Chairman/Admin runtime tests. Not run: this SQL connection does not provide role-specific signed-in sessions.
-- [ ] Verify risk approval/rejection transitions using authenticated sessions.
-- [ ] Verify private RLS reads, proposal version history, agreement linking and administrative audit events end-to-end.
-- [ ] Public approved-only sponsor listing and browser proposal/PDF tests.
-
-**Evidence note:** the two corrective migrations are installed in Union Test and their installed function definitions were inspected. This is static/database-definition verification only; it is not evidence that authenticated role-specific tests pass. Production remains untouched; branch remains unmerged and undeployed.
-
-
-## Release-gate execution results (2026-10-22, refreshed)
-
-- [x] Inspected Union Test migration history and confirmed all four corrective migrations were applied successfully by the Supabase migration tool.
-- [x] Queried Union Test catalog and confirmed the sponsor private tables exist, including prospects, prospect evaluations, agreements, contributions, proposal templates/versions and audit records.
-- [x] Inspected installed function definitions: the evaluation RPC references the risk approval fields; the contribution save RPC rejects receipt-field payload keys for non-Treasurer/non-admin roles; the relevant functions remain SECURITY DEFINER with empty search paths.
-- [ ] **Authenticated role-by-role RPC, REST/RLS and Storage tests — NOT RUN.** The available SQL connector does not create authenticated PostgREST sessions, so SQL catalog checks cannot establish the caller identity/role enforcement behavior.
-- [ ] **Fixture coverage gap:** current Union Test membership query shows active Treasurer, Secretary, Chairman+Secretary and Media Team fixtures, but no confirmed active Sponsor Lead fixture; no disposable unauthorized-role fixture was confirmed in the query. A real Sponsor Lead account and a non-authorized account are required to complete the matrix.
-- [ ] Browser interactions, proposal printing/PDF, and end-to-end proposal-to-agreement linking remain unverified.
-- [ ] Fresh database migration replay remains unverified after filename reconciliation.
-- [ ] Production migration, merge, and deployment have not been performed. These remain blocked on the unchecked release gates above; no private sponsor or financial data should be exposed to production until they pass.
-
-
-## Follow-up review — 2026-10-22
-
-- [x] Corrected the value ordering in `20261022231000_sponsor_evaluation_insert_alignment.sql` so the evaluation insert values align with the declared `decision, requested_decision, approval_requested, decision_reason` columns. The later receipt/evaluation correction migration already installs the aligned definition on the current Union Test database; this source fix prevents the intermediate migration from defining a broken function on fresh installs.
-- [x] Rechecked the PR's GitHub Actions runs for the latest head. At inspection, Homepage hero validation was `in_progress` and Treasurer workspace validation was `queued`; neither can be reported as passed at that point.
-- [ ] Re-run the complete migration chain on a fresh disposable database and exercise evaluation inserts for both risk-flagged Sponsor Lead submissions and Chairman decisions.
-- [ ] Complete authenticated role matrix, browser checks and confirm all required GitHub Actions checks pass before marking the PR ready or merging.
+**Evidence note:** static source review only for the new proposal transition guard. No production database or website changes were made by this commit.
