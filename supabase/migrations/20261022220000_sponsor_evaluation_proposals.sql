@@ -186,6 +186,25 @@ end $sponsor_template$;
 revoke all on function public.sponsor_template_save(text,text,jsonb) from public,anon;
 grant execute on function public.sponsor_template_save(text,text,jsonb) to authenticated;
 
+create or replace function public.sponsor_template_update(_id uuid,_name text,_kind text,_sections jsonb,_reason text default null)
+returns void language plpgsql security definer set search_path=''
+as $sponsor_template_update$
+declare r text[]; admin boolean; old_j jsonb; new_j jsonb;
+begin
+ if auth.uid() is null then raise exception 'Authentication required'; end if;
+ r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
+ if not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) then raise exception 'Sponsor Lead, Chairman or admin required'; end if;
+ if admin and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Admin override reason required'; end if;
+ select to_jsonb(t) into old_j from private.sponsor_proposal_templates t where id=_id for update;
+ if old_j is null then raise exception 'Template not found'; end if;
+ update private.sponsor_proposal_templates set name=_name,template_kind=_kind,sections=_sections,updated_by=auth.uid(),updated_at=now() where id=_id;
+ select to_jsonb(t) into new_j from private.sponsor_proposal_templates t where id=_id;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
+ values(auth.uid(),'sponsor_proposal_templates',_id,case when admin then 'admin_override' else 'template_updated' end,old_j,new_j,_reason);
+end $sponsor_template_update$;
+revoke all on function public.sponsor_template_update(uuid,text,text,jsonb,text) from public,anon;
+grant execute on function public.sponsor_template_update(uuid,text,text,jsonb,text) to authenticated;
+
 create or replace function public.sponsor_proposal_save(_id uuid,_prospect_id uuid,_package_id uuid,_template_id uuid,_title text,_content_html text,_amount_kes numeric,_duration text,_follow_up_date date)
 returns uuid language plpgsql security definer set search_path=''
 as $$
