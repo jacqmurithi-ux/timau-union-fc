@@ -28,7 +28,6 @@ const addStyle=()=>{
  `;
  document.head.append(style);
 };
-const can=(roles,...allowed)=>roles.has("chairman")||allowed.some(role=>roles.has(role));
 const link=(label,href,active=false)=>{
  const a=document.createElement("a");a.className="button button-dark";a.textContent=label;a.href=href;
  if(active)a.setAttribute("aria-current","page");
@@ -62,7 +61,7 @@ function buildTabs(roles,isAdmin){
  const main=$("main");if(!main)return;
  const current=currentPage(),isWorkspace=current==="workspace.html";
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Private workspace navigation");
- const allowed=(entry)=>isAdmin||entry.admin&&roles.size>0||entry.roles.some(r=>roles.has(r));
+ const allowed=(entry)=>entry.href==="sponsor.html"?roles.has("sponsor"):entry.href==="sponsor-links.html"?roles.has("sponsor_lead"):isAdmin||entry.roles.some(r=>roles.has(r));
  if(isWorkspace){
   const currentType=new URLSearchParams(location.search).get("type")||"player";
   for(const s of sections)if(isAdmin||s.roles.some(r=>roles.has(r)))nav.append(tab(s.label,s.type,currentType===s.type));
