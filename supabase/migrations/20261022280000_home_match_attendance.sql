@@ -222,14 +222,13 @@ begin
       ) order by nullif(c.data->>'match_date','')::date desc)
       from (
         select c.id,c.data from private.club_records c
-        join public.match_attendance a on a.fixture_id=c.id
         where c.record_type='fixture'
           and (lower(coalesce(c.data->>'match_type','')) in ('home','home match')
             or lower(coalesce(c.data->>'is_home','false')) in ('true','1','yes'))
           and lower(coalesce(c.data->>'match_status',c.data->>'status',''))='completed'
         order by nullif(c.data->>'match_date','')::date desc
         limit 5
-      ) c join public.match_attendance a on a.fixture_id=c.id
+      ) c left join public.match_attendance a on a.fixture_id=c.id
     ), '[]'::jsonb)
   );
 end;
