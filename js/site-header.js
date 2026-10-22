@@ -69,7 +69,7 @@
       event.preventDefault();
     }, { passive: false });
 
-    const desktopLayout = window.matchMedia("(min-width: 900px)");
+    const desktopLayout = window.matchMedia("(min-width: 960px)");
     const handleLayoutChange = (event) => {
       if (event.matches && menuOpen) setMenuState(false);
     };
