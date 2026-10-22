@@ -4,10 +4,11 @@
 
 The private management pages use app/private-nav.js as the single shared navigation component. It removes the header's page links, keeps the crest/name and Sign out button, then builds the in-content tab row from the signed-in session's existing role bundle. Public pages are not changed.
 
-The shared row reuses existing role checks and links. It does not grant database access or replace RPC/RLS authorization. The Club workspace's Players, Fixtures & results, News, Sponsors and Activities tabs remain in-place section switches on workspace.html; from other pages those tabs navigate back to the matching workspace section. Existing page-specific tabs remain in place for sections such as Treasurer reports, Media Team social statistics, Secretary Documents and Sponsor Lead portal requests.
+The shared row reuses existing role checks and links. Public website and Member access links are retained as tabs so removing the old header links does not discard destinations. It does not grant database access or replace RPC/RLS authorization. The Club workspace's Players, Fixtures & results, News, Sponsors and Activities tabs remain in-place section switches on workspace.html; from other pages those tabs navigate back to the matching workspace section. Existing page-specific tabs remain in place for sections such as Treasurer reports, Media Team social statistics, Secretary Documents and Sponsor Lead portal requests.
 
 ## Shared page-tab visibility
 
+- **Public website / Member access:** available as navigation destinations to every signed-in private workspace user.
 - **Club workspace:** roles that can use the shared records workspace; dedicated-only Coach, Media Team, Sponsor Lead, Treasurer and Sponsor sessions are not shown a workspace tab when the existing page redirects them to their dedicated workspace/portal.
 - **Coach workspace:** Coach, plus existing Chairman / Platform Admin oversight.
 - **Secretary workspace:** Secretary, plus existing Chairman / Platform Admin oversight.
