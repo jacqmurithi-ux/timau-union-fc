@@ -38,11 +38,11 @@ create policy "attendance authorized editors" on public.match_attendance
 for update to authenticated
 using (
   private.is_active_platform_admin(auth.uid())
-  or private.current_club_roles() && array['secretary','team_manager','chairman','vice_chairman']::text[]
+  or private.current_club_roles() && array['admin','secretary','team_manager','chairman','vice_chairman']::text[]
 )
 with check (
   private.is_active_platform_admin(auth.uid())
-  or private.current_club_roles() && array['secretary','team_manager','chairman','vice_chairman']::text[]
+  or private.current_club_roles() && array['admin','secretary','team_manager','chairman','vice_chairman']::text[]
 );
 
 create or replace function private.validate_home_attendance_fixture()
@@ -152,7 +152,7 @@ as $$
 declare roles text[] := private.current_club_roles(); adm boolean := private.is_active_platform_admin(auth.uid());
 begin
   if auth.uid() is null then raise exception 'Sign-in required'; end if;
-  if not adm and not (roles && array['secretary','team_manager','chairman','vice_chairman','treasurer','sponsor_lead','media_team','coach']::text[]) then
+  if not adm and not (roles && array['admin','secretary','team_manager','chairman','vice_chairman','treasurer','sponsor_lead','media_team','coach']::text[]) then
     raise exception 'Home attendance report access denied' using errcode='42501';
   end if;
   return jsonb_build_object(
