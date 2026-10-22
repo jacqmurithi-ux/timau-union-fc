@@ -48,7 +48,7 @@ const pages=[
  {label:"Club workspace",href:"workspace.html",roles:["team_manager","secretary","treasurer","coach","media_team","sponsor_lead","chairman","vice_chairman","player_welfare","player","assistant_coach"],admin:true},
  {label:"Coach workspace",href:"coach.html",roles:["coach"]},
  {label:"Secretary workspace",href:"secretary.html",roles:["secretary"]},
- {label:"Treasurer workspace",href:"treasurer.html",roles:["treasurer","secretary"]},
+ {label:"Treasurer workspace",href:"treasurer.html",roles:["treasurer","chairman","secretary","vice_chairman","sponsor","sponsor_lead","team_manager","coach","player"]},
  {label:"Media Team",href:"media.html",roles:["media_team"]},
  {label:"Sponsor Lead",href:"sponsor-lead.html",roles:["sponsor_lead"]},
  {label:"Sponsor portal",href:"sponsor.html",roles:["sponsor"]},
