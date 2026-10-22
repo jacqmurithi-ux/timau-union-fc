@@ -149,6 +149,24 @@ end $$;
 revoke all on function public.sponsor_eval_save(uuid,jsonb,jsonb,text,text,boolean) from public,anon;
 grant execute on function public.sponsor_eval_save(uuid,jsonb,jsonb,text,text,boolean) to authenticated;
 
+create or replace function public.sponsor_template_save(_name text,_kind text,_sections jsonb)
+returns uuid language plpgsql security definer set search_path=''
+as $
+declare r text[]; admin boolean; rid uuid;
+begin
+ if auth.uid() is null then raise exception 'Authentication required'; end if;
+ r:=private.current_club_roles(); admin:=private.is_active_platform_admin(auth.uid());
+ if not (admin or 'chairman'=any(r) or 'sponsor_lead'=any(r)) then raise exception 'Sponsor Lead, Chairman or admin required'; end if;
+ if length(btrim(coalesce(_name,'')))<2 or _kind not in ('kit_sponsor','match_day_sponsor','community_partner','custom') or jsonb_typeof(_sections)<>'object' then raise exception 'Valid template name, kind and sections required'; end if;
+ insert into private.sponsor_proposal_templates(name,template_kind,sections,is_starter,created_by,updated_by)
+ values(_name,_kind,_sections,false,auth.uid(),auth.uid()) returning id into rid;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,after_data)
+ values(auth.uid(),'sponsor_proposal_templates',rid,'template_created',jsonb_build_object('name',_name,'template_kind',_kind,'sections',_sections));
+ return rid;
+end $;
+revoke all on function public.sponsor_template_save(text,text,jsonb) from public,anon;
+grant execute on function public.sponsor_template_save(text,text,jsonb) to authenticated;
+
 create or replace function public.sponsor_proposal_save(_id uuid,_prospect_id uuid,_package_id uuid,_template_id uuid,_title text,_content_html text,_amount_kes numeric,_duration text,_follow_up_date date)
 returns uuid language plpgsql security definer set search_path=''
 as $$
@@ -187,6 +205,14 @@ begin
  select to_jsonb(p) into old_j from private.sponsor_proposals p where id=_id for update;
  if old_j is null then raise exception 'Proposal not found'; end if;
  update private.sponsor_proposals set status=_status,approved_by=case when _status='approved' then auth.uid() else approved_by end,approved_at=case when _status='approved' then now() else approved_at end,sent_at=case when _status='sent' then now() else sent_at end,sent_by=case when _status='sent' then auth.uid() else sent_by end,updated_by=auth.uid(),updated_at=now() where id=_id;
+ if _status='accepted' then
+   update private.sponsor_proposals p set agreement_id=coalesce(p.agreement_id,(select a.id from private.sponsor_agreements a where a.sponsor_name=(select sp.sponsor_name from private.sponsor_prospects sp where sp.id=p.prospect_id) and a.package_id is not distinct from p.package_id order by a.created_at desc limit 1)) where p.id=_id;
+   if not exists(select 1 from private.sponsor_proposals p where p.id=_id and p.agreement_id is not null) then
+     insert into private.sponsor_agreements(sponsor_name,package_id,amount_kes,obligations,payment_schedule,status,created_by,updated_by)
+     select sp.sponsor_name,p.package_id,p.amount_kes,'','', 'draft',auth.uid(),auth.uid() from private.sponsor_proposals p join private.sponsor_prospects sp on sp.id=p.prospect_id where p.id=_id returning id into rid;
+     update private.sponsor_proposals set agreement_id=rid where id=_id;
+   end if;
+ end if;
  select to_jsonb(p) into new_j from private.sponsor_proposals p where id=_id;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason) values(auth.uid(),'sponsor_proposals',_id,case when admin then 'admin_override' else 'proposal_status_changed' end,old_j,new_j,_reason);
 end $$;
