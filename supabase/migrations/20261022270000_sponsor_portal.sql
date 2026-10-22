@@ -303,6 +303,7 @@ begin
  v_record:=private.current_sponsor_record_id();
  if v_record is null then raise exception 'Sponsor account is not linked' using errcode='42501'; end if;
  if length(btrim(coalesce(_company_name,'')))<2 or length(_company_name)>240 or length(coalesce(_public_description,''))>3000 then raise exception 'Company name and valid description are required'; end if;
+ if length(coalesce(_contact_person,''))>240 or length(coalesce(_contact_email,''))>320 or length(coalesce(_contact_phone,''))>80 then raise exception 'Contact fields exceed the allowed length'; end if;
  if _contact_email is not null and _contact_email !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then raise exception 'Enter a valid contact email'; end if;
  if _logo_url is not null and (length(_logo_url)>2000 or _logo_url !~* '^https?://') then raise exception 'Logo URL must be an HTTP or HTTPS URL under 2000 characters'; end if;
  insert into private.sponsor_profile_edits(sponsor_record_id,requested_by,company_name,contact_person,contact_email,contact_phone,logo_url,public_description,status)
