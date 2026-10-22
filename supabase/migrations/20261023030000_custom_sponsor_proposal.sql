@@ -57,7 +57,7 @@ begin
  if admin and length(btrim(coalesce(_reason,'')))<3 then raise exception 'Admin override reason required'; end if;
  select to_jsonb(t) into old_j from private.sponsor_proposal_templates t where id=_id for update;
  if old_j is null then raise exception 'Template not found'; end if;
- if (lower(btrim(coalesce(old_j->>'name',''))) in ('kit sponsor proposal','match day sponsor proposal','community partner proposal','custom sponsor proposal') or lower(btrim(coalesce(_name,''))) in ('kit sponsor proposal','match day sponsor proposal','community partner proposal'))
+ if (lower(btrim(coalesce(old_j->>'name',''))) in ('kit sponsor proposal','match day sponsor proposal','community partner proposal','custom sponsor proposal') or lower(btrim(coalesce(_name,''))) in ('kit sponsor proposal','match day sponsor proposal','community partner proposal','custom sponsor proposal') or (coalesce((old_j->>'is_starter')::boolean,false) and old_j->>'template_kind'='custom'))
     and not (admin or 'sponsor_lead'=any(r)) then
    raise exception 'Only Sponsor Lead or admin can view or edit these restricted starter templates';
  end if;
