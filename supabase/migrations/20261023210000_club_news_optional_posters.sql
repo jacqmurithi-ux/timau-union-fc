@@ -12,6 +12,7 @@ drop policy if exists club_news_posters_media_update on storage.objects;
 create policy club_news_posters_media_update on storage.objects for update to authenticated using (bucket_id='club-news-posters' and public.club_news_can_manage() and split_part(name,'/',1)=auth.uid()::text) with check (bucket_id='club-news-posters' and public.club_news_can_manage() and split_part(name,'/',1)=auth.uid()::text);
 drop policy if exists club_news_posters_media_delete on storage.objects;
 create policy club_news_posters_media_delete on storage.objects for delete to authenticated using (bucket_id='club-news-posters' and public.club_news_can_manage() and split_part(name,'/',1)=auth.uid()::text);
+drop function if exists public.club_news_save(uuid,text,text,boolean,text);
 drop function if exists public.club_news_save(uuid,text,text,boolean);
 create function public.club_news_save(_id uuid,_title text,_body text,_publish boolean,_poster_path text default null)
 returns uuid language plpgsql security definer set search_path=''
