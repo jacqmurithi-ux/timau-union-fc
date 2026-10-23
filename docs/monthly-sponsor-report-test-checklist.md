@@ -4,8 +4,9 @@ Run this checklist against a non-production Supabase project after applying the 
 
 ## Before testing
 - [ ] Review `supabase/migrations/20261023160000_monthly_sponsor_report_kit_funding.sql` before applying it.
-- [ ] Confirm the target database has the existing `private.club_records` sponsor records and existing role helper functions.
-- [ ] Apply the migration in the test project only, then verify the four new `kit_items` columns and constraints.
+- [ ] Confirm the target database has the existing `public.kit_items`, `public.kit_managers`, `private.club_records`, `private.sponsor_user_links`, and role helper functions used by the migration.
+- [ ] Confirm the target test database matches the current production schema for kit, attendance, social, sponsor-link and first-aid modules. The current **Union Test** project does not yet match this schema, so do not apply this migration there until the missing baseline migrations are installed or a schema-matched non-production database is available.
+- [ ] Apply the migration only to a schema-matched non-production project, then verify the four new `kit_items` columns and constraints.
 - [ ] Use separate test accounts for Chairman, Treasurer, Secretary, Sponsor A, Sponsor B and Coach-only roles.
 
 ## Chairman / Admin
@@ -22,7 +23,7 @@ Run this checklist against a non-production Supabase project after applying the 
 - [ ] Add/edit a kit item and record acquisition type, acquisition date, sponsor and optional amount.
 - [ ] Confirm negative amounts are rejected and existing kit items with blank funding fields still save.
 - [ ] Confirm Treasurer can save a report draft but cannot approve or publish it.
-- [ ] Confirm the Treasurer can change only funding metadata through the narrow `kit_set_sponsor_funding` RPC, while ordinary direct inventory updates remain governed by the existing kit RLS policies.
+- [ ] Confirm the Treasurer can save funding metadata, negative amounts are rejected, and an unauthorized role cannot bypass the funding trigger through a direct table update or the `kit_set_sponsor_funding` RPC.
 
 ## Secretary
 - [ ] Confirm sponsor funding fields are enabled and persist.
