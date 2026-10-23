@@ -14,6 +14,7 @@ Run this checklist against a non-production Supabase project after applying the 
 - [ ] Edit up to three highlights, save draft, refresh and confirm they persist.
 - [ ] Confirm the status flow is Draft → Approved → Published.
 - [ ] Confirm publishing a draft directly is rejected; it must be approved first.
+- [ ] Confirm publication is blocked until all three non-blank highlights are saved.
 - [ ] Confirm an approved/published report remains a saved snapshot if source records change.
 - [ ] Print and choose Save as PDF; export CSV and inspect the downloaded rows.
 
