@@ -49,7 +49,8 @@
       visitor = crypto.randomUUID();
       localStorage.setItem(key, visitor);
     }
-  } catch (_) {
+  } catch (error) {
+    console.warn("[Timau install analytics] Local visitor storage unavailable; analytics disabled for this browser.", error?.message || error);
     return;
   }
 
@@ -67,18 +68,27 @@
         try {
           if (sessionStorage.getItem(onceKey) === "1") return;
           sessionStorage.setItem(onceKey, "1");
-        } catch (_) { return; }
+        } catch (error) {
+          // Storage restrictions should not prevent the event from being sent.
+          console.warn("[Timau install analytics] Session storage unavailable; event deduplication may be limited.", error?.message || error);
+        }
       }
       void db.rpc("record_event", {
         _event_type: type,
         _visitor_id: visitor,
         _source: source
-      }).catch(() => {});
+      }).then(({ error }) => {
+        if (error) console.warn("[Timau install analytics] Event rejected by Supabase:", type, error.message || error.code || "unknown error");
+      }).catch(error => {
+        console.warn("[Timau install analytics] Network/request failure:", type, error?.message || error);
+      });
     };
     if (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) {
       sendAnalytics("app_open");
     }
     // If the browser event happened before analytics loaded, count it once analytics is ready.
     if (deferredPrompt) sendAnalytics("install_prompt_shown");
-  }).catch(() => {});
+  }).catch(error => {
+    console.warn("[Timau install analytics] Supabase client failed to load; check network access to esm.sh.", error?.message || error);
+  });
 })();
