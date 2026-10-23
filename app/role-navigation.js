@@ -96,6 +96,10 @@ export const SECTION_ACCESS = {
     financial_report: ["admin","chairman","treasurer"],
     audit: ["admin","chairman","treasurer"]
   },
+  "secretary.html": {
+    meeting: ["admin","chairman","secretary"], correspondence: ["admin","chairman","secretary"], registration: ["admin","chairman","secretary"], membership: ["admin","chairman","secretary"], document: ["admin","chairman","secretary"], notice: ["admin","chairman","secretary"], election: ["admin","chairman","secretary"], report: ["admin","chairman","secretary"],
+    player: ["admin","chairman","secretary"], fixture: ["admin","chairman","secretary"], news: ["admin","chairman","secretary"], sponsor: ["admin","chairman","secretary"], activity: ["admin","chairman","secretary"]
+  },
   "media.html": {
     posts: ["admin","chairman","media_team"],
     calendar: ["admin","chairman","media_team"],
