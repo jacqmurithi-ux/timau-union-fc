@@ -135,6 +135,7 @@ export const SECTION_ACCESS = {
 };
 
 export const PAGE_HOME = [
+  { roles: ["admin","chairman"], page: "workspace.html" },
   { roles: ["sponsor"], page: "sponsor.html" },
   { roles: ["sponsor_lead"], page: "sponsor-lead.html" },
   { roles: ["media_team"], page: "media.html" },
@@ -143,5 +144,6 @@ export const PAGE_HOME = [
   { roles: ["secretary"], page: "secretary.html" },
   { roles: ["kit_manager","assistant_coach"], page: "kit.html" },
   { roles: ["admin","chairman","team_manager","player_welfare"], page: "workspace.html" },
-  { roles: ["vice_chairman","player","supporter"], page: "index.html" }
+  { roles: ["vice_chairman"], page: "home-attendance.html" },
+  { roles: ["player","supporter"], page: "index.html" }
 ];
