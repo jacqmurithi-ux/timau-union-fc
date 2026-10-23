@@ -130,8 +130,12 @@ function updateRoleLabels(roles,page){
   observer.observe(badge,{childList:true,characterData:true,subtree:true});
  }
  const title=$("main h1");
- if(title&&page==="sponsor-lead.html"&&roles.has("sponsor_lead"))title.textContent="Sponsor Lead workspace";
- if(title&&page==="treasurer.html"&&!roles.has("treasurer")&&!roles.has("chairman")&&!roles.has("admin"))title.textContent=roleNames(roles)[0]+" workspace";
+ const dashboardPages=new Set(["workspace.html","coach.html","treasurer.html","secretary.html","media.html","sponsor-lead.html","sponsor.html","kit.html"]);
+ if(title&&dashboardPages.has(page)&&page===homeFor(roles)){
+  const homeRole=PAGE_HOME.find(item=>item.page===page&&isAllowed(item.roles,roles))?.roles.find(role=>roles.has(role));
+  const label=readableRole(homeRole||[...roles][0]||"admin");
+  title.textContent=(["admin","chairman"].includes(homeRole)?"Club":label)+" workspace";
+ }
 }
 async function setup(){
  addStyle();
