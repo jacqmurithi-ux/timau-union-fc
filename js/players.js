@@ -1,3 +1,5 @@
+import { getPublishedClubContent } from "./published-content.js";
+
 "use strict";
 document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("menu-toggle");
@@ -40,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
       crest.loading = "lazy";
       const number = document.createElement("span");
       number.className = "player-card-number";
-      number.textContent = String(player.number).padStart(2, "0");
+      number.textContent = player.number ? String(player.number).padStart(2, "0") : "—";
       const name = document.createElement("h2");
       name.className = "player-card-name";
       name.textContent = player.name;
@@ -51,29 +53,30 @@ document.addEventListener("DOMContentLoaded", () => {
       grid.appendChild(card);
     });
     if (count) count.textContent = list.length + (list.length === 1 ? " player listed" : " players listed");
-    if (status) status.textContent = list.length ? "" : "No players match your search.";
+    if (status) status.textContent = list.length ? "" : (search && search.value.trim() ? "No players match your search." : "No players have been approved for public display yet.");
   }
   if (search) search.addEventListener("input", () => {
     const term = search.value.trim().toLocaleLowerCase();
     render(players.filter((player) => player.name.toLocaleLowerCase().includes(term)));
   });
-  fetch("data/players-2025-26.json")
-    .then((response) => { if (!response.ok) throw new Error("Roster unavailable"); return response.json(); })
-    .then((data) => {
-      if (!data || !Array.isArray(data.players)) throw new Error("Roster data is invalid");
-      players = data.players.filter((player) => player.status === "listed");
+  getPublishedClubContent()
+    .then((records) => {
+      players = records
+        .filter((record) => record.record_type === "player")
+        .map((record) => ({
+          name: String(record.data?.name || "").trim(),
+          number: String(record.data?.squad_number || "").trim(),
+          position: String(record.data?.position || "").trim()
+        }))
+        .filter((player) => player.name);
       if (grid) grid.setAttribute("aria-busy", "false");
       render(players);
-      const link = document.createElement("a");
-      link.href = data.source.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = data.source.label;
-      source.append("Roster source: ", link, " · Season: " + data.season + " · Updated: " + data.lastUpdated);
+      if (source) source.textContent = "Only player records approved by club management are shown. Imported roster entries remain private until approved.";
     })
     .catch(() => {
       if (error) error.hidden = false;
       if (grid) { grid.replaceChildren(); grid.setAttribute("aria-busy", "false"); }
-      if (count) count.textContent = "Roster unavailable";
+      if (count) count.textContent = "Approved squad unavailable";
+      if (status) status.textContent = "Could not load approved squad records. Check your connection and refresh to retry.";
     });
 });
