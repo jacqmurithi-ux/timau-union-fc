@@ -1,8 +1,9 @@
+import {SECTION_LABELS} from "./role-navigation.js?v=role-nav-20261023-4";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let data={},active="partnership";
-const tabs=[["partnership","My partnership"],["agreement","My agreement"],["contributions","My contributions"],["benefits","Benefits delivered"],["updates","Updates"],["media","Sponsor media"],["requests","Requests"],["report","My report"],["details","My details"]];
+const tabs=Object.entries(SECTION_LABELS["sponsor.html"]);
 const note=(s,kind="info")=>{$("notice").textContent=s;$("notice").dataset.kind=kind};
 const money=n=>"KES "+Number(n||0).toLocaleString("en-KE",{maximumFractionDigits:2});
 const numAttendance=n=>Number(n).toLocaleString("en-KE",{maximumFractionDigits:1});

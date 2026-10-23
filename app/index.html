@@ -135,6 +135,17 @@
       <div class="footer-right"><a href="../index.html">Visit public website</a><p>Access is checked by the production database.</p></div>
     </div>
   </footer>
+  <script>
+    if(new URLSearchParams(location.search).get("accessDenied")==="1"){
+      const note=document.createElement("p");
+      note.className="access-status";
+      note.setAttribute("role","status");
+      note.textContent="You don't have access to that page.";
+      document.querySelector("main")?.prepend(note);
+      const url=new URL(location.href);url.searchParams.delete("accessDenied");
+      history.replaceState(null,"",url.pathname+url.search+url.hash);
+    }
+  </script>
   <script type="module" src="./access.js?v=1466941"></script>
 </body>
 </html>
