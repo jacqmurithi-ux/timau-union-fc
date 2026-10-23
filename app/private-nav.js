@@ -88,8 +88,10 @@ function buildTabs(roles,page){
  const main=$("main");if(!main)return;
  const nav=document.createElement("nav");nav.className="private-workspace-tabs";nav.setAttribute("aria-label","Workspace pages");
  const seen=new Set();
+ // Treasurer workspace is a focused role dashboard: show its authorized section
+ // buttons only, not links to unrelated workspaces or reports.
  for(const [href,allowed] of Object.entries(PAGE_ACCESS)){
-  if(href==="index.html"||!isAllowed(allowed,roles)||seen.has(href))continue;
+  if(page==="treasurer.html"||href==="index.html"||!isAllowed(allowed,roles)||seen.has(href))continue;
   seen.add(href);
   const a=document.createElement("a");a.className="button button-dark";a.textContent=PAGE_LABELS[href]||href;a.href="./"+href;
   if(page===href)a.setAttribute("aria-current","page");
