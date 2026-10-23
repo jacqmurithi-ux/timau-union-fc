@@ -429,3 +429,57 @@
 .season-scorer-rank { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--club-red, #c8102e); color: #fff; font-weight: 700; }
 .season-scorer-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .season-scorer-goals { white-space: nowrap; font-size: .9rem; color: var(--text-muted, #5c665f); }
+
+
+/* Homepage standings must fit the viewport on narrow phones.
+   Keep the full season-page table's horizontal scrolling behavior unchanged. */
+.season-home-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+.season-home-table-wrap .season-table-compact {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.season-home-table-wrap .season-table-compact caption {
+  caption-side: top;
+  width: 100%;
+  padding: 14px 12px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.season-home-table-wrap .season-table-compact th,
+.season-home-table-wrap .season-table-compact td {
+  min-width: 0;
+  padding: 10px 6px;
+  overflow-wrap: anywhere;
+}
+.season-home-table-wrap .season-table-compact th:first-child,
+.season-home-table-wrap .season-table-compact td:first-child { width: 12%; }
+.season-home-table-wrap .season-table-compact th:nth-child(2),
+.season-home-table-wrap .season-table-compact td:nth-child(2) { width: 48%; }
+.season-home-table-wrap .season-table-compact th:nth-child(3),
+.season-home-table-wrap .season-table-compact td:nth-child(3) { width: 10%; }
+.season-home-table-wrap .season-table-compact th:nth-child(4),
+.season-home-table-wrap .season-table-compact td:nth-child(4) { width: 13%; }
+.season-home-table-wrap .season-table-compact th:nth-child(5),
+.season-home-table-wrap .season-table-compact td:nth-child(5) { width: 17%; }
+@media (max-width: 420px) {
+  .season-home-table-wrap { overflow-x: hidden; }
+  .season-home-table-wrap .season-table-compact { min-width: 0; }
+  .season-home-table-wrap .season-table-compact th,
+  .season-home-table-wrap .season-table-compact td {
+    padding: 9px 3px;
+    font-size: .78rem;
+    line-height: 1.25;
+  }
+  .season-home-table-wrap .season-table-compact caption {
+    padding: 12px 10px;
+    font-size: .88rem;
+  }
+}
