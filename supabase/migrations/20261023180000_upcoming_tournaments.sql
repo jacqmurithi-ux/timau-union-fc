@@ -147,14 +147,14 @@ grant execute on function public.club_tournaments_public_list() to anon, authent
 
 create or replace function public.club_tournament_my_access()
 returns jsonb language plpgsql stable security definer set search_path=''
-as $
+as $$
 begin
  if auth.uid() is null then raise exception 'Sign-in required'; end if;
  return jsonb_build_object(
    'roles',to_jsonb(private.current_club_roles()),
    'is_platform_admin',private.is_active_platform_admin(auth.uid())
  );
-end $;
+end $$;
 revoke all on function public.club_tournament_my_access() from public, anon;
 grant execute on function public.club_tournament_my_access() to authenticated;
 
