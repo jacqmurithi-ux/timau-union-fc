@@ -23,7 +23,24 @@ set search_path = pg_catalog, public, private
 as $$
 declare
   v_type text;
+  v_roles text[] := coalesce(private.current_club_roles(), array[]::text[]);
+  v_allowed boolean := coalesce(private.is_active_platform_admin(auth.uid()), false)
+    or v_roles && array['admin','chairman','treasurer','secretary']::text[]
+    or exists (select 1 from public.kit_managers km where km.user_id = auth.uid());
 begin
+  if auth.uid() is null then
+    raise exception 'Authentication required to change kit funding';
+  end if;
+  if tg_op = 'INSERT' then
+    if (new.funded_by_sponsor_id is not null or new.funding_amount is not null or new.acquisition_type = 'sponsor-funded') and not v_allowed then
+      raise exception 'Only Admin, Chairman, Treasurer, Secretary or kit managers can set sponsor funding';
+    end if;
+  elsif (new.funded_by_sponsor_id is distinct from old.funded_by_sponsor_id
+      or new.funding_amount is distinct from old.funding_amount
+      or (new.acquisition_type = 'sponsor-funded' and old.acquisition_type is distinct from new.acquisition_type))
+      and not v_allowed then
+    raise exception 'Only Admin, Chairman, Treasurer, Secretary or kit managers can set sponsor funding';
+  end if;
   if new.funded_by_sponsor_id is not null then
     select record_type into v_type
       from private.club_records
@@ -178,8 +195,7 @@ begin
   insert into private.monthly_sponsor_reports(month_start,report_data,highlights,status,created_by,updated_by)
   values(_month,_report_data,v_highlights,'draft',auth.uid(),auth.uid())
   on conflict(month_start) do update set report_data=excluded.report_data,highlights=excluded.highlights,
-    updated_by=auth.uid(),updated_at=now()
-  returning month_start,status into _month, v_old.status;
+    updated_by=auth.uid(),updated_at=now();
   return jsonb_build_object('month_start',_month,'status','draft');
 end;
 $$;
