@@ -157,7 +157,7 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   if _month is null or extract(day from _month) <> 1 then raise exception 'Month must be the first day of a month'; end if;
-  select count(distinct sul.sponsor_record_id), min(sul.sponsor_record_id)
+  select count(distinct sul.sponsor_record_id), (array_agg(distinct sul.sponsor_record_id))[1]
     into v_sponsor_link_count, v_sponsor_id
     from private.sponsor_user_links sul
     where sul.user_id = auth.uid() and sul.active and sul.unlinked_at is null;
