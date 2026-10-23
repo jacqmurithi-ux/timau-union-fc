@@ -37,12 +37,10 @@ begin
     end if;
   elsif (new.funded_by_sponsor_id is distinct from old.funded_by_sponsor_id
       or new.funding_amount is distinct from old.funding_amount
-      or (new.acquisition_type = 'sponsor-funded' and old.acquisition_type is distinct from new.acquisition_type))
+      or new.date_acquired is distinct from old.date_acquired
+      or new.acquisition_type is distinct from old.acquisition_type)
       and not v_allowed then
     raise exception 'Only Admin, Chairman, Treasurer, Secretary or kit managers can set sponsor funding';
-  end if;
-  if new.acquisition_type = 'sponsor-funded' and new.funded_by_sponsor_id is null then
-    raise exception 'Sponsor-funded kit must identify the sponsor';
   end if;
   if new.acquisition_type = 'sponsor-funded' and new.funded_by_sponsor_id is null then
     raise exception 'Sponsor-funded kit must identify the sponsor';
@@ -72,7 +70,7 @@ comment on column public.kit_items.date_acquired is 'Date the item was acquired;
 comment on column public.kit_items.acquisition_type is 'How the item was acquired; nullable for existing inventory.';
 
 create trigger kit_items_validate_sponsor_funding
-before insert or update of funded_by_sponsor_id, funding_amount, acquisition_type
+before insert or update of funded_by_sponsor_id, funding_amount, date_acquired, acquisition_type
 on public.kit_items
 for each row execute function private.validate_kit_sponsor_funding();
 
@@ -152,12 +150,20 @@ declare
   v_report private.monthly_sponsor_reports%rowtype;
   v_roles text[] := coalesce(private.current_club_roles(), array[]::text[]);
   v_admin boolean := coalesce(private.is_active_platform_admin(auth.uid()), false);
-  v_sponsor_id uuid := private.current_sponsor_record_id();
+  v_sponsor_id uuid;
+  v_sponsor_link_count integer;
   v_sponsor boolean;
   v_data jsonb;
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   if _month is null or extract(day from _month) <> 1 then raise exception 'Month must be the first day of a month'; end if;
+  select count(distinct sul.sponsor_record_id), min(sul.sponsor_record_id)
+    into v_sponsor_link_count, v_sponsor_id
+    from private.sponsor_user_links sul
+    where sul.user_id = auth.uid() and sul.active and sul.unlinked_at is null;
+  if v_sponsor_link_count > 1 then
+    raise exception 'More than one active sponsor link is assigned to this account';
+  end if;
   v_sponsor := v_sponsor_id is not null and 'sponsor' = any(v_roles) and not v_admin
     and not (v_roles && array['admin','chairman','treasurer','secretary','media_team','sponsor_lead','team_manager','coach']::text[]);
   if not v_sponsor and not (v_admin or v_roles && array['admin','chairman','treasurer','secretary','media_team']::text[]) then
@@ -189,11 +195,34 @@ begin
 
   if v_sponsor then
     v_data := jsonb_build_object(
-      'summary', coalesce(v_report.report_data->'summary','{}'::jsonb),
-      'social', coalesce(v_report.report_data->'social','{}'::jsonb),
-      'results', coalesce(v_report.report_data->'results','{}'::jsonb),
+      'summary', jsonb_build_object(
+        'matches', coalesce(v_report.report_data#>'{summary,matches}','0'::jsonb),
+        'attendance_total', coalesce(v_report.report_data#>'{summary,attendance_total}','0'::jsonb),
+        'attendance_average', coalesce(v_report.report_data#>'{summary,attendance_average}','0'::jsonb),
+        'attendance_highest', coalesce(v_report.report_data#>'{summary,attendance_highest}','0'::jsonb),
+        'attendance_lowest', coalesce(v_report.report_data#>'{summary,attendance_lowest}','0'::jsonb)
+      ),
+      'social', jsonb_build_object(
+        'posts', coalesce(v_report.report_data#>'{social,posts}','0'::jsonb),
+        'sponsor_tagged_posts', coalesce(v_report.report_data#>'{social,sponsor_tagged_posts}','0'::jsonb),
+        'views', coalesce(v_report.report_data#>'{social,views}','0'::jsonb),
+        'likes', coalesce(v_report.report_data#>'{social,likes}','0'::jsonb),
+        'engagement_rate', coalesce(v_report.report_data#>'{social,engagement_rate}','0'::jsonb),
+        'followers_gained', coalesce(v_report.report_data#>'{social,followers_gained}','0'::jsonb)
+      ),
+      'results', jsonb_build_object(
+        'matches_played', coalesce(v_report.report_data#>'{results,matches_played}','0'::jsonb),
+        'league_position', coalesce(v_report.report_data#>'{results,league_position}','null'::jsonb),
+        'results', coalesce((select jsonb_agg(jsonb_build_object(
+          'date',x->'date','opponent',x->'opponent','result',x->'result'
+        )) from jsonb_array_elements(coalesce(v_report.report_data#>'{results,results}','[]'::jsonb)) x),'[]'::jsonb)
+      ),
       'highlights', to_jsonb(v_report.highlights),
-      'kit_needs', coalesce(v_report.report_data->'kit_needs','[]'::jsonb),
+      'kit_needs', coalesce((select jsonb_agg(jsonb_build_object(
+        'name',x->'name','quantity_usable',x->'quantity_usable',
+        'quantity_total',x->'quantity_total','quantity_damaged',x->'quantity_damaged',
+        'quantity_missing',x->'quantity_missing'
+      )) from jsonb_array_elements(coalesce(v_report.report_data->'kit_needs','[]'::jsonb)) x),'[]'::jsonb),
       'kit_month_added', coalesce(v_report.report_data->'kit_month_added','null'::jsonb),
       'kit_total_stock', coalesce(v_report.report_data->'kit_total_stock','null'::jsonb),
       'kit_usable_units', coalesce(v_report.report_data->'kit_usable_units','null'::jsonb),
@@ -201,12 +230,19 @@ begin
       'kit_missing_units', coalesce(v_report.report_data->'kit_missing_units','null'::jsonb),
       'first_aid_status', coalesce(v_report.report_data->'first_aid_status','null'::jsonb),
       'kit_funded_by_sponsor', coalesce((
-        select jsonb_agg(x)
+        select jsonb_agg(jsonb_build_object(
+          'sponsor_id',x->'sponsor_id','item',x->'item','colour',x->'colour',
+          'quantity',x->'quantity','amount',x->'amount','date',x->'date',
+          'condition',x->'condition','month',x->'month'
+        ))
         from jsonb_array_elements(coalesce(v_report.report_data->'kit_funded_by_sponsor','[]'::jsonb)) x
         where x->>'sponsor_id' = v_sponsor_id::text
       ), '[]'::jsonb),
       'sponsor_posts', coalesce((
-        select jsonb_agg(x)
+        select jsonb_agg(jsonb_build_object(
+          'sponsor_id',x->'sponsor_id','title',x->'title','platform',x->'platform',
+          'views',x->'views','likes',x->'likes','date',x->'date'
+        ))
         from jsonb_array_elements(coalesce(v_report.report_data->'sponsor_posts','[]'::jsonb)) x
         where x->>'sponsor_id' = v_sponsor_id::text
       ), '[]'::jsonb)
