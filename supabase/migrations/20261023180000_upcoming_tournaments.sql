@@ -117,7 +117,7 @@ begin
  if auth.uid() is null or not ('chairman'=any(private.current_club_roles())) then
   raise exception 'Chairman approval required' using errcode='42501';
  end if;
- if _decision not in ('approved','rejected') or length(btrim(coalesce(_reason,''))) not between 3 and 1000 then
+ if _decision is null or _decision not in ('approved','rejected') or length(btrim(coalesce(_reason,''))) not between 3 and 1000 then
   raise exception 'Choose approve/reject and provide a reason of 3–1000 characters';
  end if;
  select * into v from public.club_tournaments where id=_id for update;
