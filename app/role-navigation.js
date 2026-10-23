@@ -84,6 +84,7 @@ export const SECTION_LABELS = {
     proposals: "Proposals", packages: "Sponsorship packages", agreements: "Agreements", contributions: "Contributions",
     benefits: "Benefits delivery", communications: "Communication log", requests: "Requests to other roles", reports: "Sponsor reports"
   },
+  "social-stats.html": { posts: "Posts & reach", followers: "Followers" },
   "sponsor.html": {
     partnership: "My partnership", agreement: "My agreement", contributions: "My contributions", benefits: "Benefits delivered",
     updates: "Updates", media: "Sponsor media", requests: "Requests", report: "My report", details: "My details"
@@ -160,6 +161,10 @@ export const SECTION_ACCESS = {
     communications: ["admin","chairman","sponsor_lead"],
     requests: ["admin","chairman","sponsor_lead"],
     reports: ["admin","chairman","sponsor_lead"]
+  },
+  "social-stats.html": {
+    posts: ["admin","chairman","secretary","treasurer","team_manager","coach","media_team","sponsor_lead"],
+    followers: ["admin","chairman","secretary","treasurer","team_manager","coach","media_team","sponsor_lead"]
   },
   "sponsor.html": {
     partnership: ["admin","sponsor"],
