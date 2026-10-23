@@ -100,8 +100,7 @@ for select to authenticated
 using (
   private.current_club_roles() && array['media_team','chairman','secretary','treasurer','sponsor_lead','team_manager','coach']::text[]
   or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
-  or 'sponsor' = any(private.current_club_roles())
-);
+   );
 drop policy if exists social_followers_write on public.social_followers;
 create policy social_followers_write on public.social_followers
 for all to authenticated
