@@ -49,12 +49,12 @@ revoke all on public.social_post_stats, public.social_followers from public, ano
 revoke all on public.social_posts from public, anon;
 
 create or replace function public.social_stats_touch_updated_at()
-returns trigger language plpgsql set search_path = '' as $
+returns trigger language plpgsql set search_path = '' as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$;
+$$;
 revoke all on function public.social_stats_touch_updated_at() from public, anon, authenticated;
 drop trigger if exists social_post_stats_touch_updated_at on public.social_post_stats;
 create trigger social_post_stats_touch_updated_at before update on public.social_post_stats for each row execute function public.social_stats_touch_updated_at();
