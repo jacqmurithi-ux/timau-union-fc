@@ -1,4 +1,4 @@
-import {SECTION_LABELS} from "./role-navigation.js?v=role-nav-20261023-2";
+import {SECTION_LABELS} from "./role-navigation.js?v=role-nav-20261023-3";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
