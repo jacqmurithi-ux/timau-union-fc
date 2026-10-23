@@ -51,12 +51,17 @@ function addStyle(){
  .site-header #signout,.site-header #sign-out{flex:0 0 auto;min-height:40px;padding:.5rem .7rem;white-space:nowrap;font-size:.88rem}
  .private-workspace-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:0 auto 1.15rem;padding:.2rem 0 .85rem;width:100%;max-width:1200px}
  .private-workspace-tabs a,.private-workspace-tabs button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:.55rem .85rem;border:1px solid #171717;border-radius:8px;background:#171717;color:#fff;font:inherit;font-size:.9rem;font-weight:750;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer;white-space:normal}
- .private-workspace-tabs a:hover,.private-workspace-tabs button:hover{background:#333;color:#fff}
- .private-workspace-tabs a[aria-current=page]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
- .private-workspace-tabs a:focus-visible,.private-workspace-tabs button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
+ .private-workspace-tabs a:hover,.private-workspace-tabs button:hover{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
+ .private-workspace-tabs a[aria-current=page],.private-workspace-tabs button[aria-pressed=true],.private-workspace-tabs button[aria-selected=true]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
+ .private-workspace-tabs a:focus-visible,.private-workspace-tabs button:focus-visible,main button.button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
  .private-workspace-tabs [data-nav-type].ws-hidden,.private-workspace-tabs [hidden]{display:none!important}
  .private-workspace-tabs .ws-tabs,.private-workspace-tabs .coach-tabs,.private-workspace-tabs .tw-tabs,.private-workspace-tabs .sec-tabs,.private-workspace-tabs .media-tabs,.private-workspace-tabs .sl-tabs,.private-workspace-tabs .sp-tabs,.private-workspace-tabs .ss-tabs{display:contents!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important}
- .private-workspace-tabs .ws-tabs button[aria-pressed=true],.private-workspace-tabs .coach-tabs button[aria-pressed=true],.private-workspace-tabs .tw-tabs button[aria-pressed=true],.private-workspace-tabs .sec-tabs button[aria-pressed=true],.private-workspace-tabs .media-tabs button[aria-pressed=true],.private-workspace-tabs .sl-tabs button[aria-selected=true],.private-workspace-tabs .sp-tabs button[aria-selected=true],.private-workspace-tabs .ss-tabs button[aria-pressed=true]{background:#171717!important;border-color:#171717!important;color:#fff!important}
+ /* Shared action-button system across every authenticated workspace. */
+ main button.button{min-height:42px;padding:.55rem .85rem;border:1px solid #171717;border-radius:8px;background:#171717;color:#fff;font:inherit;font-weight:750;line-height:1.2;cursor:pointer}
+ main button.button:hover:not(:disabled){background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
+ main button:disabled{display:none!important}
+ main button.button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
+ main button[aria-pressed=true],main button[aria-selected=true]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
  @media(max-width:380px){.site-header .header-inner{gap:.35rem}.site-header .brand{gap:.4rem}.site-header .brand-mark{width:34px;height:34px;flex-basis:34px}.site-header .brand-copy strong{font-size:.76rem}.site-header #signout,.site-header #sign-out{padding:.45rem .55rem;font-size:.82rem}.private-workspace-tabs{gap:.4rem}.private-workspace-tabs a,.private-workspace-tabs button{min-height:40px;padding:.5rem .65rem;font-size:.85rem}}
  `;
  document.head.append(style);
