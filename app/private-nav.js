@@ -14,7 +14,8 @@ function seedLocalTabs(){
   "coach.html":{selector:".coach-tabs",attribute:"section"},
   "treasurer.html":{selector:".tw-tabs",attribute:"tab"},
   "secretary.html":{selector:".sec-tabs",attribute:"secretary"},
-  "media.html":{selector:".media-tabs",attribute:"tab"}
+  "media.html":{selector:".media-tabs",attribute:"tab"},
+  "social-stats.html":{selector:".ss-tabs",attribute:"tab"}
  }[page];
  if(!spec)return;
  const nav=$(spec.selector),labels=SECTION_LABELS[page];
@@ -54,8 +55,8 @@ function addStyle(){
  .private-workspace-tabs a[aria-current=page]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
  .private-workspace-tabs a:focus-visible,.private-workspace-tabs button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
  .private-workspace-tabs [data-nav-type].ws-hidden,.private-workspace-tabs [hidden]{display:none!important}
- .private-workspace-tabs .ws-tabs,.private-workspace-tabs .coach-tabs,.private-workspace-tabs .tw-tabs,.private-workspace-tabs .sec-tabs,.private-workspace-tabs .media-tabs,.private-workspace-tabs .sl-tabs,.private-workspace-tabs .sp-tabs{display:contents!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important}
- .private-workspace-tabs .ws-tabs button[aria-pressed=true],.private-workspace-tabs .coach-tabs button[aria-pressed=true],.private-workspace-tabs .tw-tabs button[aria-pressed=true],.private-workspace-tabs .sec-tabs button[aria-pressed=true],.private-workspace-tabs .media-tabs button[aria-pressed=true],.private-workspace-tabs .sl-tabs button[aria-selected=true],.private-workspace-tabs .sp-tabs button[aria-selected=true]{background:#171717!important;border-color:#171717!important;color:#fff!important}
+ .private-workspace-tabs .ws-tabs,.private-workspace-tabs .coach-tabs,.private-workspace-tabs .tw-tabs,.private-workspace-tabs .sec-tabs,.private-workspace-tabs .media-tabs,.private-workspace-tabs .sl-tabs,.private-workspace-tabs .sp-tabs,.private-workspace-tabs .ss-tabs{display:contents!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important}
+ .private-workspace-tabs .ws-tabs button[aria-pressed=true],.private-workspace-tabs .coach-tabs button[aria-pressed=true],.private-workspace-tabs .tw-tabs button[aria-pressed=true],.private-workspace-tabs .sec-tabs button[aria-pressed=true],.private-workspace-tabs .media-tabs button[aria-pressed=true],.private-workspace-tabs .sl-tabs button[aria-selected=true],.private-workspace-tabs .sp-tabs button[aria-selected=true],.private-workspace-tabs .ss-tabs button[aria-pressed=true]{background:#171717!important;border-color:#171717!important;color:#fff!important}
  @media(max-width:380px){.site-header .header-inner{gap:.35rem}.site-header .brand{gap:.4rem}.site-header .brand-mark{width:34px;height:34px;flex-basis:34px}.site-header .brand-copy strong{font-size:.76rem}.site-header #signout,.site-header #sign-out{padding:.45rem .55rem;font-size:.82rem}.private-workspace-tabs{gap:.4rem}.private-workspace-tabs a,.private-workspace-tabs button{min-height:40px;padding:.5rem .65rem;font-size:.85rem}}
  `;
  document.head.append(style);
@@ -101,6 +102,7 @@ function buildTabs(roles,page){
   "treasurer.html":{selector:".tw-tabs",gate:"#dashboard"},
   "secretary.html":{selector:".sec-tabs",gate:"#dashboard"},
   "media.html":{selector:".media-tabs",gate:"#workspace"},
+  "social-stats.html":{selector:".ss-tabs",gate:"#app"},
   "sponsor-lead.html":{selector:".sl-tabs"},
   "sponsor.html":{selector:".sp-tabs",gate:"#portal"}
  }[page];
@@ -108,7 +110,7 @@ function buildTabs(roles,page){
   if(!localSpec)return false;
   const local=$(localSpec.selector),gate=localSpec.gate?$(localSpec.gate):null;
   if(!local||local.dataset.sharedNavigationMoved)return false;
-  if(gate&&(gate.hidden||["ws-hidden","coach-hidden","tw-hidden","sec-hidden","media-hidden","sp-hidden"].some(name=>gate.classList.contains(name))))return false;
+  if(gate&&(gate.hidden||["ws-hidden","coach-hidden","tw-hidden","sec-hidden","media-hidden","sp-hidden","ss-hidden"].some(name=>gate.classList.contains(name))))return false;
   local.dataset.sharedNavigationMoved="true";
   nav.append(local);
   return true;
