@@ -60,6 +60,11 @@ end;
 $$;
 
 drop trigger if exists kit_items_validate_sponsor_funding on public.kit_items;
+comment on column public.kit_items.funded_by_sponsor_id is 'Sponsor record in private.club_records (record_type=sponsor); nullable for existing or non-sponsored kit.';
+comment on column public.kit_items.funding_amount is 'Optional recorded funding value in KES; only authorized officials or kit managers may change it.';
+comment on column public.kit_items.date_acquired is 'Date the item was acquired; nullable for existing inventory.';
+comment on column public.kit_items.acquisition_type is 'How the item was acquired; nullable for existing inventory.';
+
 create trigger kit_items_validate_sponsor_funding
 before insert or update of funded_by_sponsor_id, funding_amount, acquisition_type
 on public.kit_items
@@ -212,7 +217,7 @@ declare
   v_old private.monthly_sponsor_reports%rowtype;
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
-  if _status not in ('approved','published') then raise exception 'Only approval or publication transitions are supported'; end if;
+  if _status is null or _status not in ('approved','published') then raise exception 'Only approval or publication transitions are supported'; end if;
   if not (v_admin or 'admin'=any(v_roles) or 'chairman'=any(v_roles)) then
     raise exception 'Only Admin or Chairman can approve or publish reports';
   end if;
