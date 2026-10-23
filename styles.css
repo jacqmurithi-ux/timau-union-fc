@@ -1271,3 +1271,15 @@ body > main > section.section {
     padding-bottom: 34px;
   }
 }
+
+
+/* Keep the homepage top-five standings fully visible on narrow screens. */
+.season-home-table-wrap{width:100%;max-width:100%;overflow-x:visible}
+.season-table-compact{width:100%;table-layout:fixed;border-collapse:collapse}
+.season-table-compact th,.season-table-compact td{padding:10px 8px;font-size:.92rem;overflow-wrap:anywhere}
+.season-table-compact th:first-child,.season-table-compact td:first-child{width:12%;text-align:center}
+.season-table-compact th:nth-child(2),.season-table-compact td:nth-child(2){width:48%;text-align:left}
+.season-table-compact th:nth-child(3),.season-table-compact td:nth-child(3){width:10%;text-align:center}
+.season-table-compact th:nth-child(4),.season-table-compact td:nth-child(4){width:13%;text-align:center}
+.season-table-compact th:nth-child(5),.season-table-compact td:nth-child(5){width:17%;text-align:center}
+@media(max-width:480px){.season-table-compact th,.season-table-compact td{padding:9px 4px;font-size:.8rem;line-height:1.25}.season-table-compact th:nth-child(2),.season-table-compact td:nth-child(2){overflow-wrap:break-word;word-break:normal}}
