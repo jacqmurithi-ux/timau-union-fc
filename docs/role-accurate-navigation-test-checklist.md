@@ -50,7 +50,7 @@ For each role above:
 
 | Signed-in role | Forbidden direct URL | Expected result |
 |---|---|---|
-| Admin / Chairman | Use a page not in the configured route map | Redirect to Club workspace with the access message |
+| Admin / Chairman | An unmapped private route that loads the shared navigation | Redirect to Club workspace with the access message |
 | Vice Chairman | `treasurer.html` | Redirect to Home attendance |
 | Secretary | `sponsor-lead.html` | Redirect to Secretary workspace |
 | Treasurer | `sponsor-lead.html` | Redirect to Treasurer workspace |
