@@ -254,7 +254,8 @@ begin
     v_highlights := coalesce(v_old.highlights,array[]::text[]);
   end if;
   if cardinality(v_highlights) > 3 then raise exception 'Enter no more than three highlights'; end if;
-  if exists(select 1 from unnest(v_highlights) h where length(btrim(h)) > 500) then raise exception 'Each highlight must be 500 characters or fewer'; end if;
+  if exists(select 1 from unnest(v_highlights) as h(value) where length(btrim(value)) = 0) then raise exception 'Highlights cannot be blank'; end if;
+  if exists(select 1 from unnest(v_highlights) as h(value) where length(btrim(value)) > 500) then raise exception 'Each highlight must be 500 characters or fewer'; end if;
   insert into private.monthly_sponsor_reports(month_start,report_data,highlights,status,created_by,updated_by)
   values(_month,_report_data,v_highlights,'draft',auth.uid(),auth.uid())
   on conflict(month_start) do update set report_data=excluded.report_data,highlights=excluded.highlights,
@@ -283,6 +284,7 @@ begin
   if not found then raise exception 'Save the report draft first'; end if;
   if _status='approved' and v_old.status<>'draft' then raise exception 'Only a draft can be approved'; end if;
   if _status='published' and v_old.status<>'approved' then raise exception 'Approve the report before publishing'; end if;
+  if _status='published' and cardinality(v_old.highlights) <> 3 then raise exception 'Enter all three monthly highlights before publishing'; end if;
   if _status='approved' then
     update private.monthly_sponsor_reports set status='approved',approved_by=auth.uid(),approved_at=now(),updated_by=auth.uid(),updated_at=now() where month_start=_month;
   else
