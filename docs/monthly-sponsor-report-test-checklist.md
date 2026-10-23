@@ -3,7 +3,7 @@
 Run this checklist against a schema-matched non-production Supabase project after applying the report-only migration. Do not create sample rows in production.
 
 ## Before testing
-- [ ] Review `supabase/migrations/20261023171000_monthly_sponsor_report.sql` before applying it.
+- [ ] Review `supabase/migrations/20261023173000_monthly_sponsor_report.sql` before applying it.
 - [ ] Confirm the target database has `private.club_records`, `private.sponsor_user_links`, attendance and social tables, and the role helper functions used by the report RPCs.
 - [ ] The current **Union Test** project does not yet match this schema (including missing `public.kit_items`, `public.kit_managers`, `private.sponsor_user_links`, `private.home_attendance_monthly` and helper functions). Do not apply the migration there until a schema-matched non-production database is available.
 - [ ] Apply only the report migration to a schema-matched non-production project. It should create the private monthly report table and report RPCs; it must not alter Kit inventory or Kit permissions.
