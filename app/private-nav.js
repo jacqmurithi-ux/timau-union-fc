@@ -72,10 +72,30 @@ function buildTabs(roles,page){
   if(page===href)a.setAttribute("aria-current","page");
   nav.append(a);
  }
- const localNavs=[...main.querySelectorAll(":scope > nav")].filter(n=>!n.classList.contains("private-workspace-tabs"));
  main.insertBefore(nav,main.firstChild);
- for(const local of localNavs)nav.append(local);
+ const localSpec={
+  "workspace.html":{selector:".ws-tabs",gate:"#workspace"},
+  "coach.html":{selector:".coach-tabs",gate:"#dashboard"},
+  "treasurer.html":{selector:".tw-tabs",gate:"#dashboard"},
+  "secretary.html":{selector:".sec-tabs",gate:"#dashboard"},
+  "media.html":{selector:".media-tabs",gate:"#workspace"},
+  "sponsor-lead.html":{selector:".sl-tabs"},
+  "sponsor.html":{selector:".sp-tabs",gate:"#portal"}
+ }[page];
+ const moveLocalNav=()=>{
+  if(!localSpec)return false;
+  const local=$(localSpec.selector),gate=localSpec.gate?$(localSpec.gate):null;
+  if(!local||local.dataset.sharedNavigationMoved)return false;
+  if(gate&&(gate.hidden||["ws-hidden","coach-hidden","tw-hidden","sec-hidden","media-hidden","sp-hidden"].some(name=>gate.classList.contains(name))))return false;
+  local.dataset.sharedNavigationMoved="true";
+  nav.append(local);
+  return true;
+ };
  filterLocalTabs(roles,page);
+ if(!moveLocalNav()&&localSpec){
+  const mover=new MutationObserver(()=>{if(moveLocalNav())mover.disconnect()});
+  mover.observe(main,{subtree:true,childList:true,attributes:true,attributeFilter:["class","hidden"]});
+ }
  const observer=new MutationObserver(()=>filterLocalTabs(roles,page));
  observer.observe(main,{subtree:true,childList:true});
 }
