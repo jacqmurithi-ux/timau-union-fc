@@ -41,6 +41,9 @@ begin
       and not v_allowed then
     raise exception 'Only Admin, Chairman, Treasurer, Secretary or kit managers can set sponsor funding';
   end if;
+  if new.acquisition_type = 'sponsor-funded' and new.funded_by_sponsor_id is null then
+    raise exception 'Sponsor-funded kit must identify the sponsor';
+  end if;
   if new.funded_by_sponsor_id is not null then
     select record_type into v_type
       from private.club_records
@@ -94,6 +97,9 @@ begin
   if _funding_amount is not null and _funding_amount < 0 then raise exception 'Funding amount cannot be negative'; end if;
   if _acquisition_type is not null and _acquisition_type not in ('purchased','donated','sponsor-funded','other') then
     raise exception 'Invalid acquisition type';
+  end if;
+  if _acquisition_type = 'sponsor-funded' and _funded_by_sponsor_id is null then
+    raise exception 'Sponsor-funded kit must identify the sponsor';
   end if;
   if _funded_by_sponsor_id is not null then
     select record_type into v_type from private.club_records where id = _funded_by_sponsor_id;
