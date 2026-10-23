@@ -161,7 +161,7 @@ async function setup(){
  }
  const page=currentPage();
  const allowed=PAGE_ACCESS[page];
- if((allowed&&!isAllowed(allowed,roles))||(!allowed&&page!=="index.html")){
+ if(page!=="index.html"&&((allowed&&!isAllowed(allowed,roles))||!allowed)){
   const home=homeFor(roles);
   location.replace("./"+home+(home.includes("?")?"&":"?")+"accessDenied=1");
   return;
