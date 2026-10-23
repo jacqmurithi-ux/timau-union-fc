@@ -1,4 +1,4 @@
--- Single public news workflow. Only Secretary and Media Team may manage news.
+-- Single public news workflow. Only Media Team and active platform admins may manage news.
 begin;
 create table if not exists public.club_news (
  id uuid primary key default gen_random_uuid(),
@@ -19,7 +19,7 @@ create policy club_news_public_read on public.club_news for select to anon,authe
 grant select(id,title,body,status,published_at,created_at,updated_at) on public.club_news to anon,authenticated;
 create or replace function public.club_news_can_manage()
 returns boolean language sql stable security definer set search_path=''
-as $$ select auth.uid() is not null and (private.is_active_platform_admin(auth.uid()) or private.current_club_roles() && array['secretary','media_team']::text[]) $$;
+as $$ select auth.uid() is not null and (private.is_active_platform_admin(auth.uid()) or private.current_club_roles() && array['media_team']::text[]) $$;
 revoke all on function public.club_news_can_manage() from public,anon;
 grant execute on function public.club_news_can_manage() to authenticated;
 create or replace function public.club_news_public_list()
