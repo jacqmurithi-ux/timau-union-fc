@@ -25,7 +25,7 @@ export const PAGE_ACCESS = {
   "treasurer.html": ["admin","chairman","treasurer"],
   "media.html": ["admin","chairman","media_team"],
   "sponsor-lead.html": ["admin","chairman","sponsor_lead"],
-  "sponsor.html": ["admin","sponsor"],
+  "sponsor.html": ["sponsor"],
   "sponsor-links.html": ["admin","chairman","sponsor_lead"],
   "kit.html": ["admin","chairman","secretary","team_manager","coach","assistant_coach","kit_manager"],
   "home-attendance.html": ["admin","chairman","vice_chairman","secretary","treasurer","team_manager","coach","media_team","sponsor_lead"],
