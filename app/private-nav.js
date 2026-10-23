@@ -148,6 +148,11 @@ async function setup(){
  if(error||!data)return;
  const roles=roleSet(data.roles);
  if(Boolean(data.is_platform_admin))roles.add("admin");
+ // Kit managers are assigned through the existing kit_managers relation, not role_assignments.
+ if(session.user?.id){
+  const {data:kitAssignment}=await db.from("kit_managers").select("user_id").eq("user_id",session.user.id).maybeSingle();
+  if(kitAssignment?.user_id)roles.add("kit_manager");
+ }
  const page=currentPage();
  const allowed=PAGE_ACCESS[page];
  if(allowed&&!isAllowed(allowed,roles)){
