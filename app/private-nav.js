@@ -1,5 +1,5 @@
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
-import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS,SECTION_LABELS} from "./role-navigation.js?v=role-nav-20261023-1";
+import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS,SECTION_LABELS} from "./role-navigation.js?v=role-nav-20261023-2";
 
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
