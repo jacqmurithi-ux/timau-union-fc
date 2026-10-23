@@ -70,6 +70,48 @@ before insert or update of funded_by_sponsor_id, funding_amount, acquisition_typ
 on public.kit_items
 for each row execute function private.validate_kit_sponsor_funding();
 
+create or replace function public.kit_set_sponsor_funding(
+  _kit_item_id uuid,
+  _funded_by_sponsor_id uuid,
+  _funding_amount numeric,
+  _date_acquired date,
+  _acquisition_type text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private
+as $
+declare
+  v_roles text[] := coalesce(private.current_club_roles(), array[]::text[]);
+  v_allowed boolean := coalesce(private.is_active_platform_admin(auth.uid()), false)
+    or v_roles && array['admin','chairman','treasurer','secretary']::text[]
+    or exists (select 1 from public.kit_managers km where km.user_id = auth.uid());
+  v_type text;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if not v_allowed then raise exception 'Not authorized to change kit funding'; end if;
+  if _funding_amount is not null and _funding_amount < 0 then raise exception 'Funding amount cannot be negative'; end if;
+  if _acquisition_type is not null and _acquisition_type not in ('purchased','donated','sponsor-funded','other') then
+    raise exception 'Invalid acquisition type';
+  end if;
+  if _funded_by_sponsor_id is not null then
+    select record_type into v_type from private.club_records where id = _funded_by_sponsor_id;
+    if v_type is distinct from 'sponsor' then raise exception 'Funding sponsor must be a sponsor record'; end if;
+  end if;
+  update public.kit_items
+     set funded_by_sponsor_id = _funded_by_sponsor_id,
+         funding_amount = _funding_amount,
+         date_acquired = _date_acquired,
+         acquisition_type = case when _funded_by_sponsor_id is not null and _acquisition_type is null then 'sponsor-funded' else _acquisition_type end,
+         updated_by = auth.uid(),
+         updated_at = now()
+   where id = _kit_item_id;
+  if not found then raise exception 'Kit item not found'; end if;
+  return jsonb_build_object('ok',true,'kit_item_id',_kit_item_id);
+end;
+$;
+
 create table if not exists private.monthly_sponsor_reports (
   month_start date primary key check (extract(day from month_start) = 1),
   report_data jsonb not null default '{}'::jsonb,
@@ -234,7 +276,7 @@ begin
 end;
 $$;
 
-revoke all on function public.monthly_sponsor_report_get(date) from public, anon;
+revoke all on function public.kit_set_sponsor_funding(uuid,uuid,numeric,date,text) from public, anon;\ngrant execute on function public.kit_set_sponsor_funding(uuid,uuid,numeric,date,text) to authenticated;\nrevoke all on function public.monthly_sponsor_report_get(date) from public, anon;
 revoke all on function public.monthly_sponsor_report_save(date,jsonb,text[]) from public, anon;
 revoke all on function public.monthly_sponsor_report_set_status(date,text) from public, anon;
 grant execute on function public.monthly_sponsor_report_get(date) to authenticated;
