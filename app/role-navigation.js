@@ -66,7 +66,7 @@ export const SECTION_LABELS = {
   },
   "treasurer.html": {
     transport: "Transport & logistics", expenses: "Expenses & club finances", opening: "Opening balance",
-    income: "Income records", expense_records: "Expense records", transport_approvals: "Transport approvals",
+    income: "Income records",
     budget: "Budget", requisitions: "Requisitions", sponsor_fund: "Sponsor funds",
     member_contribution: "Player/member contributions", cashbook: "Cash book & receipts",
     financial_report: "Financial reports", audit: "Audit log"
@@ -127,8 +127,6 @@ export const SECTION_ACCESS = {
     expenses: ["admin","chairman","treasurer"],
     opening: ["admin","chairman","treasurer"],
     income: ["admin","chairman","treasurer"],
-    expense_records: ["admin","chairman","treasurer"],
-    transport_approvals: ["admin","chairman","treasurer"],
     budget: ["admin","chairman","treasurer"],
     requisitions: ["admin","chairman","treasurer"],
     sponsor_fund: ["admin","chairman","treasurer"],
