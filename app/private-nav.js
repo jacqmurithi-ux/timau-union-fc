@@ -59,7 +59,7 @@ function addStyle(){
  /* Shared action-button system across every authenticated workspace. */
  main button.button{min-height:42px;padding:.55rem .85rem;border:1px solid #171717;border-radius:8px;background:#171717;color:#fff;font:inherit;font-weight:750;line-height:1.2;cursor:pointer}
  main button.button:hover:not(:disabled){background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
- main button.button:disabled,[data-hide-disabled-buttons] button:disabled{display:none!important}
+ main button:disabled{display:none!important}
  main button.button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
  main button[aria-pressed=true],main button[aria-selected=true]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
  @media(max-width:380px){.site-header .header-inner{gap:.35rem}.site-header .brand{gap:.4rem}.site-header .brand-mark{width:34px;height:34px;flex-basis:34px}.site-header .brand-copy strong{font-size:.76rem}.site-header #signout,.site-header #sign-out{padding:.45rem .55rem;font-size:.82rem}.private-workspace-tabs{gap:.4rem}.private-workspace-tabs a,.private-workspace-tabs button{min-height:40px;padding:.5rem .65rem;font-size:.85rem}}
