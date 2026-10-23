@@ -50,6 +50,46 @@ export const PAGE_LABELS = {
 };
 
 // Each section is independently filtered, so multi-role users see the union without duplicates.
+export const SECTION_LABELS = {
+  "workspace.html": {
+    player: "Players", fixture: "Fixtures & results", news: "News", sponsor: "Sponsors", activity: "Activities",
+    tm_squad_admin: "Squad admin", tm_match_day: "Match day", tm_transport_logistics: "Transport & logistics",
+    tm_team_sheet_report: "Team sheet & report", tm_discipline_welfare: "Discipline & welfare",
+    tm_communication: "Communication", tm_training_coordination: "Training coordination",
+    tm_reporting: "Reporting", tm_expenses: "Expenses & club finances"
+  },
+  "coach.html": {
+    fixtures: "Fixtures & results", activities: "Activities", squad: "Squad list", training_plans: "Training plans",
+    training_attendance: "Training attendance", match_selection: "Match selection", tactics_match_prep: "Tactics & prep",
+    player_performance: "Player performance", match_analysis: "Match analysis", player_development: "Player development",
+    fitness: "Injuries & fitness", discipline: "Discipline summary"
+  },
+  "treasurer.html": {
+    transport: "Transport & logistics", expenses: "Expenses & club finances", opening: "Opening balance",
+    income: "Income records", expense_records: "Expense records", transport_approvals: "Transport approvals",
+    budget: "Budget", requisitions: "Requisitions", sponsor_fund: "Sponsor funds",
+    member_contribution: "Player/member contributions", cashbook: "Cash book & receipts",
+    financial_report: "Financial reports", audit: "Audit log"
+  },
+  "secretary.html": {
+    player: "Players", fixture: "Fixtures & results", news: "News", sponsor: "Sponsors", activity: "Activities",
+    meeting: "Meetings & minutes", correspondence: "Correspondence", registration: "Registration & licensing",
+    membership: "Membership register", document: "Documents", notice: "Notices", election: "Elections & appointments", report: "Reports"
+  },
+  "media.html": {
+    posts: "Social posts", calendar: "Calendar", stats: "Social stats", gallery: "Fans Gallery", hero: "Homepage hero"
+  },
+  "sponsor-lead.html": {
+    sponsors: "Sponsors", pipeline: "Prospects & pipeline", evaluation: "Prospect evaluation", templates: "Proposal templates",
+    proposals: "Proposals", packages: "Sponsorship packages", agreements: "Agreements", contributions: "Contributions",
+    benefits: "Benefits delivery", communications: "Communication log", requests: "Requests to other roles", reports: "Sponsor reports"
+  },
+  "sponsor.html": {
+    partnership: "My partnership", agreement: "My agreement", contributions: "My contributions", benefits: "Benefits delivered",
+    updates: "Updates", media: "Sponsor media", requests: "Requests", report: "My report", details: "My details"
+  }
+};
+
 export const SECTION_ACCESS = {
   "workspace.html": {
     player: ["admin","chairman","secretary","team_manager"],
