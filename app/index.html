@@ -30,6 +30,7 @@
     .access-hidden{display:none!important}
     .access-actions .button{cursor:pointer}
     button:disabled{opacity:.55;cursor:not-allowed}
+    .install-diagnostics{margin:1rem 0;padding:1rem;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
     .install-chart{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:.4rem;align-items:end;min-height:150px;margin:1rem 0;padding:.75rem;border:1px solid var(--border);border-radius:10px}
     .install-bar{display:flex;min-width:0;flex-direction:column;justify-content:end;align-items:center;gap:.25rem;height:130px;font-size:.7rem}
     .install-bar-fill{width:70%;min-height:2px;background:var(--red);border-radius:4px 4px 0 0}
@@ -111,6 +112,12 @@
             <article class="feature-card"><h4>Active installs · 30 days</h4><p id="install-active">—</p></article>
             <article class="feature-card"><h4>Prompt acceptance</h4><p id="install-rate">—</p><small id="install-prompt-counts"></small></article>
           </div>
+          <section class="install-diagnostics" aria-labelledby="install-diagnostics-heading">
+            <h4 id="install-diagnostics-heading">Mobile tracking diagnostics</h4>
+            <p class="access-small">Shows the latest saved tracker status from this browser/app. Open the installed app first, then return here and refresh. No visitor IDs are shown.</p>
+            <div id="install-diagnostics-output" role="status" aria-live="polite"><p>Diagnostics have not been checked yet.</p></div>
+            <div class="access-actions"><button id="refresh-install-diagnostics" class="button button-dark" type="button">Refresh diagnostics</button></div>
+          </section>
           <div class="access-actions"><button id="refresh-install-stats" class="button button-dark" type="button">Refresh install statistics</button><button id="export-install-stats" class="button button-dark" type="button" disabled>Export daily CSV</button><button id="copy-install-summary" class="button button-dark" type="button" disabled>Copy summary</button><button id="share-install-summary" class="button button-dark" type="button" disabled>Share summary</button></div>
           <div id="install-stats-chart" class="install-chart" role="img" aria-label="Daily app installs for the last 30 days"></div><div class="access-table-wrap" id="install-stats-daily"></div>
         </section>

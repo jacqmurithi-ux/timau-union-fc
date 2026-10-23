@@ -265,6 +265,26 @@ function installSummary(p) {
     `Acceptance rate: ${p.acceptance_rate_30d ?? 0}%`
   ].join("\\n");
 }
+
+function renderInstallDiagnostics() {
+  const output = $("install-diagnostics-output");
+  if (!output) return;
+  output.replaceChildren();
+  let record = null;
+  try { record = JSON.parse(localStorage.getItem("tufc_install_analytics_diagnostics") || "null"); } catch (_) {}
+  if (!record || typeof record !== "object") {
+    output.append(el("p", "No tracker diagnostics are saved in this browser yet. Open the installed app, then return here and tap Refresh diagnostics."));
+    return;
+  }
+  const labels = [
+    ["stage", "Latest check"], ["status", "Result"], ["detail", "Details"],
+    ["updatedAt", "Last updated"]
+  ];
+  output.append(table(["Check", "Value"], labels.map(([key, label]) => [label, record[key] || "—"])));
+  output.append(el("p", "Diagnostics contain status and error text only; visitor IDs are not displayed."));
+}
+$("refresh-install-diagnostics").addEventListener("click", renderInstallDiagnostics);
+
 async function loadInstallStats() {
   const status = $("install-stats-status");
   const cards = $("install-stats-cards");
@@ -272,6 +292,7 @@ async function loadInstallStats() {
   const csvButton = $("export-install-stats");
   const copyButton = $("copy-install-summary");
   const shareButton = $("share-install-summary");
+  renderInstallDiagnostics();
   status.textContent = "Loading install statistics…";
   cards.hidden = true;
   daily.replaceChildren();
