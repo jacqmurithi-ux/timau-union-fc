@@ -1,7 +1,8 @@
+import {SECTION_LABELS} from "./role-navigation.js";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id); const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const tabs=[["sponsors","Sponsors"],["pipeline","Prospects & pipeline"],["evaluation","Prospect evaluation"],["templates","Proposal templates"],["proposals","Proposals"],["packages","Sponsorship packages"],["agreements","Agreements"],["contributions","Contributions"],["benefits","Benefits delivery"],["communications","Communication log"],["requests","Requests to other roles"],["reports","Sponsor reports"]];
+const tabs=Object.entries(SECTION_LABELS["sponsor-lead.html"]);
 let data={},active="sponsors",isAdmin=false,roles=[];
 const note=(s,kind="info")=>{ $("notice").textContent=s; $("notice").dataset.kind=kind; };
 const input=(name,label,type="text",required=false,value="")=>`<label>${esc(label)}<input name="${name}" type="${type}" ${required?"required":""} value="${esc(value)}"></label>`;
