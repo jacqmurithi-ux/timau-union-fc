@@ -22,7 +22,7 @@ Run this checklist against a non-production Supabase project after applying the 
 - [ ] Add/edit a kit item and record acquisition type, acquisition date, sponsor and optional amount.
 - [ ] Confirm negative amounts are rejected and existing kit items with blank funding fields still save.
 - [ ] Confirm Treasurer can save a report draft but cannot approve or publish it.
-- [ ] Try to change sponsor funding through a direct authenticated API update on a kit item as Treasurer; expect allowed only under the database role check.
+- [ ] Confirm the Treasurer can change only funding metadata through the narrow `kit_set_sponsor_funding` RPC, while ordinary direct inventory updates remain governed by the existing kit RLS policies.
 
 ## Secretary
 - [ ] Confirm sponsor funding fields are enabled and persist.
