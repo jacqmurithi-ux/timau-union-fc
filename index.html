@@ -46,7 +46,7 @@
   <script src="js/season.js" defer></script>
 </head>
 
-<body>
+<body id="top">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -425,7 +425,7 @@
       </div>
 
       <div class="footer-right">
-        <a href="#home">Back to top ↑</a>
+        <a href="#top" class="back-to-top" id="back-to-top">Back to top ↑</a>
         <p>© <span id="current-year">2026</span> Timau Union FC</p>
       </div>
     </div>
@@ -438,6 +438,17 @@
       </p>
     </div>
   </footer>
+  <script>
+    (() => {
+      const link = document.getElementById("back-to-top");
+      if (!link) return;
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        window.scrollTo({ top: 0, left: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        if (location.hash !== "#top") history.replaceState(null, "", location.pathname + location.search + "#top");
+      });
+    })();
+  </script>
   <script type="module" src="js/club-news.js?v=20261023-1"></script>
   <script type="module" src="js/fans-gallery.js"></script>
 </body>
