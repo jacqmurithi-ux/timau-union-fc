@@ -94,20 +94,20 @@ with check (
 drop policy if exists social_post_stats_read on public.social_post_stats;
 create policy social_post_stats_read on public.social_post_stats
 for select to authenticated
-using (exists (
-  select 1 from public.social_posts p where p.id = post_id
-));
+using (exists (select 1 from public.social_posts p where p.id = post_id));
 drop policy if exists social_post_stats_write on public.social_post_stats;
-create policy social_post_stats_write on public.social_post_stats
-for all to authenticated
-using (
-  private.current_club_roles() && array['media_team','chairman']::text[]
-  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
-)
-with check (
-  private.current_club_roles() && array['media_team','chairman']::text[]
-  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
-);
+drop policy if exists social_post_stats_insert on public.social_post_stats;
+drop policy if exists social_post_stats_update on public.social_post_stats;
+create policy social_post_stats_insert on public.social_post_stats
+for insert to authenticated
+with check (private.current_club_roles() && array['media_team','chairman']::text[]
+  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid())));
+create policy social_post_stats_update on public.social_post_stats
+for update to authenticated
+using (private.current_club_roles() && array['media_team','chairman']::text[]
+  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid())))
+with check (private.current_club_roles() && array['media_team','chairman']::text[]
+  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid())));
 
 drop policy if exists social_followers_read on public.social_followers;
 create policy social_followers_read on public.social_followers
@@ -115,18 +115,20 @@ for select to authenticated
 using (
   private.current_club_roles() && array['media_team','chairman','secretary','treasurer','sponsor_lead','team_manager','coach']::text[]
   or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
-   );
-drop policy if exists social_followers_write on public.social_followers;
-create policy social_followers_write on public.social_followers
-for all to authenticated
-using (
-  private.current_club_roles() && array['media_team','chairman']::text[]
-  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
-)
-with check (
-  private.current_club_roles() && array['media_team','chairman']::text[]
-  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
 );
+drop policy if exists social_followers_write on public.social_followers;
+drop policy if exists social_followers_insert on public.social_followers;
+drop policy if exists social_followers_update on public.social_followers;
+create policy social_followers_insert on public.social_followers
+for insert to authenticated
+with check (private.current_club_roles() && array['media_team','chairman']::text[]
+  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid())));
+create policy social_followers_update on public.social_followers
+for update to authenticated
+using (private.current_club_roles() && array['media_team','chairman']::text[]
+  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid())))
+with check (private.current_club_roles() && array['media_team','chairman']::text[]
+  or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid())));
 
 grant select, insert, update on public.social_posts to authenticated;
 grant select, insert, update on public.social_post_stats to authenticated;
