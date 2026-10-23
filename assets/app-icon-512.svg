@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 192 192" role="img" aria-label="Timau Union FC">
+  <rect width="192" height="192" rx="28" fill="#c8102e"/>
+  <path d="M96 18 158 42v48c0 41-24 67-62 86C58 157 34 131 34 90V42Z" fill="#fff" stroke="#f4f6f8" stroke-width="4"/>
+  <path d="M96 27 149 47v43c0 33-19 56-53 75-34-19-53-42-53-75V47Z" fill="#c8102e"/>
+  <text x="96" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="25" font-weight="700" fill="#fff">TUFC</text>
+  <path d="m96 100 15 11-6 18H87l-6-18Z" fill="#fff"/>
+  <path d="m96 100-9-6m24 17 12-2m-18 20 2 12m-20-12-10 7m-4-25 8-10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,12 +1,26 @@
 {
+  "id": "/",
   "name": "Timau Union FC",
   "short_name": "Timau Union",
-  "start_url": "/index.html?source=pwa",
+  "description": "Timau Union FC — our club, our community, our future.",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#c8102e",
   "icons": [
+    {
+      "src": "/assets/app-icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/app-icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/assets/club-crest.jpg",
       "sizes": "any",
