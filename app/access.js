@@ -270,18 +270,27 @@ function renderInstallDiagnostics() {
   const output = $("install-diagnostics-output");
   if (!output) return;
   output.replaceChildren();
-  let record = null;
-  try { record = JSON.parse(localStorage.getItem("tufc_install_analytics_diagnostics") || "null"); } catch (_) {}
-  if (!record || typeof record !== "object") {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("tufc_install_analytics_diagnostics") || "null"); } catch (_) {}
+  const records = saved && saved.records && typeof saved.records === "object"
+    ? saved.records
+    : (saved && saved.stage ? { [saved.stage]: saved } : {});
+  const entries = Object.values(records).filter(record => record && typeof record === "object")
+    .sort((a, b) => String(a.stage || "").localeCompare(String(b.stage || "")));
+  if (!entries.length) {
     output.append(el("p", "No tracker diagnostics are saved in this browser yet. Open the installed app, then return here and tap Refresh diagnostics."));
     return;
   }
-  const labels = [
-    ["stage", "Latest check"], ["status", "Result"], ["detail", "Details"],
-    ["updatedAt", "Last updated"]
-  ];
-  output.append(table(["Check", "Value"], labels.map(([key, label]) => [label, record[key] || "—"])));
-  output.append(el("p", "Diagnostics contain status and error text only; visitor IDs are not displayed."));
+  output.append(table(
+    ["Check", "Result", "Details", "Last updated"],
+    entries.map(record => [
+      record.stage || "—",
+      record.status || "—",
+      record.detail || "—",
+      record.updatedAt ? new Date(record.updatedAt).toLocaleString() : "—"
+    ])
+  ));
+  output.append(el("p", "The panel keeps the latest result for each check, including app_open delivery. Diagnostics contain status and error text only; visitor IDs are not displayed."));
 }
 $("refresh-install-diagnostics").addEventListener("click", renderInstallDiagnostics);
 

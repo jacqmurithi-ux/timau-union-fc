@@ -7,7 +7,15 @@
   const diagnosticsKey = "tufc_install_analytics_diagnostics";
   function diagnostic(stage, status, detail = "") {
     const record = { stage, status, detail: String(detail || "").slice(0, 220), updatedAt: new Date().toISOString() };
-    try { localStorage.setItem(diagnosticsKey, JSON.stringify(record)); } catch (_) {}
+    try {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(diagnosticsKey) || "{}") || {}; } catch (_) {}
+      const records = saved.records && typeof saved.records === "object"
+        ? saved.records
+        : (saved.stage ? { [saved.stage]: saved } : {});
+      records[stage] = record;
+      localStorage.setItem(diagnosticsKey, JSON.stringify({ records, updatedAt: record.updatedAt }));
+    } catch (_) {}
     window.dispatchEvent(new CustomEvent("timauanalyticsdiagnostic", { detail: record }));
   }
   diagnostic("tracker", "loaded", "Install tracker JavaScript ran.");
