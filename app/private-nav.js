@@ -31,7 +31,7 @@ function addStyle(){
  .private-workspace-tabs a:hover,.private-workspace-tabs button:hover{background:#333;color:#fff}
  .private-workspace-tabs a[aria-current=page]{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
  .private-workspace-tabs a:focus-visible,.private-workspace-tabs button:focus-visible{outline:3px solid #c8102e;outline-offset:2px}
- .private-workspace-tabs [data-nav-type].ws-hidden{display:none!important}
+ .private-workspace-tabs [data-nav-type].ws-hidden,.private-workspace-tabs [hidden]{display:none!important}
  .private-workspace-tabs .ws-tabs,.private-workspace-tabs .coach-tabs,.private-workspace-tabs .tw-tabs,.private-workspace-tabs .sec-tabs,.private-workspace-tabs .media-tabs,.private-workspace-tabs .sl-tabs,.private-workspace-tabs .sp-tabs{display:contents!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important}
  .private-workspace-tabs .ws-tabs button[aria-pressed=true],.private-workspace-tabs .coach-tabs button[aria-pressed=true],.private-workspace-tabs .tw-tabs button[aria-pressed=true],.private-workspace-tabs .sec-tabs button[aria-pressed=true],.private-workspace-tabs .media-tabs button[aria-pressed=true],.private-workspace-tabs .sl-tabs button[aria-selected=true],.private-workspace-tabs .sp-tabs button[aria-selected=true]{background:#171717!important;border-color:#171717!important;color:#fff!important}
  @media(max-width:380px){.site-header .header-inner{gap:.35rem}.site-header .brand{gap:.4rem}.site-header .brand-mark{width:34px;height:34px;flex-basis:34px}.site-header .brand-copy strong{font-size:.76rem}.site-header #signout,.site-header #sign-out{padding:.45rem .55rem;font-size:.82rem}.private-workspace-tabs{gap:.4rem}.private-workspace-tabs a,.private-workspace-tabs button{min-height:40px;padding:.5rem .65rem;font-size:.85rem}}
@@ -101,7 +101,12 @@ function buildTabs(roles,page){
 }
 function updateRoleLabels(roles,page){
  const badge=$("#role-badge");
- if(badge)badge.textContent="ROLE · "+(roles.size?roleNames(roles).join(" / "):"Platform Admin");
+ if(badge){
+  const readable="ROLE · "+(roles.size?roleNames(roles).join(" / "):"Platform Admin");
+  badge.textContent=readable;
+  const observer=new MutationObserver(()=>{if(badge.textContent!==readable)badge.textContent=readable});
+  observer.observe(badge,{childList:true,characterData:true,subtree:true});
+ }
  const title=$("main h1");
  if(title&&page==="sponsor-lead.html"&&roles.has("sponsor_lead"))title.textContent="Sponsor Lead workspace";
  if(title&&page==="treasurer.html"&&!roles.has("treasurer")&&!roles.has("chairman")&&!roles.has("admin"))title.textContent=roleNames(roles)[0]+" workspace";
