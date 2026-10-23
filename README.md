@@ -171,3 +171,30 @@ Before treating the public website as ready for official launch:
 ---
 
 **Project rule:** Keep Phase 1 focused on the public club website. Do not implement backend features, change approved security boundaries or expand the project scope without separate approval.
+
+## Proposed social media stats tracking
+
+This section records the requested scope for a future management-system feature. It does **not** mean the feature is implemented, migrated, or available in production.
+
+The intended workflow is manual entry by authorized Media Team members, without social-platform API integrations. The proposed records and reports include:
+
+- Posts with platform, publication date, title, post type, optional URL, and optional sponsor or fixture association.
+- Editable metrics: views, reach, likes, comments, shares, saves and link clicks.
+- Monthly follower counts and follower gains by platform.
+- Internal reporting with date/platform filters, month-to-month comparisons, a simple bar chart, top posts, sponsor-tagged post highlights and CSV export.
+- A reminder for posts older than seven days that still have zero recorded views.
+- A read-only sponsor view limited to that sponsor's tagged posts and the permitted monthly summary.
+- Clear empty states such as “No posts recorded yet”; never fabricate posts, followers or engagement figures.
+
+### Security and implementation requirements
+
+- Confirm the actual production/test schema, existing role mapping, sponsor/fixture relationships and current workspace before implementation.
+- Supabase Row Level Security (RLS) and database functions must enforce access; frontend filters are not a security boundary.
+- Media Team write access and other officials' read-only access must follow the approved role model. Sponsor access must be restricted to that sponsor's own tagged records and permitted summary. Anonymous visitors must not access private statistics.
+- Keep internal record access separate from approval and public publication permissions.
+- Use a narrowly scoped migration, review it before production use, and test RLS for Media Team, Treasurer, Sponsor and anonymous users.
+- Do not seed sample or invented data in production. Do not create a new calendar if an existing social-media calendar can be linked to post records.
+- Preserve existing pages, roles, permissions and hosting decisions.
+
+Treat this as documented requirements only until the implementation, migration, tests and deployment have been independently verified and approved.
+
