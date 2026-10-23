@@ -17,7 +17,7 @@ Run this checklist against a schema-matched non-production Supabase project afte
 - [ ] Confirm publishing a draft directly is rejected; it must be approved first.
 - [ ] Confirm publication is blocked until all three non-blank highlights are saved.
 - [ ] Confirm an approved/published report remains a saved snapshot if source records change.
-- [ ] Print and choose Save as PDF; export CSV and inspect downloaded rows for report, summary, social and highlights only.
+- [ ] Print and choose Save as PDF; confirm the PDF contains the currently displayed report snapshot and no workflow controls.\n- [ ] Export CSV and inspect rows for report metadata, summary, social metrics, results, highlights and sponsor-post metrics; confirm no internal sponsor IDs or Kit fields are exported.\n- [ ] For approved/published reports, change source records and verify PDF/CSV still reflect the saved snapshot rather than unsaved live source data.
 
 ## Treasurer
 - [ ] Confirm the Treasurer can save a report draft but cannot approve or publish it.
@@ -29,7 +29,7 @@ Run this checklist against a schema-matched non-production Supabase project afte
 
 ## Sponsor A and Sponsor B
 - [ ] Before publication, open the selected month and confirm no draft or approved report content is shown.
-- [ ] After publication, confirm each sponsor sees only the published club summary, highlights, results and sponsor-tagged posts permitted for that sponsor.
+- [ ] After publication, confirm each sponsor sees only the published club summary, highlights, results and sponsor-tagged posts permitted for that sponsor.\n- [ ] Confirm a sponsor can print/save PDF and export CSV only after publication, and the export contains only that sponsor-safe report payload and the published snapshot.
 - [ ] Inspect `monthly_sponsor_report_get`: sponsor payload must not contain other sponsors' rows, IDs or amounts, internal notes, or unpublished content.
 - [ ] Confirm no Kit funding, inventory, first-aid, or Kit-needs data is displayed in the Monthly Sponsor Report.
 
