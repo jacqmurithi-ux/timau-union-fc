@@ -176,7 +176,9 @@ select coalesce(pm.month,fm.month) as month,
        coalesce(pm.shares,0)::bigint as shares,
        coalesce(pm.engagement_rate,0)::numeric as engagement_rate,
        coalesce(fm.followers_gained,0)::bigint as followers_gained
-from post_month pm full join follower_month fm using(month,platform);
+from post_month pm full join follower_month fm using(month,platform)
+where private.current_club_roles() && array['media_team','chairman','secretary','treasurer','sponsor_lead','team_manager','coach','sponsor']::text[]
+   or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()));
 
 -- This view deliberately exposes aggregate-only club-wide monthly totals to signed-in users,
 -- including sponsors; it does not expose post titles, URLs, or sponsor identities.
