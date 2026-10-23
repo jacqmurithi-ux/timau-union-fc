@@ -158,7 +158,8 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   if _month is null or extract(day from _month) <> 1 then raise exception 'Month must be the first day of a month'; end if;
-  v_sponsor := v_sponsor_id is not null and 'sponsor' = any(v_roles) and not v_admin;
+  v_sponsor := v_sponsor_id is not null and 'sponsor' = any(v_roles) and not v_admin
+    and not (v_roles && array['admin','chairman','treasurer','secretary','media_team','sponsor_lead','team_manager','coach']::text[]);
   if not v_sponsor and not (v_admin or v_roles && array['admin','chairman','treasurer','secretary','media_team']::text[]) then
     raise exception 'Not authorized to view monthly sponsor reports';
   end if;
