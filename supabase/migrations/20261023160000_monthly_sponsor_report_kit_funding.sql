@@ -44,6 +44,9 @@ begin
   if new.acquisition_type = 'sponsor-funded' and new.funded_by_sponsor_id is null then
     raise exception 'Sponsor-funded kit must identify the sponsor';
   end if;
+  if new.acquisition_type = 'sponsor-funded' and new.funded_by_sponsor_id is null then
+    raise exception 'Sponsor-funded kit must identify the sponsor';
+  end if;
   if new.funded_by_sponsor_id is not null then
     select record_type into v_type
       from private.club_records
@@ -84,7 +87,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = pg_catalog, public, private
-as $
+as $$
 declare
   v_roles text[] := coalesce(private.current_club_roles(), array[]::text[]);
   v_allowed boolean := coalesce(private.is_active_platform_admin(auth.uid()), false)
@@ -116,7 +119,7 @@ begin
   if not found then raise exception 'Kit item not found'; end if;
   return jsonb_build_object('ok',true,'kit_item_id',_kit_item_id);
 end;
-$;
+$$;
 
 create table if not exists private.monthly_sponsor_reports (
   month_start date primary key check (extract(day from month_start) = 1),
@@ -190,6 +193,12 @@ begin
       'results', coalesce(v_report.report_data->'results','{}'::jsonb),
       'highlights', to_jsonb(v_report.highlights),
       'kit_needs', coalesce(v_report.report_data->'kit_needs','[]'::jsonb),
+      'kit_month_added', coalesce(v_report.report_data->'kit_month_added','null'::jsonb),
+      'kit_total_stock', coalesce(v_report.report_data->'kit_total_stock','null'::jsonb),
+      'kit_usable_units', coalesce(v_report.report_data->'kit_usable_units','null'::jsonb),
+      'kit_damaged_units', coalesce(v_report.report_data->'kit_damaged_units','null'::jsonb),
+      'kit_missing_units', coalesce(v_report.report_data->'kit_missing_units','null'::jsonb),
+      'first_aid_status', coalesce(v_report.report_data->'first_aid_status','null'::jsonb),
       'kit_funded_by_sponsor', coalesce((
         select jsonb_agg(x)
         from jsonb_array_elements(coalesce(v_report.report_data->'kit_funded_by_sponsor','[]'::jsonb)) x
@@ -234,7 +243,7 @@ begin
     raise exception 'Not authorized to edit monthly sponsor reports';
   end if;
   if _report_data is null or jsonb_typeof(_report_data) <> 'object' then raise exception 'Report data must be a JSON object'; end if;
-  if exists (select 1 from jsonb_object_keys(_report_data) k where k not in ('summary','social','results','kit_needs','kit_funded_by_sponsor','sponsor_posts')) then
+  if exists (select 1 from jsonb_object_keys(_report_data) as keys(key) where key not in ('summary','social','results','kit_needs','kit_funded_by_sponsor','sponsor_posts','kit_month_added','kit_total_stock','kit_usable_units','kit_damaged_units','kit_missing_units','first_aid_status')) then
     raise exception 'Report data contains unsupported fields';
   end if;
   select * into v_old from private.monthly_sponsor_reports where month_start = _month for update;
@@ -282,7 +291,9 @@ begin
 end;
 $$;
 
-revoke all on function public.kit_set_sponsor_funding(uuid,uuid,numeric,date,text) from public, anon;\ngrant execute on function public.kit_set_sponsor_funding(uuid,uuid,numeric,date,text) to authenticated;\nrevoke all on function public.monthly_sponsor_report_get(date) from public, anon;
+revoke all on function public.kit_set_sponsor_funding(uuid,uuid,numeric,date,text) from public, anon;
+grant execute on function public.kit_set_sponsor_funding(uuid,uuid,numeric,date,text) to authenticated;
+revoke all on function public.monthly_sponsor_report_get(date) from public, anon;
 revoke all on function public.monthly_sponsor_report_save(date,jsonb,text[]) from public, anon;
 revoke all on function public.monthly_sponsor_report_set_status(date,text) from public, anon;
 grant execute on function public.monthly_sponsor_report_get(date) to authenticated;
