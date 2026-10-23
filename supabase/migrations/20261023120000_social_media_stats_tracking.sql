@@ -68,7 +68,7 @@ for select to authenticated
 using (
   private.current_club_roles() && array['media_team','chairman','secretary','treasurer','sponsor_lead','team_manager','coach']::text[]
   or exists (select 1 from private.platform_admins pa where pa.user_id = (select auth.uid()))
-  or (sponsor_id = private.current_sponsor_record_id() and 'sponsor' = any(private.current_club_roles()))
+  
 );
 
 drop policy if exists social_posts_stats_internal_insert on public.social_posts;
@@ -131,6 +131,19 @@ with check (
 grant select, insert, update on public.social_posts to authenticated;
 grant select, insert, update on public.social_post_stats to authenticated;
 grant select, insert, update on public.social_followers to authenticated;
+
+-- Sponsor-safe projection: sponsors never receive direct SELECT access to social_posts.
+create or replace view public.social_sponsor_posts as
+select p.id, p.title, p.channel, p.planned_for, p.posted_at, p.post_url, p.post_type,
+       s.views, s.reach, s.likes, s.comments, s.shares, s.saves, s.link_clicks, s.captured_on
+from public.social_posts p
+left join public.social_post_stats s on s.post_id = p.id
+where p.sponsor_id = private.current_sponsor_record_id()
+  and 'sponsor' = any(private.current_club_roles());
+
+alter view public.social_sponsor_posts set (security_invoker = false);
+revoke all on public.social_sponsor_posts from public, anon;
+grant select on public.social_sponsor_posts to authenticated;
 
 create or replace view public.social_monthly_summary as
 with post_month as (
