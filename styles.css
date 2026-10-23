@@ -1249,3 +1249,25 @@ body.navigation-open {
     max-height: calc(100dvh - 62px);
   }
 }
+
+
+/* Compact vertical rhythm on the public homepage. Keep content spacing intact. */
+body > main > .section,
+body > main > section.section {
+  padding-top: 44px;
+  padding-bottom: 44px;
+}
+@media (min-width: 760px) {
+  body > main > .section,
+  body > main > section.section {
+    padding-top: 54px;
+    padding-bottom: 54px;
+  }
+}
+@media (max-width: 480px) {
+  body > main > .section,
+  body > main > section.section {
+    padding-top: 34px;
+    padding-bottom: 34px;
+  }
+}
