@@ -1,5 +1,5 @@
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
-import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS} from "./role-navigation.js";
+import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS,SECTION_LABELS} from "./role-navigation.js";
 
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
@@ -7,6 +7,28 @@ const roleSet=roles=>new Set(Array.isArray(roles)?roles:[]);
 const currentPage=()=>location.pathname.split("/").pop()||"workspace.html";
 const readableRole=role=>ROLE_LABELS[role]||String(role||"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 const roleNames=roles=>[...roles].map(readableRole);
+function seedLocalTabs(){
+ const page=currentPage();
+ const spec={
+  "workspace.html":{selector:".ws-tabs",attribute:"type"},
+  "coach.html":{selector:".coach-tabs",attribute:"section"},
+  "treasurer.html":{selector:".tw-tabs",attribute:"tab"},
+  "secretary.html":{selector:".sec-tabs",attribute:"secretary"},
+  "media.html":{selector:".media-tabs",attribute:"tab"}
+ }[page];
+ if(!spec)return;
+ const nav=$(spec.selector),labels=SECTION_LABELS[page];
+ if(!nav||!labels||nav.dataset.centralizedTabs==="true")return;
+ nav.replaceChildren();
+ for(const [key,label] of Object.entries(labels)){
+  const button=document.createElement("button");
+  button.type="button";button.className="button button-dark";button.textContent=label;button.dataset[spec.attribute==="secretary"?(["player","fixture","news","sponsor","activity"].includes(key)?"legacyType":"section"):spec.attribute]=key;
+  button.setAttribute("aria-pressed","false");
+  nav.append(button);
+ }
+ nav.dataset.centralizedTabs="true";
+}
+seedLocalTabs();
 const isAllowed=(allowed,roles)=>allowed.some(role=>roles.has(role));
 function homeFor(roles){
  const entry=PAGE_HOME.find(item=>isAllowed(item.roles,roles));
