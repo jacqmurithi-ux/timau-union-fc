@@ -129,7 +129,8 @@ async function loadMatchCentre() {
       return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const localToday = new Date();
+    const today = [localToday.getFullYear(), String(localToday.getMonth() + 1).padStart(2, "0"), String(localToday.getDate()).padStart(2, "0")].join("-");
     const upcoming = fixtures.filter((match) => match.status === "scheduled" && match.date >= today);
     const completed = fixtures.filter((match) => match.status === "completed").sort((a, b) => b.date.localeCompare(a.date));
     const featured = upcoming[0] || completed[0] || fixtures[fixtures.length - 1];
@@ -266,10 +267,6 @@ function createFeatureHeading() {
   ball.setAttribute("aria-hidden", "true");
   heading.appendChild(ball);
   return heading;
-}
-
-function resultLabel(result) {
-  return ({ W: "Win", D: "Draw", L: "Defeat" })[result] || "Result";
 }
 
 function formatMatchDate(value) {
