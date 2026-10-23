@@ -45,6 +45,21 @@ create index if not exists social_posts_channel_posted_at_idx on public.social_p
 create index if not exists social_post_stats_captured_on_idx on public.social_post_stats(captured_on);
 
 alter table public.social_post_stats enable row level security;
+revoke all on public.social_post_stats, public.social_followers from public, anon;
+revoke all on public.social_posts from public, anon;
+
+create or replace function public.social_stats_touch_updated_at()
+returns trigger language plpgsql set search_path = '' as $
+begin
+  new.updated_at = now();
+  return new;
+end;
+$;
+revoke all on function public.social_stats_touch_updated_at() from public, anon, authenticated;
+drop trigger if exists social_post_stats_touch_updated_at on public.social_post_stats;
+create trigger social_post_stats_touch_updated_at before update on public.social_post_stats for each row execute function public.social_stats_touch_updated_at();
+drop trigger if exists social_followers_touch_updated_at on public.social_followers;
+create trigger social_followers_touch_updated_at before update on public.social_followers for each row execute function public.social_stats_touch_updated_at();
 alter table public.social_followers enable row level security;
 
 drop policy if exists social_posts_stats_internal_read on public.social_posts;
