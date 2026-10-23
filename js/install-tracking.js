@@ -49,7 +49,8 @@
       visitor = crypto.randomUUID();
       localStorage.setItem(key, visitor);
     }
-  } catch (_) {
+  } catch (error) {
+    console.warn("[Timau install analytics] Local visitor storage unavailable; analytics disabled for this browser.", error?.message || error);
     return;
   }
 
