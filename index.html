@@ -36,7 +36,6 @@
   <script src="script.js?v=20261021-menu-fix-2" defer></script>
   <script src="js/site-header.js?v=20261022-menu-fix" defer></script>
   <script type="module" src="js/homepage-hero.js?v=20261022-centered-hero"></script>
-  <script type="module" src="js/upcoming-tournaments.js?v=20261023-1"></script>
   <script src="/js/install-tracking.js" defer></script>
   <script src="/js/install-prompt.js?v=20261023-install-toast" defer></script>
   <script>
@@ -310,17 +309,7 @@
           </div>
         </div>
 
-        <div class="news-placeholder">
-          <div class="news-placeholder-icon" aria-hidden="true">✦</div>
-
-          <div>
-            <h3>Our story continues</h3>
-            <p>
-              Official announcements, match reports, community activities
-              and club news will be published here after approval.
-            </p>
-          </div>
-        </div>
+        <div id="club-news-list" class="news-grid" aria-live="polite"><p class="news-placeholder">Loading the latest club news…</p></div>
       </div>
     </section>
 
@@ -446,6 +435,7 @@
       </p>
     </div>
   </footer>
+  <script type="module" src="js/club-news.js?v=20261023-1"></script>
   <script type="module" src="js/fans-gallery.js"></script>
 </body>
 </html>
