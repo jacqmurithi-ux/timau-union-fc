@@ -51,6 +51,7 @@ const pages=[
  {label:"Sponsor account links",href:"sponsor-links.html",roles:["sponsor_lead"]},
  {label:"Kit & equipment",href:"kit.html",roles:["team_manager","coach","assistant_coach","secretary"]},
  {label:"Home attendance",href:"home-attendance.html",roles:["team_manager","secretary","chairman","vice_chairman","treasurer","coach","media_team","sponsor_lead"]},
+ {label:"Monthly sponsor report",href:"monthly-sponsor-report.html",roles:["admin","chairman","treasurer","secretary","media_team","sponsor"]},
  {label:"Public website",href:"../index.html",roles:[],publicLink:true},
  {label:"Member access",href:"index.html",roles:[],memberAccess:true}
 ];
