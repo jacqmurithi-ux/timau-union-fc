@@ -6,11 +6,11 @@
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f6f8",
+  "background_color": "#ffffff",
   "theme_color": "#c8102e",
   "icons": [
     {
-      "src": "/assets/club-crest.jpg",
+      "src": "/assets/club-crest.jpg?v=20261025-official-crest",
       "sizes": "any",
       "type": "image/jpeg",
       "purpose": "any"
