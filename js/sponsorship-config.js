@@ -1,1 +1,1 @@
-window.TIMAU_SPONSORSHIP_CONFIG=Object.freeze({whatsappUrl:"https://wa.me/254700000000?text=Hello%20Timau%20Union%20FC%2C%20please%20share%20partnership%20information.",brochureUrl:"",supabaseUrl:"https://owvvimydkjsjlrmnzvdi.supabase.co",supabasePublishableKey:"sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF"});
+window.TIMAU_SPONSORSHIP_CONFIG=Object.freeze({whatsappUrl:"",brochureUrl:"",supabaseUrl:"https://owvvimydkjsjlrmnzvdi.supabase.co",supabasePublishableKey:"sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF"});
