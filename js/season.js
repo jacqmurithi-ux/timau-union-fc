@@ -359,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  fetch("data/season-2025-26.json")
+  fetch("/data/season-2025-26.json")
     .then((response) => {
       if (!response.ok) throw new Error("Season data request failed");
       return response.json();

@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const term = search.value.trim().toLocaleLowerCase();
     render(players.filter((player) => player.name.toLocaleLowerCase().includes(term)));
   });
-  fetch("data/players-2025-26.json")
+  fetch("/data/players-2025-26.json")
     .then((response) => { if (!response.ok) throw new Error("Roster unavailable"); return response.json(); })
     .then((data) => {
       if (!data || !Array.isArray(data.players)) throw new Error("Roster data is invalid");
