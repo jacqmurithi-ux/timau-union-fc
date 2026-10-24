@@ -1,8 +1,10 @@
 "use strict";
-const CACHE = "tufc-public-shell-v4";
+const CACHE = "tufc-public-shell-v5";
 const CORE = [
   "/",
   "/index.html",
+  "/players/",
+  "/season/",
   "/styles.css",
   "/script.js",
   "/manifest.webmanifest",
