@@ -29,31 +29,72 @@ begin
 end $$;
 revoke all on function public.submit_sponsor_enquiry(text,text,text,text,text[],text,boolean,text,bigint) from public;
 grant execute on function public.submit_sponsor_enquiry(text,text,text,text,text[],text,boolean,text,bigint) to anon,authenticated;
--- Extend the existing validator only to accept explicit public wall fields.
-create or replace function private.valid_club_record_data(_type text,_data jsonb) returns boolean
-language plpgsql immutable set search_path='' as $
-declare v_allowed text[]; v_required text; v_key text; v_value text;
-begin
- if _data is null or jsonb_typeof(_data)<>'object' then return false; end if;
- case _type
-  when 'player' then v_allowed:=array['name','position','bio','squad_number','date_of_birth','fkf_number']; v_required:='name';
-  when 'fixture' then v_allowed:=array['opponent','match_date','venue','result']; v_required:='opponent';
-  when 'news' then v_allowed:=array['title','summary','body','category']; v_required:='title';
-  when 'sponsor' then v_allowed:=array['name','support_type','details','website','show_on_public_wall','fan_offer_enabled','fan_offer_text','public_description']; v_required:='name';
-  when 'activity' then v_allowed:=array['title','date','location','details']; v_required:='title';
-  else return false;
- end case;
- if not (_data ? v_required) or jsonb_typeof(_data->v_required)<>'string' or length(btrim(_data->>v_required))=0 then return false; end if;
- for v_key in select jsonb_object_keys(_data) loop
-  if not (v_key=any(v_allowed)) or jsonb_typeof(_data->v_key)<>'string' then return false; end if;
-  v_value:=_data->>v_key;
-  if length(v_value)>3000 then return false; end if;
-  if v_key in ('show_on_public_wall','fan_offer_enabled') and v_value not in ('true','false') then return false; end if;
- end loop;
- return true;
-end $;
+-- Keep the existing club-record validator unchanged. Public presentation settings live in a separate, locked-down table.
+create table if not exists public.sponsor_public_settings (
+ sponsor_record_id uuid primary key references private.club_records(id) on delete cascade,
+ show_on_public_wall boolean not null default false,
+ fan_offer_enabled boolean not null default false,
+ fan_offer_text text not null default '',
+ public_description text not null default '',
+ updated_at timestamptz not null default now(),
+ updated_by uuid references auth.users(id),
+ check (char_length(fan_offer_text)<=1000),
+ check (char_length(public_description)<=3000),
+ check (fan_offer_enabled=false or char_length(btrim(fan_offer_text))>0)
+);
+alter table public.sponsor_public_settings enable row level security;
+revoke all on public.sponsor_public_settings from public,anon,authenticated;
 
-create or replace view public.public_partners as select c.id,nullif(btrim(c.data->>'name'),'') name,nullif(btrim(c.data->>'support_type'),'') support_type,nullif(btrim(coalesce(c.data->>'public_description',c.data->>'details')),'') public_description,case when coalesce(c.data->>'website','') ~* '^https?://' then c.data->>'website' else null end website,case when c.data->>'fan_offer_enabled'='true' then nullif(btrim(c.data->>'fan_offer_text'),'') else null end fan_offer_text from private.club_records c where c.record_type='sponsor' and c.publication_status='approved' and c.data->>'show_on_public_wall'='true';
+create or replace function public.sponsor_public_settings_save(
+ _record_id uuid,
+ _show_on_public_wall boolean,
+ _fan_offer_enabled boolean,
+ _fan_offer_text text default '',
+ _public_description text default ''
+) returns void
+language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null or not (
+   private.is_active_platform_admin(auth.uid()) or
+   'sponsor_lead'=any(private.current_club_roles())
+ ) then
+   raise exception 'Not authorised to update public sponsor settings.' using errcode='42501';
+ end if;
+ if _record_id is null or not exists (
+   select 1 from private.club_records c where c.id=_record_id and c.record_type='sponsor'
+ ) then
+   raise exception 'Choose a valid sponsor record.' using errcode='22023';
+ end if;
+ if char_length(coalesce(_fan_offer_text,''))>1000 or char_length(coalesce(_public_description,''))>3000 then
+   raise exception 'Public sponsor text is too long.' using errcode='22023';
+ end if;
+ if coalesce(_fan_offer_enabled,false) and char_length(btrim(coalesce(_fan_offer_text,'')))=0 then
+   raise exception 'Enter the approved public offer text or disable the offer.' using errcode='22023';
+ end if;
+ insert into public.sponsor_public_settings(sponsor_record_id,show_on_public_wall,fan_offer_enabled,fan_offer_text,public_description,updated_at,updated_by)
+ values(_record_id,coalesce(_show_on_public_wall,false),coalesce(_fan_offer_enabled,false),coalesce(_fan_offer_text,''),coalesce(_public_description,''),now(),auth.uid())
+ on conflict(sponsor_record_id) do update set
+  show_on_public_wall=excluded.show_on_public_wall,
+  fan_offer_enabled=excluded.fan_offer_enabled,
+  fan_offer_text=excluded.fan_offer_text,
+  public_description=excluded.public_description,
+  updated_at=excluded.updated_at,
+  updated_by=excluded.updated_by;
+end $$;
+revoke all on function public.sponsor_public_settings_save(uuid,boolean,boolean,text,text) from public,anon;
+grant execute on function public.sponsor_public_settings_save(uuid,boolean,boolean,text,text) to authenticated;
+
+create or replace view public.public_partners as
+ select c.id,
+  nullif(btrim(c.data->>'name'),'') as name,
+  nullif(btrim(c.data->>'support_type'),'') as support_type,
+  nullif(btrim(coalesce(nullif(s.public_description,''),c.data->>'details')),'') as public_description,
+  case when coalesce(c.data->>'website','') ~* '^https?://' then c.data->>'website' else null end as website,
+  case when s.fan_offer_enabled then nullif(btrim(s.fan_offer_text),'') else null end as fan_offer_text
+ from private.club_records c
+ join public.sponsor_public_settings s on s.sponsor_record_id=c.id
+ where c.record_type='sponsor' and c.publication_status='approved' and s.show_on_public_wall;
+
 revoke all on public.public_partners from public,authenticated;
 grant select on public.public_partners to anon,authenticated;
 comment on view public.public_partners is 'Only approved sponsor records explicitly opted into the public partner wall; public-safe columns only.';
