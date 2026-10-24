@@ -4,7 +4,7 @@ import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS,SECTION_LAB
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
 const roleSet=roles=>new Set(Array.isArray(roles)?roles:[]);
-const routePages=new Set(Object.keys(PAGE_ACCESS));
+const routePages=new Set([...Object.keys(PAGE_ACCESS),"news.html"]);
 const currentPage=()=>{
  const part=location.pathname.split("/").filter(Boolean).pop()||"index.html";
  if(part==="app")return "index.html";
