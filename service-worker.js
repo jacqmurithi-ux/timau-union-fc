@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "tufc-public-shell-v3";
+const CACHE = "tufc-public-shell-v4";
 const CORE = [
   "/",
   "/index.html",
