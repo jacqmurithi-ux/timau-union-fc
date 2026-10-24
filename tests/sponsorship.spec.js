@@ -67,7 +67,7 @@ test("Sponsor Lead can view and mark a mocked enquiry as contacted", async ({ pa
   await page.getByRole("tab", { name: "Enquiries" }).click();
   await expect(page.getByText("Test Business — Test Contact")).toBeVisible();
   await page.getByRole("button", { name: "Mark contacted" }).click();
-  await expect(page.getByText("Enquiry marked as contacted.")).toBeVisible();
+  await expect(page.getByText(/Status: contacted/)).toBeVisible();
 });
 
 test("migration retains the database-enforced anti-spam and access controls", async ({ page }) => {
