@@ -17,6 +17,8 @@ create policy sponsor_enquiries_staff_read on public.sponsor_enquiries for selec
 create policy sponsor_enquiries_staff_update on public.sponsor_enquiries for update to authenticated using(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles())) with check(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles()));
 grant select on public.sponsor_enquiries to authenticated;
 grant update(status,contacted_at) on public.sponsor_enquiries to authenticated;
+create index if not exists sponsor_enquiries_email_created_idx on public.sponsor_enquiries (lower(email), created_at desc);
+
 create or replace function public.submit_sponsor_enquiry(p_name text,p_email text,p_business text,p_phone text,p_interests text[],p_message text default null,p_news_opt_in boolean default false,p_website_confirm text default '',p_form_started_ms bigint default 0) returns uuid language plpgsql security definer set search_path='' as $$
 declare v_id uuid; v_ms bigint;
 begin
@@ -24,6 +26,13 @@ begin
  if coalesce(p_website_confirm,'')<>'' then raise exception 'Unable to submit this form.' using errcode='22023'; end if;
  if p_form_started_ms<=0 or v_ms-p_form_started_ms<2500 or v_ms-p_form_started_ms>86400000 then raise exception 'Please review the form and try again.' using errcode='22023'; end if;
  if char_length(btrim(coalesce(p_name,''))) not between 2 and 120 or char_length(btrim(coalesce(p_email,''))) not between 5 and 254 or p_email !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$' or char_length(btrim(coalesce(p_business,''))) not between 2 and 160 or char_length(coalesce(p_phone,''))>40 or char_length(coalesce(p_message,''))>2000 or coalesce(cardinality(p_interests),0) not between 1 and 6 or not(p_interests <@ array['Kit','Match day','Training','Website / social','Community partner','Other']::text[]) then raise exception 'Please check the required fields and selected interests.' using errcode='22023'; end if;
+ -- Serialize submissions per normalized email to prevent concurrent requests bypassing the per-email limit.
+ perform pg_advisory_xact_lock(hashtextextended(lower(btrim(p_email)),0));
+ if (select count(*) from public.sponsor_enquiries e
+     where lower(e.email)=lower(btrim(p_email))
+       and e.created_at > clock_timestamp()-interval '15 minutes') >= 3 then
+   raise exception 'Too many submissions for this email. Please try again in 15 minutes.' using errcode='P0001';
+ end if;
  insert into public.sponsor_enquiries(name,email,business,phone,interests,message,news_opt_in,status) values(btrim(p_name),lower(btrim(p_email)),btrim(p_business),nullif(btrim(coalesce(p_phone,'')),''),p_interests,nullif(btrim(coalesce(p_message,'')),''),coalesce(p_news_opt_in,false),'new') returning id into v_id;
  return v_id;
 end $$;
@@ -98,5 +107,5 @@ create or replace view public.public_partners as
 revoke all on public.public_partners from public,authenticated;
 grant select on public.public_partners to anon,authenticated;
 comment on view public.public_partners is 'Only approved sponsor records explicitly opted into the public partner wall; public-safe columns only.';
-comment on table public.sponsor_enquiries is 'Public sponsorship enquiries. Cloudflare Turnstile can be added to form and server validation later.';
+comment on table public.sponsor_enquiries is 'Public sponsorship enquiries. Includes honeypot, minimum form duration and a database-enforced per-email rate limit of three submissions per 15 minutes.';
 commit;
