@@ -1,0 +1,11 @@
+{
+  "name": "timau-union-fc-sponsorship-review",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:migration-review": "node tests/sponsorship-migration-review.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}
