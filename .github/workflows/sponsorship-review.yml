@@ -1,0 +1,38 @@
+name: Sponsorship PR review
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "partnership.html"
+      - "register-interest.html"
+      - "js/register-interest.js"
+      - "js/public-partners.js"
+      - "js/sponsorship-config.js"
+      - "app/sponsor-lead.js"
+      - "supabase/migrations/**"
+      - "tests/**"
+      - "package.json"
+      - "playwright.config.js"
+      - ".github/workflows/sponsorship-review.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  migration-static-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run test:migration-review
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
