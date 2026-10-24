@@ -12,8 +12,8 @@ create table if not exists public.sponsor_enquiries (
 );
 alter table public.sponsor_enquiries enable row level security;
 revoke all on public.sponsor_enquiries from anon,authenticated;
-grant insert on public.sponsor_enquiries to anon,authenticated;
-create policy sponsor_enquiries_submit on public.sponsor_enquiries for insert to anon,authenticated with check(status='new' and contacted_at is null and activated_sponsor_id is null and notes is null);
+-- Public writes must use the validated SECURITY DEFINER submission function; direct table inserts are disabled.
+drop policy if exists sponsor_enquiries_submit on public.sponsor_enquiries;
 create policy sponsor_enquiries_staff_read on public.sponsor_enquiries for select to authenticated using(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles()));
 create policy sponsor_enquiries_staff_update on public.sponsor_enquiries for update to authenticated using(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles())) with check(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles()));
 create or replace function public.submit_sponsor_enquiry(p_name text,p_email text,p_business text,p_phone text,p_interests text[],p_message text default null,p_news_opt_in boolean default false,p_website_confirm text default '',p_form_started_ms bigint default 0) returns uuid language plpgsql security definer set search_path='' as $$
@@ -28,6 +28,30 @@ begin
 end $$;
 revoke all on function public.submit_sponsor_enquiry(text,text,text,text,text[],text,boolean,text,bigint) from public;
 grant execute on function public.submit_sponsor_enquiry(text,text,text,text,text[],text,boolean,text,bigint) to anon,authenticated;
+-- Extend the existing validator only to accept explicit public wall fields.
+create or replace function private.valid_club_record_data(_type text,_data jsonb) returns boolean
+language plpgsql immutable set search_path='' as $
+declare v_allowed text[]; v_required text; v_key text; v_value text;
+begin
+ if _data is null or jsonb_typeof(_data)<>'object' then return false; end if;
+ case _type
+  when 'player' then v_allowed:=array['name','position','bio','squad_number','date_of_birth','fkf_number']; v_required:='name';
+  when 'fixture' then v_allowed:=array['opponent','match_date','venue','result']; v_required:='opponent';
+  when 'news' then v_allowed:=array['title','summary','body','category']; v_required:='title';
+  when 'sponsor' then v_allowed:=array['name','support_type','details','website','show_on_public_wall','fan_offer_enabled','fan_offer_text','public_description']; v_required:='name';
+  when 'activity' then v_allowed:=array['title','date','location','details']; v_required:='title';
+  else return false;
+ end case;
+ if not (_data ? v_required) or jsonb_typeof(_data->v_required)<>'string' or length(btrim(_data->>v_required))=0 then return false; end if;
+ for v_key in select jsonb_object_keys(_data) loop
+  if not (v_key=any(v_allowed)) or jsonb_typeof(_data->v_key)<>'string' then return false; end if;
+  v_value:=_data->>v_key;
+  if length(v_value)>3000 then return false; end if;
+  if v_key in ('show_on_public_wall','fan_offer_enabled') and v_value not in ('true','false') then return false; end if;
+ end loop;
+ return true;
+end $;
+
 create or replace view public.public_partners as select c.id,nullif(btrim(c.data->>'name'),'') name,nullif(btrim(c.data->>'support_type'),'') support_type,nullif(btrim(c.data->>'public_description'),'') public_description,case when coalesce(c.data->>'website','') ~* '^https?://' then c.data->>'website' else null end website,case when coalesce((c.data->>'fan_offer_enabled')::boolean,false) then nullif(btrim(c.data->>'fan_offer_text'),'') else null end fan_offer_text from private.club_records c where c.record_type='sponsor' and c.publication_status='approved' and coalesce((c.data->>'show_on_public_wall')::boolean,false);
 revoke all on public.public_partners from public,authenticated;
 grant select on public.public_partners to anon,authenticated;
