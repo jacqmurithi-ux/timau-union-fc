@@ -12,7 +12,7 @@ const currentPage=()=>{
  const candidate=part+".html";
  return routePages.has(candidate)?candidate:"index.html";
 };
-const routeFor=page=>page==="index.html"?"/app/":"/app/"+page.replace(/\\.html$/,"")+"/";
+const routeFor=page=>page==="index.html"?"/app/":"/app/"+page.replace(/\.html$/,"")+"/";
 const readableRole=role=>ROLE_LABELS[role]||String(role||"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 const roleNames=roles=>[...roles].map(readableRole);
 function seedLocalTabs(){
