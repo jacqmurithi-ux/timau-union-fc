@@ -4,7 +4,15 @@ import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS,SECTION_LAB
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
 const roleSet=roles=>new Set(Array.isArray(roles)?roles:[]);
-const currentPage=()=>location.pathname.split("/").pop()||"workspace.html";
+const routePages=new Set([...Object.keys(PAGE_ACCESS),"news.html"]);
+const currentPage=()=>{
+ const part=location.pathname.split("/").filter(Boolean).pop()||"index.html";
+ if(part==="app")return "index.html";
+ if(part.endsWith(".html"))return part;
+ const candidate=part+".html";
+ return routePages.has(candidate)?candidate:"index.html";
+};
+const routeFor=page=>page==="index.html"?"/app/":"/app/"+page.replace(/\.html$/,"")+"/";
 const readableRole=role=>ROLE_LABELS[role]||String(role||"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 const roleNames=roles=>[...roles].map(readableRole);
 function seedLocalTabs(){
@@ -98,7 +106,7 @@ function buildTabs(roles,page){
  for(const [href,allowed] of Object.entries(PAGE_ACCESS)){
   if(page==="treasurer.html"||href==="index.html"||!isAllowed(allowed,roles)||seen.has(href))continue;
   seen.add(href);
-  const a=document.createElement("a");a.className="button button-dark";a.textContent=PAGE_LABELS[href]||href;a.href="./"+href;
+  const a=document.createElement("a");a.className="button button-dark";a.textContent=PAGE_LABELS[href]||href;a.href=routeFor(href);
   if(page===href)a.setAttribute("aria-current","page");
   nav.append(a);
  }
@@ -170,7 +178,7 @@ async function setup(){
  const allowed=PAGE_ACCESS[page];
  if(page!=="index.html"&&((allowed&&!isAllowed(allowed,roles))||!allowed)){
   const home=homeFor(roles);
-  location.replace("./"+home+(home.includes("?")?"&":"?")+"accessDenied=1");
+  location.replace(routeFor(home)+(routeFor(home).includes("?")?"&":"?")+"accessDenied=1");
   return;
  }
  updateRoleLabels(roles,page);

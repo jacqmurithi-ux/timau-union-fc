@@ -122,7 +122,7 @@ resetRequestForm.addEventListener("submit", async (event) => {
   const submit = resetRequestForm.querySelector('button[type="submit"]');
   submit.disabled = true;
   try {
-    const redirect = new URL("./index.html", window.location.href);
+    const redirect = new URL("/app/", window.location.origin);
     redirect.search = "?recovery=1";
     redirect.hash = "";
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirect.toString() });
