@@ -52,7 +52,7 @@ begin
  return true;
 end $;
 
-create or replace view public.public_partners as select c.id,nullif(btrim(c.data->>'name'),'') name,nullif(btrim(c.data->>'support_type'),'') support_type,nullif(btrim(c.data->>'public_description'),'') public_description,case when coalesce(c.data->>'website','') ~* '^https?://' then c.data->>'website' else null end website,case when coalesce((c.data->>'fan_offer_enabled')::boolean,false) then nullif(btrim(c.data->>'fan_offer_text'),'') else null end fan_offer_text from private.club_records c where c.record_type='sponsor' and c.publication_status='approved' and coalesce((c.data->>'show_on_public_wall')::boolean,false);
+create or replace view public.public_partners as select c.id,nullif(btrim(c.data->>'name'),'') name,nullif(btrim(c.data->>'support_type'),'') support_type,nullif(btrim(coalesce(c.data->>'public_description',c.data->>'details')),'') public_description,case when coalesce(c.data->>'website','') ~* '^https?://' then c.data->>'website' else null end website,case when coalesce((c.data->>'fan_offer_enabled')::boolean,false) then nullif(btrim(c.data->>'fan_offer_text'),'') else null end fan_offer_text from private.club_records c where c.record_type='sponsor' and c.publication_status='approved' and coalesce((c.data->>'show_on_public_wall')::boolean,false);
 revoke all on public.public_partners from public,authenticated;
 grant select on public.public_partners to anon,authenticated;
 comment on view public.public_partners is 'Only approved sponsor records explicitly opted into the public partner wall; public-safe columns only.';
