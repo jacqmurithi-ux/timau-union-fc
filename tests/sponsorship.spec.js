@@ -4,9 +4,9 @@ test("partnership page renders and public partners container is present on deskt
   await page.setViewportSize({ width: 1365, height: 900 });
   await page.goto("/partnership.html");
   await expect(page.getByRole("heading", { name: "Partner with Timau Union FC" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Our approved partners" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Our approved partners" })).toBeHidden();
   await expect(page.locator("[data-public-partners]")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Register interest" }).first()).toHaveAttribute("href", "/register-interest.html");
+  await expect(page.getByRole("link", { name: "Enquire about a partnership" }).first()).toHaveAttribute("href", "/register-interest.html");
 });
 
 test("partnership page remains usable on a narrow mobile viewport", async ({ page }) => {
@@ -14,13 +14,34 @@ test("partnership page remains usable on a narrow mobile viewport", async ({ pag
   await page.goto("/partnership.html");
   await expect(page.getByRole("heading", { name: "Partner with Timau Union FC" })).toBeVisible();
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 360);
-  await expect(page.getByRole("link", { name: "Register interest" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Enquire about a partnership" }).first()).toBeVisible();
+});
+
+
+test("shared public header fits and hamburger toggles at 360, 390 and 430px", async ({ page }) => {
+  for (const width of [360, 390, 430]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const path of ["/", "/partnership.html", "/register-interest.html", "/players/", "/season/"]) {
+      await page.goto(path);
+      await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
+      await page.getByRole("button", { name: "Open navigation menu" }).click();
+      const nav = page.locator("#primary-nav");
+      await expect(nav).toBeVisible();
+      for (const label of ["Home", "News", "Partners", "Login"]) {
+        await expect(nav.getByRole("link", { name: label, exact: true })).toBeVisible();
+      }
+      await expect(nav).toHaveCSS("width", `${width}px`);
+      await expect(page.locator("body")).toHaveJSProperty("scrollWidth", width);
+      await page.getByRole("button", { name: "Close navigation menu" }).click();
+      await expect(nav).toBeHidden();
+    }
+  }
 });
 
 test("interest links preselect the requested category", async ({ page }) => {
   await page.goto("/register-interest.html?interest=Kit");
   await expect(page.getByRole("heading", { name: "Register your interest" })).toBeVisible();
-  await expect(page.locator('input[name="interests"][value="Kit"]')).toBeChecked();
+  await expect(page.locator('select[name="interest"]')).toHaveValue("Kit");
 });
 
 test("interest form validates and submits through the RPC client", async ({ page }) => {
@@ -30,15 +51,15 @@ test("interest form validates and submits through the RPC client", async ({ page
     body: `export function createClient(){return {rpc:async(name,args)=>{window.__sponsorRpc={name,args};return {data:"test-enquiry-id",error:null}}}}`
   }));
   await page.goto("/register-interest.html");
-  await page.getByRole("button", { name: "Register interest" }).click();
+  await page.getByRole("button", { name: "Send partnership enquiry" }).click();
   await expect(page.getByRole("alert")).toContainText("Please check your name");
   await page.getByLabel("Name *").fill("Test Person");
   await page.getByLabel("Email *").fill("test@example.com");
   await page.getByLabel("Business *").fill("Test Business");
-  await page.locator('input[name="interests"][value="Kit"]').check();
+  await page.locator('select[name="interest"]').selectOption("Kit");
   await page.waitForTimeout(2600);
   await page.getByRole("button", { name: "Register interest" }).click();
-  await expect(page.getByRole("status")).toContainText("Thank you");
+  await expect(page.getByRole("status")).toContainText("Your enquiry has been sent. It does not create an account or commit you to a sponsorship.");
   await expect.poll(() => page.evaluate(() => window.__sponsorRpc?.name)).toBe("submit_sponsor_enquiry");
 });
 
