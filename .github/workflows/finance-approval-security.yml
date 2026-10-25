@@ -5,6 +5,8 @@ on:
     paths:
       - "supabase/migrations/20261025070000_finance_approval_hardening.sql"
       - "tests/finance-approval-review.mjs"
+      - "tests/finance-approval-db-bootstrap.sql"
+      - "tests/finance-approval-integration.sql"
       - ".github/workflows/finance-approval-security.yml"
   push:
     branches: ["phase-2/finance-approval-hardening"]
@@ -26,3 +28,36 @@ jobs:
           node-version: 20
       - name: Review finance approval migration invariants
         run: node tests/finance-approval-review.mjs
+
+  database-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: finance_test_password
+          POSTGRES_DB: finance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d finance_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Bootstrap disposable finance fixtures
+        env:
+          PGPASSWORD: finance_test_password
+        run: psql -h 127.0.0.1 -U postgres -d finance_test -v ON_ERROR_STOP=1 -f tests/finance-approval-db-bootstrap.sql
+      - name: Apply finance approval migration to disposable PostgreSQL
+        env:
+          PGPASSWORD: finance_test_password
+        run: psql -h 127.0.0.1 -U postgres -d finance_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261025070000_finance_approval_hardening.sql
+      - name: Test approval authorization, ledger and audit behavior
+        env:
+          PGPASSWORD: finance_test_password
+        run: psql -h 127.0.0.1 -U postgres -d finance_test -v ON_ERROR_STOP=1 -f tests/finance-approval-integration.sql
