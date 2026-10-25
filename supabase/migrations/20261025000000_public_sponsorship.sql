@@ -35,7 +35,7 @@ begin
  ) then
    raise exception 'Sponsor Lead, Chairman or Platform Admin required' using errcode='42501';
  end if;
- if _enquiry_id is null or _status not in ('new','contacted','in_discussion','agreement_reached','account_setup','linked') then
+ if _enquiry_id is null or _status is null or _status not in ('new','contacted','in_discussion','agreement_reached','account_setup','linked') then
    raise exception 'Choose a valid enquiry and status.' using errcode='22023';
  end if;
  if char_length(btrim(coalesce(_reason,'')))<3 or char_length(_reason)>1000 then
