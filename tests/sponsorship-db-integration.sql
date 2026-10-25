@@ -84,8 +84,8 @@ select public.sponsor_enquiry_set_status((select id from public.sponsor_enquirie
 do $test$ begin if not exists(select 1 from public.sponsor_enquiries where email='test@example.com' and status='in_discussion') then raise exception 'FAIL: Sponsor Lead could not progress enquiry to In Discussion'; end if; end $test$;
 select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'agreement_reached','Commercial terms agreed');
 select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'account_setup','Guided account setup started');
-do $test$ begin if (select count(*) from private.sponsor_workspace_audit where record_table='sponsor_enquiries' and action_key='sponsor_enquiry_status_changed') < 3 then raise exception 'FAIL: enquiry status changes were not audit-logged'; end if; end $test$;
 reset role;
+do $test$ begin if (select count(*) from private.sponsor_workspace_audit where record_table='sponsor_enquiries' and action_key='sponsor_enquiry_status_changed') < 3 then raise exception 'FAIL: enquiry status changes were not audit-logged'; end if; end $test$;
 
 -- An unauthorised authenticated user cannot update enquiries directly or change lifecycle via RPC.
 set role authenticated;
@@ -110,8 +110,8 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001'
 select set_config('request.test.roles','sponsor_lead',false);
 select public.sponsor_public_settings_save('10000000-0000-0000-0000-000000000001',true,true,'Fan offer: 10% off','Approved public description');
 select public.sponsor_public_settings_save('10000000-0000-0000-0000-000000000002',true,false,'','Pending should not show');
-do $test$ begin if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_public_settings' and action_key='sponsor_public_settings_updated') then raise exception 'FAIL: public display settings were not audit-logged'; end if; end $test$;
 reset role;
+do $test$ begin if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_public_settings' and action_key='sponsor_public_settings_updated') then raise exception 'FAIL: public display settings were not audit-logged'; end if; end $test$;
 
 -- Public view must expose only approved, opted-in records and only the selected safe columns.
 set role anon;
