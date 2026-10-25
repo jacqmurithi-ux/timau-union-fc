@@ -87,6 +87,7 @@ test("migration retains the database-enforced anti-spam and access controls", as
   expect(sql).toContain("'account_setup'");
   expect(sql).toContain("'linked'");
   expect(sql).toContain("revoke all on public.sponsor_public_settings from public,anon,authenticated");
+  expect(sql).toContain("sponsor_public_settings_updated");
   expect(sql).not.toContain("create or replace function private.valid_club_record_data");
 });
 
