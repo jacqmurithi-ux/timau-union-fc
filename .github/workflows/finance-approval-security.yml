@@ -1,0 +1,28 @@
+name: Finance approval security review
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261025070000_finance_approval_hardening.sql"
+      - "tests/finance-approval-review.mjs"
+      - ".github/workflows/finance-approval-security.yml"
+  push:
+    branches: ["phase-2/finance-approval-hardening"]
+    paths:
+      - "supabase/migrations/20261025070000_finance_approval_hardening.sql"
+      - "tests/finance-approval-review.mjs"
+      - ".github/workflows/finance-approval-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  static-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Review finance approval migration invariants
+        run: node tests/finance-approval-review.mjs
