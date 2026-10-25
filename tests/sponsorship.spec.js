@@ -88,6 +88,13 @@ test("migration retains the database-enforced anti-spam and access controls", as
   expect(sql).toContain("'linked'");
   expect(sql).toContain("revoke all on public.sponsor_public_settings from public,anon,authenticated");
   expect(sql).toContain("sponsor_public_settings_updated");
+  const cacheResponse = await page.request.get("/supabase/migrations/20261025060000_public_partner_cache_security.sql");
+  expect(cacheResponse.ok()).toBeTruthy();
+  const cacheSql = await cacheResponse.text();
+  expect(cacheSql).toContain("create table if not exists public.public_partners");
+  expect(cacheSql).toContain("alter table public.public_partners enable row level security");
+  expect(cacheSql).toContain("club_records_sync_public_sponsor");
+  expect(cacheSql).toContain("sponsor_public_settings_sync_public_sponsor");
   expect(sql).not.toContain("create or replace function private.valid_club_record_data");
 });
 
