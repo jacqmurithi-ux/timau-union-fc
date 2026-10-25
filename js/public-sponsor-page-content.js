@@ -14,7 +14,7 @@
     const existing=[...grid.querySelectorAll(".package-card")];
     c.packages.forEach((item,index)=>{
      let card=existing[index];if(!card)return;
-     const heading=card.querySelector("h3"),description=card.querySelector(".package-description"),list=card.querySelector("ul");
+     const heading=card.querySelector("h3"),description=card.querySelector(".package-description"),list=card.querySelector("ul");let mockup=card.querySelector(".package-mockup-image");if(item.image_url){if(!mockup){mockup=document.createElement("img");mockup.className="package-mockup-image";mockup.loading="lazy";mockup.style.cssText="display:block;width:100%;max-height:220px;object-fit:contain;background:#f5f5f5;border-radius:8px;margin:0 0 1rem";card.insertBefore(mockup,card.firstChild);}mockup.src=String(item.image_url);mockup.alt=String(item.title||item.key||"Sponsorship package")+" mockup";}else if(mockup)mockup.remove();
      if(heading)heading.textContent=String(item.title||"");
      if(description)description.textContent=String(item.description||"");
      if(list){list.replaceChildren();String(item.benefits||"").split("\n").map(s=>s.trim()).filter(Boolean).forEach(line=>{const li=document.createElement("li");li.textContent=line;list.append(li);});}
