@@ -1347,3 +1347,12 @@ body > main > section.section {
 .button-primary:active,.button.button-primary:active{color:#fff;background:#72071a;border-color:#72071a;transform:translateY(1px) scale(.99)}
 .button-primary:focus-visible,.button.button-primary:focus-visible{outline:3px solid #ffd447;outline-offset:3px}
 .button-primary:disabled{opacity:.65;cursor:wait;transform:none}
+
+
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(min-width:960px){
+ .site-header .menu-toggle{display:none}
+ .site-header .brand{order:1;flex:0 0 auto}
+ .site-header .primary-nav{order:2;flex:1;justify-content:flex-end}
+ .site-header .header-actions{order:3;flex:0 0 44px}
+}
