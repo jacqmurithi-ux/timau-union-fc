@@ -9,6 +9,7 @@ function initializePage() {
   const searchInput = document.getElementById("site-search-input");
   const searchResults = document.getElementById("site-search-results");
   if (searchToggle && searchPanel && searchForm && searchInput && searchResults) {
+    searchToggle.dataset.searchReady = "true";
     const openSearch = (open) => {
       searchPanel.hidden = !open;
       searchPanel.classList.toggle("is-open", open);

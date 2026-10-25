@@ -12,33 +12,21 @@
   <link rel="icon" href="/assets/club-crest.jpg?v=20261024-browser-icon" type="image/jpeg">
   <link rel="shortcut icon" href="/assets/club-crest.jpg?v=20261024-browser-icon" type="image/jpeg">
   <link rel="apple-touch-icon" href="/assets/club-crest.jpg">
-  <link rel="stylesheet" href="/styles.css?v=20261022-mobile-menu">
+  <link rel="stylesheet" href="/styles.css?v=20261025-public-header">
   <link rel="stylesheet" href="/css/players.css">
-  <script src="/js/site-header.js?v=20261022-menu-fix" defer></script>
+  <script src="/js/site-header.js?v=20261025-public-header" defer></script>
   <script src="/js/players.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="/" aria-label="Timau Union FC home">
-        <img class="brand-mark" src="/assets/club-crest.jpg" alt="" width="48" height="48">
-        <span class="brand-copy"><strong>TIMAU UNION FC</strong><small>Our club. Our community. Our future.</small></span>
-      </a>
-      <button class="menu-toggle" id="menu-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" type="button"><span class="menu-icon" aria-hidden="true">☰</span><span class="menu-label">Menu</span></button>
-      <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
-        <a href="/#fixtures">Fixtures</a>
-        <a href="/#table">League table</a>
-        <a href="/season/">2025/26 Season</a>
-        <a href="/players/" aria-current="page">Players</a>
-        <a href="/#news">News</a>
-        <a href="/#sponsors">Partners</a>
-        <a href="/#club">Our club</a>
-        <a href="/#contact">Contact</a>
-        <a class="nav-login" href="/app/index.html">Member login</a>
-      </nav>
-    </div>
-  </header>
+<div class="container header-inner">
+<button class="header-icon-button menu-toggle" id="menu-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" type="button"><span class="menu-icon" aria-hidden="true">☰</span><span class="menu-label visually-hidden">Menu</span></button>
+<a class="brand" href="/" aria-label="Timau Union FC home"><img class="brand-mark" src="/assets/club-crest.jpg" alt="" width="48" height="48"><span class="brand-copy"><strong>TIMAU UNION FC</strong><small>Our club. Our community. Our future.</small></span></a>
+<div class="header-actions"><button class="header-icon-button" id="site-search-toggle" data-shared-search="true" type="button" aria-label="Search this page" aria-expanded="false" aria-controls="site-search-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg></button></div>
+<div class="search-panel" id="site-search-panel" hidden><form id="site-search-form" role="search"><label class="visually-hidden" for="site-search-input">Search this page</label><input id="site-search-input" type="search" placeholder="Search this page" autocomplete="off"><button class="button button-primary" type="submit">Search</button></form><div id="site-search-results" class="search-results" aria-live="polite"></div></div>
+<nav class="primary-nav" id="primary-nav" aria-label="Main navigation"><button class="primary-nav-close" type="button" aria-label="Close navigation menu">× Close menu</button><a href="/">Home</a><a href="/#news">News</a><a href="/partnership.html">Partners</a><a class="nav-login" href="/app/">Login</a></nav>
+</div></header>
   <main id="main">
     <section class="players-hero">
       <div class="container">
