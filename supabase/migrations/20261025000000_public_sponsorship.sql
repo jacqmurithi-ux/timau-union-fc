@@ -25,7 +25,7 @@ create or replace function public.sponsor_enquiry_set_status(
  _reason text,
  _sponsor_record_id uuid default null
 ) returns void
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $sponsor_status$
 declare v_actor uuid:=auth.uid(); v_before text; v_before_record uuid;
 begin
  if v_actor is null or not (
@@ -60,7 +60,7 @@ begin
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
  values(v_actor,'sponsor_enquiries',_enquiry_id,'sponsor_enquiry_status_changed',
    jsonb_build_object('status',v_before,'linked_sponsor_record_id',v_before_record),jsonb_build_object('status',_status,'linked_sponsor_record_id',case when _status='linked' then _sponsor_record_id else null end),btrim(_reason));
-end $;
+end $sponsor_status$;
 revoke all on function public.sponsor_enquiry_set_status(uuid,text,text,uuid) from public,anon;
 grant execute on function public.sponsor_enquiry_set_status(uuid,text,text,uuid) to authenticated;
 
