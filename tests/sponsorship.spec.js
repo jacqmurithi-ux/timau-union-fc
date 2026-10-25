@@ -66,8 +66,10 @@ test("Sponsor Lead can view and mark a mocked enquiry as contacted", async ({ pa
   await expect(page.getByText("Sponsor workspace loaded.")).toBeVisible();
   await page.getByRole("tab", { name: "Enquiries" }).click();
   await expect(page.getByText("Test Business — Test Contact")).toBeVisible();
-  await page.getByRole("button", { name: "Mark contacted" }).click();
-  await expect(page.getByText(/Status: contacted/)).toBeVisible();
+  await page.locator('[data-enquiry-status-select="enq-1"]').selectOption("in_discussion");
+  await page.getByRole("button", { name: "Save progress" }).click();
+  await expect(page.getByText(/Status: in discussion/)).toBeVisible();
+  await expect(page.getByText(/No account is created or invited from this enquiry/)).toHaveCount(0);
 });
 
 test("migration retains the database-enforced anti-spam and access controls", async ({ page }) => {
@@ -78,6 +80,9 @@ test("migration retains the database-enforced anti-spam and access controls", as
   expect(sql).toContain("interval '15 minutes'");
   expect(sql).toContain("enable row level security");
   expect(sql).toContain("grant update(status,contacted_at) on public.sponsor_enquiries to authenticated");
+  expect(sql).toContain("'agreement_reached'");
+  expect(sql).toContain("'account_setup'");
+  expect(sql).toContain("'linked'");
   expect(sql).toContain("revoke all on public.sponsor_public_settings from public,anon,authenticated");
   expect(sql).not.toContain("create or replace function private.valid_club_record_data");
 });
