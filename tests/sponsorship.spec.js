@@ -115,6 +115,7 @@ test("Sponsor Lead can create and audit-log a sponsor account link through the e
   await page.getByLabel("Reason for link, change or unlink").fill("Approved account-link integration test");
   await page.getByRole("button", { name: "Link / change sponsor" }).click();
   await expect(page.getByText("Sponsor account linked.")).toBeVisible();
-  await expect(page.getByText("sponsor@example.test", { exact: false }).first()).toBeVisible();
+  await expect(page.locator("#links")).toContainText("ACTIVE");
+  await expect(page.locator("#links")).toContainText("Approved Test Sponsor");
   await expect.poll(() => page.evaluate(() => window.__linkState.calls.some(c => c.name==="sponsor_lead_set_user_link" && c.args._link===true && c.args._user_id==="sponsor-user-2" && c.args._sponsor_record_id==="sponsor-record-1"))).toBe(true);
 });
