@@ -65,6 +65,10 @@ jobs:
         env:
           PGPASSWORD: sponsorship_test_password
         run: psql -h 127.0.0.1 -U postgres -d sponsorship_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261025000000_public_sponsorship.sql
+      - name: Apply public partner cache hardening migration to disposable PostgreSQL
+        env:
+          PGPASSWORD: sponsorship_test_password
+        run: psql -h 127.0.0.1 -U postgres -d sponsorship_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261025060000_public_partner_cache_security.sql
       - name: Test RPC validation, RLS, grants, rate limiting and public view
         env:
           PGPASSWORD: sponsorship_test_password
