@@ -23,6 +23,8 @@
         if(returnFocus)menuToggle.focus();
       };
       setMenuState(false);
+      // Always release the mobile scroll lock after a page navigation or bfcache restore.
+      window.addEventListener("pageshow",()=>setMenuState(false));
       closeButton.addEventListener("click",()=>setMenuState(false));
       nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>setMenuState(false)));
       // Delegated click handling works consistently for the icon and its child spans.
