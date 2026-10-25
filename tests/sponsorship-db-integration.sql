@@ -122,6 +122,7 @@ select public.sponsor_lead_set_user_link(
  true,
  'Integration test approved sponsor account link'
 );
+reset role;
 do $test$ begin
  if not exists(select 1 from private.sponsor_user_links where user_id='00000000-0000-0000-0000-000000000002' and sponsor_record_id='10000000-0000-0000-0000-000000000001' and active) then
   raise exception 'FAIL: sponsor account link was not created';
@@ -162,6 +163,7 @@ end $test$;
 select public.sponsor_lead_set_user_link(
  '00000000-0000-0000-0000-000000000002',null,false,'Integration test unlink'
 );
+reset role;
 do $test$ begin
  if exists(select 1 from private.sponsor_user_links where user_id='00000000-0000-0000-0000-000000000002' and active) then
   raise exception 'FAIL: sponsor link remained active after unlink';
