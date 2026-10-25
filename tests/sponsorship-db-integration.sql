@@ -110,6 +110,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001'
 select set_config('request.test.roles','sponsor_lead',false);
 select public.sponsor_public_settings_save('10000000-0000-0000-0000-000000000001',true,true,'Fan offer: 10% off','Approved public description');
 select public.sponsor_public_settings_save('10000000-0000-0000-0000-000000000002',true,false,'','Pending should not show');
+do $test$ begin if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_public_settings' and action_key='sponsor_public_settings_updated') then raise exception 'FAIL: public display settings were not audit-logged'; end if; end $test$;
 reset role;
 
 -- Public view must expose only approved, opted-in records and only the selected safe columns.
