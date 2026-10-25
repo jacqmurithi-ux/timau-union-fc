@@ -1339,3 +1339,11 @@ body > main > section.section {
  .site-header .header-icon-button,.site-header .menu-toggle{width:40px;height:40px;min-width:40px}
  .site-header .primary-nav{max-height:calc(100dvh - 62px)}.site-header .primary-nav a{font-size:.78rem;padding-inline:2px}
 }
+
+
+/* Shared red primary action style used by public pages. */
+.button-primary,.button.button-primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 18px;border:2px solid #c8102e;border-radius:8px;color:#fff;background:#c8102e;font-weight:850;text-align:center;text-decoration:none;transition:background 140ms ease,border-color 140ms ease,transform 100ms ease;cursor:pointer}
+.button-primary:hover,.button.button-primary:hover{color:#fff;background:#970b22;border-color:#970b22;transform:translateY(-1px)}
+.button-primary:active,.button.button-primary:active{color:#fff;background:#72071a;border-color:#72071a;transform:translateY(1px) scale(.99)}
+.button-primary:focus-visible,.button.button-primary:focus-visible{outline:3px solid #ffd447;outline-offset:3px}
+.button-primary:disabled{opacity:.65;cursor:wait;transform:none}
