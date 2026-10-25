@@ -54,8 +54,8 @@ test("interest form validates and submits through the RPC client", async ({ page
   await page.getByRole("button", { name: "Send partnership enquiry" }).click();
   await expect(page.getByRole("alert")).toContainText("Please check your name");
   await page.getByLabel("Name *").fill("Test Person");
-  await page.getByLabel("Email *").fill("test@example.com");
-  await page.getByLabel("Business *").fill("Test Business");
+  await page.getByLabel("Email address *").fill("test@example.com");
+  await page.getByLabel("Business or organisation *").fill("Test Business");
   await page.locator('select[name="interest"]').selectOption("Kit");
   await page.waitForTimeout(2600);
   await page.getByRole("button", { name: "Register interest" }).click();
