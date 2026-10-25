@@ -81,7 +81,8 @@ test("migration retains the database-enforced anti-spam and access controls", as
   expect(sql).toContain("pg_advisory_xact_lock");
   expect(sql).toContain("interval '15 minutes'");
   expect(sql).toContain("enable row level security");
-  expect(sql).toContain("grant update(status,contacted_at) on public.sponsor_enquiries to authenticated");
+  expect(sql).toContain("revoke update,insert,delete on public.sponsor_enquiries from authenticated");
+  expect(sql).toContain("create or replace function public.sponsor_enquiry_set_status");
   expect(sql).toContain("'agreement_reached'");
   expect(sql).toContain("'account_setup'");
   expect(sql).toContain("'linked'");
