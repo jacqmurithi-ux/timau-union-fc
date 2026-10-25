@@ -7,7 +7,7 @@ if(!form||!success||!error) throw new Error("Partnership enquiry form is unavail
 const db=createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
 const started=Date.now();
 form.elements.form_started_ms.value=String(started);
-const allowed=["Kit","Match day","Training","Website / social","Community partner","Other"];
+const allowed=["Kit","Match day","Training","Website / social","Community partner","Fan membership","Other"];
 const showError=message=>{error.textContent=message;error.hidden=false;success.hidden=true;};
 const interestSelect=form.elements.interest;
 const initial=new URLSearchParams(location.search).get("interest");
@@ -22,7 +22,7 @@ form.addEventListener("submit",async event=>{
   const message=String(values.get("message")||"").trim();
   const interest=String(values.get("interest")||"");
   if(name.length<2||name.length>120||!/^\S+@\S+\.\S+$/.test(email)||email.length>254||business.length<2||business.length>160||phone.length>40||message.length>2000||!allowed.includes(interest)){
-    showError("Please check your name, business or organisation, email address and package of interest.");return;
+    showError("Please check your name, business or organisation, email address and area of interest.");return;
   }
   if(values.get("website_confirm")) { showError("We couldn’t submit your enquiry. Please try again.");return; }
   if(Date.now()-started<2600){showError("Please take a moment to review your enquiry before submitting.");return;}
