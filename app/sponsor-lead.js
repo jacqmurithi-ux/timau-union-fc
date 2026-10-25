@@ -67,7 +67,7 @@ async function load(){
   // Load the core workspace first so optional services cannot leave the entire page stuck.
   const [workspaceResult,enquiryResult]=await Promise.all([
    rpcWithTimeout("sponsor_lead_get_workspace",{},12000),
-   db.from("sponsor_enquiries").select("*").order("created_at",{ascending:false}).limit(200)
+   Promise.race([db.from("sponsor_enquiries").select("*").order("created_at",{ascending:false}).limit(200),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Sponsor enquiries request timed out")),8000))]).catch(error=>({data:null,error}))
   ]);
   if(workspaceResult.error)throw workspaceResult.error;
   data=workspaceResult.data||{};
