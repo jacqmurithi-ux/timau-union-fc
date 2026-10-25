@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           for page in index.html players.html season.html; do
-            grep -Fq 'js/site-header.js?v=20261022-menu-fix' "$page"
+            grep -Fq 'js/site-header.js?v=20261025-public-header' "$page"
             grep -Fq 'id="menu-toggle"' "$page"
             grep -Fq 'aria-controls="primary-nav"' "$page"
             grep -Fq 'aria-expanded="false"' "$page"
