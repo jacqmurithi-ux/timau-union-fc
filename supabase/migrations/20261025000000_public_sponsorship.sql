@@ -106,7 +106,7 @@ create or replace function public.sponsor_public_settings_save(
  _fan_offer_text text default '',
  _public_description text default ''
 ) returns void
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $sponsor_settings$
 declare v_before jsonb;
 begin
  if auth.uid() is null or not (
@@ -138,7 +138,7 @@ begin
   updated_by=excluded.updated_by;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
  values(auth.uid(),'sponsor_public_settings',_record_id,'sponsor_public_settings_updated',v_before,jsonb_build_object('show_on_public_wall',coalesce(_show_on_public_wall,false),'fan_offer_enabled',coalesce(_fan_offer_enabled,false),'fan_offer_text',coalesce(_fan_offer_text,''),'public_description',coalesce(_public_description,'')),'Public display settings updated');
-end $;
+end $sponsor_settings$;
 revoke all on function public.sponsor_public_settings_save(uuid,boolean,boolean,text,text) from public,anon;
 grant execute on function public.sponsor_public_settings_save(uuid,boolean,boolean,text,text) to authenticated;
 
