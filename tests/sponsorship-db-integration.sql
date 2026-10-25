@@ -80,11 +80,12 @@ do $$ declare n integer; begin
  select count(*) into n from public.sponsor_enquiries;
  if n<>3 then raise exception 'FAIL: Sponsor Lead expected 3 enquiries, found %',n; end if;
 end $$;
-update public.sponsor_enquiries set status='in_discussion' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
+select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'in_discussion','Follow-up discussion started');
 do $$ begin if not exists(select 1 from public.sponsor_enquiries where email='test@example.com' and status='in_discussion') then raise exception 'FAIL: Sponsor Lead could not progress enquiry to In Discussion'; end if; end $$;
-update public.sponsor_enquiries set status='agreement_reached' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
-update public.sponsor_enquiries set status='account_setup' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
-update public.sponsor_enquiries set status='linked' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
+select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'agreement_reached','Commercial terms agreed');
+select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'account_setup','Guided account setup started');
+select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'linked','Approved Sponsor account linked separately');
+do $ begin if (select count(*) from private.sponsor_workspace_audit where record_table='sponsor_enquiries' and action_key='sponsor_enquiry_status_changed') < 4 then raise exception 'FAIL: enquiry status changes were not audit-logged'; end if; end $;
 reset role;
 
 -- An unauthorised authenticated user cannot save public settings; Sponsor Lead can.
