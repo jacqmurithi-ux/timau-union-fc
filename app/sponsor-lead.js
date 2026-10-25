@@ -1,7 +1,11 @@
 import {SECTION_LABELS} from "./role-navigation.js?v=role-nav-20261023-4";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const $=id=>document.getElementById(id); const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $=id=>document.getElementById(id);
+// Repair the Sponsor account links navigation defensively if stale/corrupt markup was cached.
+function repairSponsorLinksNavigation(){for(const a of document.querySelectorAll("a")){if((a.textContent||"").trim().startsWith("Sponsor account links")){a.href="/app/sponsor-links/";a.textContent="Sponsor account links";}}}
+repairSponsorLinksNavigation();
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const tabs=Object.entries(SECTION_LABELS["sponsor-lead.html"]);tabs.push(["enquiries","Enquiries"]);
 let data={},active="sponsors",isAdmin=false,roles=[];
 const note=(s,kind="info")=>{ $("notice").textContent=s; $("notice").dataset.kind=kind; };
