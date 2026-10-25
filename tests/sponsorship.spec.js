@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("partnership page renders and public partners container is present on desktop", async ({ page }) => {
   await page.setViewportSize({ width: 1365, height: 900 });
   await page.goto("/partnership.html");
-  await expect(page.getByRole("heading", { name: "Partner with Timau Union FC" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Back the badge. Build the future." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Our approved partners" })).toBeHidden();
   await expect(page.locator("[data-public-partners]")).toBeVisible();
   await expect(page.getByRole("link", { name: "Enquire about a partnership" }).first()).toHaveAttribute("href", "/register-interest.html");
@@ -40,7 +40,7 @@ test("shared public header fits and hamburger toggles at 360, 390 and 430px", as
 
 test("interest links preselect the requested category", async ({ page }) => {
   await page.goto("/register-interest.html?interest=Kit");
-  await expect(page.getByRole("heading", { name: "Register your interest" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tell us what you have in mind." })).toBeVisible();
   await expect(page.locator('select[name="interest"]')).toHaveValue("Kit");
 });
 
@@ -58,7 +58,7 @@ test("interest form validates and submits through the RPC client", async ({ page
   await page.getByLabel("Business or organisation *").fill("Test Business");
   await page.locator('select[name="interest"]').selectOption("Kit");
   await page.waitForTimeout(2600);
-  await page.getByRole("button", { name: "Register interest" }).click();
+  await page.getByRole("button", { name: "Send partnership enquiry" }).click();
   await expect(page.getByRole("status")).toContainText("Your enquiry has been sent. It does not create an account or commit you to a sponsorship.");
   await expect.poll(() => page.evaluate(() => window.__sponsorRpc?.name)).toBe("submit_sponsor_enquiry");
 });
