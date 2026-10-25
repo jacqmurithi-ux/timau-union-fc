@@ -1366,3 +1366,24 @@ body > main > section.section {
 @media(min-width:960px) and (max-width:1120px){
  .site-header .primary-nav a{padding-inline:7px;font-size:.83rem}
 }
+
+
+/* Keep the mobile menu attached to the viewport even when opened mid-page. */
+@media (max-width: 959px) {
+  .site-header .primary-nav {
+    position: fixed;
+    top: 68px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: calc(100dvh - 68px);
+    transform: none;
+    z-index: 1100;
+  }
+}
+@media (max-width: 380px) {
+  .site-header .primary-nav {
+    top: 62px;
+    max-height: calc(100dvh - 62px);
+  }
+}
