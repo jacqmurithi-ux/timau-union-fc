@@ -55,7 +55,7 @@
         document.querySelectorAll("main h1,main h2,main h3,main article,main .match-feature").forEach(node=>{
           if(!node.textContent.toLocaleLowerCase().includes(query))return;
           const heading=node.matches("h1,h2,h3")?node:node.querySelector("h1,h2,h3");
-          const label=(heading?heading.textContent:node.textContent).trim().replace(/\\s+/g," ").slice(0,130);
+          const label=(heading?heading.textContent:node.textContent).trim().replace(/\s+/g," ").slice(0,130);
           if(!label)return;
           const section=node.closest("section");
           let href=section&&section.id?"#"+section.id:"#main";
