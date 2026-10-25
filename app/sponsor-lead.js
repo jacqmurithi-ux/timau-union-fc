@@ -61,7 +61,59 @@ if(active==="requests"){html=`<h2>New sponsor portal notifications</h2>`+((data.
 if(active==="reports"){const cs=data.contributions||[],bs=data.benefits||[],names=[...new Set([...cs.map(x=>x.sponsor_name),...bs.map(x=>x.sponsor_name)])];html=`<h2>Sponsor & season summary</h2><p>Committee/sponsor reports are a summary of the records currently held in this workspace. Verify figures with the Treasurer before external sharing.</p><div class="sl-grid">${names.map(n=>{const own=cs.filter(x=>x.sponsor_name===n),del=bs.filter(x=>x.sponsor_name===n);return `<article class="sl-card"><h3>${esc(n)}</h3><p>Pledged: KES ${fmt(own.reduce((s,x)=>s+Number(x.pledged_amount_kes||0),0))}</p><p>Received (Treasurer confirmed): KES ${fmt(own.reduce((s,x)=>s+Number(x.received_amount_kes||0),0))}</p><p>Benefits delivered: ${del.filter(x=>x.is_done).length}/${del.length}</p><button class="button button-outline" data-report="${esc(n)}">Print / save report</button></article>`}).join("")}</div>`||"No sponsor contributions or benefits recorded yet.";}
 p.innerHTML=html; }
 async function rpcWithTimeout(name,args={},timeoutMs=20000){let timer;try{return await Promise.race([db.rpc(name,args),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Database request timed out while loading "+name+". Check your connection and tap Refresh.")),timeoutMs);})]);}finally{clearTimeout(timer);}}
-async function load(){note("Loading your sponsor workspace…");try{const {error:seedError}=await rpcWithTimeout("sponsor_packages_seed_starters");if(seedError)console.warn("Starter packages were not seeded:",seedError.message);const {data:d,error}=await rpcWithTimeout("sponsor_lead_get_workspace");if(error)throw error;data=d||{};roles=data.roles||[];const {data:enquiries,error:enquiriesError}=await db.from("sponsor_enquiries").select("*").order("created_at",{ascending:false}).limit(200);data.enquiries=enquiriesError?[]:(enquiries||[]);if(enquiriesError)console.warn("Enquiries unavailable:",enquiriesError.message);isAdmin=!!data.is_admin;const {data:portalNotifications,error:portalNotificationsError}=await rpcWithTimeout("sponsor_lead_get_portal_notifications");if(!portalNotificationsError)data.portal_notifications=Array.isArray(portalNotifications)?portalNotifications:[];else console.warn("Sponsor portal notifications unavailable:",portalNotificationsError.message);const {data:extra,error:extraError}=await rpcWithTimeout("sponsor_eval_get_workspace");if(!extraError&&extra){data.evaluation_settings=extra.settings||{};data.evaluations=extra.evaluations||[];data.proposal_templates=extra.templates||[];data.proposals=extra.proposals||[];data.proposal_versions=extra.proposal_versions||[];data.is_chairman=!!extra.is_chairman;}else if(extraError){console.warn("Sponsor evaluation workspace unavailable:",extraError.message);}const {data:pageContent,error:pageContentError}=await rpcWithTimeout("sponsor_page_content_get");if(!pageContentError)data.page_content=pageContent;else console.warn("Public page content unavailable:",pageContentError.message);const {data:bundle,error:bundleError}=await rpcWithTimeout("club_get_workspace_bundle");if(!bundleError&&bundle){data.public_sponsors=(bundle.records||[]).filter(r=>r.record_type==="sponsor");}else if(bundleError){console.warn("Public sponsor records unavailable:",bundleError.message);}render();note(enquiriesError||extraError||bundleError?"Workspace loaded; some sections could not refresh. Use Refresh or contact an administrator if this persists.":"Sponsor workspace loaded.",enquiriesError||extraError||bundleError?"error":"success");}catch(error){console.error("Sponsor workspace load failed:",error);note("Could not load sponsor workspace: "+(error?.message||"Unknown error")+". Tap Refresh to retry.","error");throw error;}}
+async function load(){
+ note("Loading sponsor records…");
+ try{
+  // Load the core workspace first so optional services cannot leave the entire page stuck.
+  const [workspaceResult,enquiryResult]=await Promise.all([
+   rpcWithTimeout("sponsor_lead_get_workspace",{},12000),
+   db.from("sponsor_enquiries").select("*").order("created_at",{ascending:false}).limit(200)
+  ]);
+  if(workspaceResult.error)throw workspaceResult.error;
+  data=workspaceResult.data||{};
+  roles=data.roles||[];
+  const {data:enquiries,error:enquiriesError}=enquiryResult;
+  data.enquiries=enquiriesError?[]:(enquiries||[]);
+  isAdmin=!!data.is_admin;
+  render();
+  note("Sponsor workspace opened. Loading supporting sections…");
+  // These sections are supplementary; failures should not block the core workspace.
+  const optional=await Promise.allSettled([
+   rpcWithTimeout("sponsor_packages_seed_starters",{},8000),
+   rpcWithTimeout("sponsor_lead_get_portal_notifications",{},8000),
+   rpcWithTimeout("sponsor_eval_get_workspace",{},8000),
+   rpcWithTimeout("sponsor_page_content_get",{},8000),
+   rpcWithTimeout("club_get_workspace_bundle",{},8000)
+  ]);
+  const warnings=[];
+  const seed=optional[0];
+  if(seed.status==="rejected"||seed.value?.error)warnings.push("starter packages");
+  const notifications=optional[1];
+  if(notifications.status==="fulfilled"&&!notifications.value.error)data.portal_notifications=Array.isArray(notifications.value.data)?notifications.value.data:[];
+  else warnings.push("portal notifications");
+  const extra=optional[2];
+  if(extra.status==="fulfilled"&&!extra.value.error&&extra.value.data){
+   const x=extra.value.data;
+   data.evaluation_settings=x.settings||{};data.evaluations=x.evaluations||[];
+   data.proposal_templates=x.templates||[];data.proposals=x.proposals||[];
+   data.proposal_versions=x.proposal_versions||[];data.is_chairman=!!x.is_chairman;
+  }else warnings.push("evaluation and proposal tools");
+  const page=optional[3];
+  if(page.status==="fulfilled"&&!page.value.error)data.page_content=page.value.data;
+  else warnings.push("public page editor");
+  const bundle=optional[4];
+  if(bundle.status==="fulfilled"&&!bundle.value.error&&bundle.value.data)data.public_sponsors=(bundle.value.data.records||[]).filter(r=>r.record_type==="sponsor");
+  else warnings.push("public sponsor listings");
+  render();
+  const message=warnings.length
+   ?"Workspace loaded. Some supporting sections could not refresh ("+warnings.join(", ")+"). Tap Refresh to retry."
+   :"Sponsor workspace loaded.";
+  note(enquiriesError?message+" Enquiries could not be refreshed.":message,warnings.length||enquiriesError?"error":"success");
+ }catch(error){
+  console.error("Sponsor workspace load failed:",error);
+  note("Could not load sponsor records: "+(error?.message||"Unknown error")+". Check your connection and tap Refresh to retry.","error");
+ }
+}
 $("refresh-workspace")?.addEventListener("click",()=>load().catch(()=>{}));
 $("open-enquiries")?.addEventListener("click",()=>{active="enquiries";render();$("tabs")?.scrollIntoView({behavior:"smooth",block:"start"});});
 $("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){active=b.dataset.tab;render();}});const proposalSectionOrder=["cover","about_club","achievements","audience_reach","packages","benefits","investment","terms","next_steps"];
