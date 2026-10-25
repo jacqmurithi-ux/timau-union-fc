@@ -14,10 +14,43 @@ revoke all on public.sponsor_enquiries from anon,authenticated;
 -- Only the validated RPC may insert. RLS limits reads and updates to approved staff roles.
 drop policy if exists sponsor_enquiries_submit on public.sponsor_enquiries;
 create policy sponsor_enquiries_staff_read on public.sponsor_enquiries for select to authenticated using(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles()));
-create policy sponsor_enquiries_staff_update on public.sponsor_enquiries for update to authenticated using(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles())) with check(private.is_active_platform_admin(auth.uid()) or 'sponsor_lead'=any(private.current_club_roles()) or 'chairman'=any(private.current_club_roles()));
 grant select on public.sponsor_enquiries to authenticated;
-grant update(status,contacted_at) on public.sponsor_enquiries to authenticated;
+-- Lifecycle changes must pass through an audited RPC; authenticated clients cannot update enquiry rows directly.
+revoke update,insert,delete on public.sponsor_enquiries from authenticated;
 create index if not exists sponsor_enquiries_email_created_idx on public.sponsor_enquiries (lower(email), created_at desc);
+
+create or replace function public.sponsor_enquiry_set_status(
+ _enquiry_id uuid,
+ _status text,
+ _reason text
+) returns void
+language plpgsql security definer set search_path='' as $
+declare v_actor uuid:=auth.uid(); v_before text;
+begin
+ if v_actor is null or not (
+   private.is_active_platform_admin(v_actor) or
+   'sponsor_lead'=any(private.current_club_roles()) or
+   'chairman'=any(private.current_club_roles())
+ ) then
+   raise exception 'Sponsor Lead, Chairman or Platform Admin required' using errcode='42501';
+ end if;
+ if _enquiry_id is null or _status not in ('new','contacted','in_discussion','agreement_reached','account_setup','linked') then
+   raise exception 'Choose a valid enquiry and status.' using errcode='22023';
+ end if;
+ if char_length(btrim(coalesce(_reason,'')))<3 or char_length(_reason)>1000 then
+   raise exception 'A reason of 3 to 1000 characters is required.' using errcode='22023';
+ end if;
+ select status into v_before from public.sponsor_enquiries where id=_enquiry_id for update;
+ if not found then raise exception 'Sponsorship enquiry not found.' using errcode='P0002'; end if;
+ update public.sponsor_enquiries set status=_status,
+   contacted_at=case when _status='contacted' then coalesce(contacted_at,now()) else contacted_at end
+ where id=_enquiry_id;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
+ values(v_actor,'sponsor_enquiries',_enquiry_id,'sponsor_enquiry_status_changed',
+   jsonb_build_object('status',v_before),jsonb_build_object('status',_status),btrim(_reason));
+end $;
+revoke all on function public.sponsor_enquiry_set_status(uuid,text,text) from public,anon;
+grant execute on function public.sponsor_enquiry_set_status(uuid,text,text) to authenticated;
 
 create or replace function public.submit_sponsor_enquiry(p_name text,p_email text,p_business text,p_phone text,p_interests text[],p_message text default null,p_news_opt_in boolean default false,p_website_confirm text default '',p_form_started_ms bigint default 0) returns uuid language plpgsql security definer set search_path='' as $$
 declare v_id uuid; v_ms bigint;
