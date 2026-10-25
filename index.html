@@ -46,11 +46,11 @@
   <link rel="shortcut icon" href="/assets/club-crest.jpg?v=20261025-official-crest" type="image/jpeg">
   <link rel="apple-touch-icon" href="/assets/club-crest.jpg?v=20261025-official-crest">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=20261022-mobile-menu">
+  <link rel="stylesheet" href="styles.css?v=20261025-public-header">
   <link rel="stylesheet" href="css/install-prompt.css?v=20261023-install-toast">
   <link rel="stylesheet" href="css/season.css">
   <link rel="stylesheet" href="css/fans-gallery.css">
-  <link rel="stylesheet" href="/css/public-partnerships.css?v=20261025-visibility-fix">
+  <link rel="stylesheet" href="/css/public-partnerships.css?v=20261025-partnership-polish">
   <script src="/js/sponsorship-config.js" defer></script>
   <script src="/js/public-partners.js" defer></script>
   <link rel="stylesheet" href="css/homepage-hero.css?v=20261022-landscape-mobile">
@@ -72,7 +72,7 @@
     })();
   </script>
   <script src="script.js?v=20261021-menu-fix-2" defer></script>
-  <script src="js/site-header.js?v=20261022-menu-fix" defer></script>
+  <script src="js/site-header.js?v=20261025-public-header" defer></script>
   <script type="module" src="js/homepage-hero.js?v=20261022-centered-hero"></script>
   <script src="/js/install-tracking.js" defer></script>
   <script src="/js/install-prompt.js?v=20261023-install-toast" defer></script>
@@ -88,57 +88,13 @@
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="#home" aria-label="Timau Union FC home">
-        <img
-          class="brand-mark"
-          src="assets/club-crest.jpg"
-          alt=""
-          width="48"
-          height="48"
-          fetchpriority="high"
-        >
-        <span class="brand-copy">
-          <strong>TIMAU UNION FC</strong>
-          <small>Our club. Our community. Our future.</small>
-        </span>
-      </a>
-
-      <div class="header-actions">
-        <button class="header-icon-button" id="site-search-toggle" type="button" aria-label="Search the site" aria-expanded="false" aria-controls="site-search-panel">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
-        </button>
-        <button class="header-icon-button menu-toggle" id="menu-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" type="button">
-          <span class="menu-icon" aria-hidden="true">☰</span>
-          <span class="menu-label" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Menu</span>
-        </button>
-      </div>
-      <div class="search-panel" id="site-search-panel" hidden>
-        <form id="site-search-form" role="search">
-          <label for="site-search-input" class="skip-link" style="top:auto;left:-9999px">Search news, fixtures and players</label>
-          <input id="site-search-input" type="search" placeholder="Search news, fixtures and players" autocomplete="off">
-          <button class="button button-dark" type="submit">Search</button>
-        </form>
-        <div id="site-search-results" class="search-results" aria-live="polite"></div>
-      </div>
-
-      <nav
-        class="primary-nav"
-        id="primary-nav"
-        aria-label="Main navigation"
-      >
-        <a href="#fixtures">Fixtures</a>
-        <a href="season/">2025/26 Season</a>
-        <a href="/players/">Players</a>
-        <a href="#news">News</a>
-        <a href="#fans-gallery">Fans Gallery</a>
-        <a href="#sponsors">Partners</a>
-        <a href="#club">Our club</a>
-        <a href="#contact">Contact</a>
-        <a class="nav-login" href="/app/">Member login</a>
-      </nav>
-    </div>
-  </header>
+<div class="container header-inner">
+<button class="header-icon-button menu-toggle" id="menu-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" type="button"><span class="menu-icon" aria-hidden="true">☰</span><span class="menu-label visually-hidden">Menu</span></button>
+<a class="brand" href="/" aria-label="Timau Union FC home"><img class="brand-mark" src="/assets/club-crest.jpg" alt="" width="48" height="48"><span class="brand-copy"><strong>TIMAU UNION FC</strong><small>Our club. Our community. Our future.</small></span></a>
+<div class="header-actions"><button class="header-icon-button" id="site-search-toggle" data-shared-search="true" type="button" aria-label="Search this page" aria-expanded="false" aria-controls="site-search-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg></button></div>
+<div class="search-panel" id="site-search-panel" hidden><form id="site-search-form" role="search"><label class="visually-hidden" for="site-search-input">Search this page</label><input id="site-search-input" type="search" placeholder="Search this page" autocomplete="off"><button class="button button-primary" type="submit">Search</button></form><div id="site-search-results" class="search-results" aria-live="polite"></div></div>
+<nav class="primary-nav" id="primary-nav" aria-label="Main navigation"><button class="primary-nav-close" type="button" aria-label="Close navigation menu">× Close menu</button><a href="/">Home</a><a href="/#news">News</a><a href="/partnership.html">Partners</a><a class="nav-login" href="/app/">Login</a></nav>
+</div></header>
 
   <section id="homepage-hero" hidden aria-label="Club highlights" aria-roledescription="carousel">
     <div class="hero-slider-viewport" data-hero-track></div>
@@ -376,13 +332,10 @@
           <div class="partner-tags" aria-label="Partnership types">
             <span>Kit</span><span>Match day</span><span>Training</span><span>Website / social</span><span>Community partner</span><span>Other</span>
           </div>
-          <div class="partner-page-footer-actions" style="justify-content:center">
-            <a class="button button-dark" href="/partnership.html">Explore partnership packages</a>
-            <a class="button button-outline" href="/register-interest.html">Register your interest</a>
-          </div>
+          <div class="partner-page-footer-actions" style="justify-content:center"><a class="button button-primary" href="/partnership.html">Explore partnership packages</a></div>
           <p class="sponsor-enquiry-note">Submitting an enquiry does not create an account or commit you to a sponsorship. The club’s Sponsor Lead will contact you to discuss suitable options.</p>
         </div>
-        <div class="approved-partners-heading">
+        <div class="approved-partners-heading" hidden>
           <h3>Our approved partners</h3>
           <p>Only partnerships approved for public display appear here.</p>
         </div>
