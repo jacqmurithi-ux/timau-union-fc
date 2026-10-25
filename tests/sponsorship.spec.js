@@ -27,7 +27,7 @@ test("shared public header fits and hamburger toggles at 360, 390 and 430px", as
       await page.getByRole("button", { name: "Open navigation menu" }).click();
       const nav = page.locator("#primary-nav");
       await expect(nav).toBeVisible();
-      for (const label of ["Home", "News", "Partners", "Login"]) {
+      for (const label of ["Home", "Fixtures", "2025/26 Season", "Players", "News", "Partners", "Contact", "Login"]) {
         await expect(nav.getByRole("link", { name: label, exact: true })).toBeVisible();
       }
       await expect(nav).toHaveCSS("width", `${width}px`);
