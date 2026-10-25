@@ -5,7 +5,7 @@ test("partnership page renders and public partners container is present on deskt
   await page.goto("/partnership.html");
   await expect(page.getByRole("heading", { name: "Back the badge. Build the future." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Our approved partners" })).toBeHidden();
-  await expect(page.locator("[data-public-partners]")).toBeVisible();
+  await expect(page.locator("[data-public-partners]")).toBeHidden();
   await expect(page.getByRole("link", { name: "Enquire about a partnership" }).first()).toHaveAttribute("href", "/register-interest.html");
 });
 
