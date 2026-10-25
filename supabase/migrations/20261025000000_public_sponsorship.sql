@@ -7,7 +7,7 @@ create table if not exists public.sponsor_enquiries (
  phone text check(phone is null or char_length(phone)<=40),
  interests text[] not null check(cardinality(interests) between 1 and 6 and interests <@ array['Kit','Match day','Training','Website / social','Community partner','Other']::text[]),
  message text check(message is null or char_length(message)<=2000), news_opt_in boolean not null default false,
- status text not null default 'new' check(status in ('new','contacted')), contacted_at timestamptz, notes text
+ status text not null default 'new' check(status in ('new','contacted','in_discussion','agreement_reached','account_setup','linked')), contacted_at timestamptz, notes text
 );
 alter table public.sponsor_enquiries enable row level security;
 revoke all on public.sponsor_enquiries from anon,authenticated;
