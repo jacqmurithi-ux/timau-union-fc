@@ -106,7 +106,8 @@ create or replace function public.sponsor_public_settings_save(
  _fan_offer_text text default '',
  _public_description text default ''
 ) returns void
-language plpgsql security definer set search_path='' as $$
+language plpgsql security definer set search_path='' as $
+declare v_before jsonb;
 begin
  if auth.uid() is null or not (
    private.is_active_platform_admin(auth.uid()) or
@@ -125,6 +126,7 @@ begin
  if coalesce(_fan_offer_enabled,false) and char_length(btrim(coalesce(_fan_offer_text,'')))=0 then
    raise exception 'Enter the approved public offer text or disable the offer.' using errcode='22023';
  end if;
+ select to_jsonb(s) into v_before from public.sponsor_public_settings s where s.sponsor_record_id=_record_id for update;
  insert into public.sponsor_public_settings(sponsor_record_id,show_on_public_wall,fan_offer_enabled,fan_offer_text,public_description,updated_at,updated_by)
  values(_record_id,coalesce(_show_on_public_wall,false),coalesce(_fan_offer_enabled,false),coalesce(_fan_offer_text,''),coalesce(_public_description,''),now(),auth.uid())
  on conflict(sponsor_record_id) do update set
@@ -134,7 +136,9 @@ begin
   public_description=excluded.public_description,
   updated_at=excluded.updated_at,
   updated_by=excluded.updated_by;
-end $$;
+ insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
+ values(auth.uid(),'sponsor_public_settings',_record_id,'sponsor_public_settings_updated',v_before,jsonb_build_object('show_on_public_wall',coalesce(_show_on_public_wall,false),'fan_offer_enabled',coalesce(_fan_offer_enabled,false),'fan_offer_text',coalesce(_fan_offer_text,''),'public_description',coalesce(_public_description,'')),'Public display settings updated');
+end $;
 revoke all on function public.sponsor_public_settings_save(uuid,boolean,boolean,text,text) from public,anon;
 grant execute on function public.sponsor_public_settings_save(uuid,boolean,boolean,text,text) to authenticated;
 
@@ -142,7 +146,7 @@ create or replace view public.public_partners as
  select c.id,
   nullif(btrim(c.data->>'name'),'') as name,
   nullif(btrim(c.data->>'support_type'),'') as support_type,
-  nullif(btrim(coalesce(nullif(s.public_description,''),c.data->>'details')),'') as public_description,
+  nullif(btrim(s.public_description),'') as public_description,
   case when coalesce(c.data->>'website','') ~* '^https?://' then c.data->>'website' else null end as website,
   case when s.fan_offer_enabled then nullif(btrim(s.fan_offer_text),'') else null end as fan_offer_text
  from private.club_records c
