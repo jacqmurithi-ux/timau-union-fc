@@ -42,6 +42,7 @@ create table private.club_financial_expenses (
  amount_kes numeric(12,2) not null check(amount_kes>0),
  expense_date date not null,
  status text not null default 'pending' check(status in ('pending','approved','rejected')),
+ squad_number text not null default 'N/A',
  created_by uuid not null,
  reviewed_by uuid,
  reviewed_at timestamptz,
@@ -57,6 +58,7 @@ create table private.club_financial_ledger (
  amount_kes numeric(12,2) not null,
  description text not null,
  source_expense_id uuid not null references private.club_financial_expenses(id),
+ transaction_date date not null default current_date,
  actor_user_id uuid not null,
  approved_by uuid not null,
  created_at timestamptz not null default now()
