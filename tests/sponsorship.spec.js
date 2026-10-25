@@ -12,7 +12,7 @@ test("partnership page renders and public partners container is present on deskt
 test("partnership page remains usable on a narrow mobile viewport", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/partnership.html");
-  await expect(page.getByRole("heading", { name: "Partner with Timau Union FC" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Back the badge. Build the future." })).toBeVisible();
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 360);
   await expect(page.getByRole("link", { name: "Enquire about a partnership" }).first()).toBeVisible();
 });
