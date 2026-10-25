@@ -26,7 +26,7 @@
       menuToggle.addEventListener("click",event=>{event.preventDefault();setMenuState(!menuOpen);});
       closeButton.addEventListener("click",()=>setMenuState(false));
       nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>setMenuState(false)));
-      document.addEventListener("pointerdown",event=>{
+      document.addEventListener("click",event=>{
         if(menuOpen&&!nav.contains(event.target)&&!menuToggle.contains(event.target))setMenuState(false);
       });
       document.addEventListener("keydown",event=>{if(event.key === "Escape"&&menuOpen)setMenuState(false,true);});
