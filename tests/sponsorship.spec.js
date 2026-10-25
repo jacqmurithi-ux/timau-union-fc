@@ -51,7 +51,7 @@ test("Sponsor Lead can view and mark a mocked enquiry as contacted", async ({ pa
       window.__sponsorState={enquiries:[{id:"enq-1",name:"Test Contact",email:"contact@example.com",business:"Test Business",phone:"0712345678",interests:["Kit"],message:"Test enquiry",status:"new",created_at:"2026-10-25T10:00:00Z"}]};
       export function createClient(){return {
         auth:{getSession:async()=>({data:{session:{user:{id:"test-user"}}},error:null}),signOut:async()=>({error:null})},
-        rpc:async(name)=>{const data={
+        rpc:async(name,args={})=>{if(name==='sponsor_enquiry_set_status'){const row=window.__sponsorState.enquiries.find(x=>x.id===args._enquiry_id);if(row)row.status=args._status;window.__sponsorState.statusCall=args;return {data:null,error:null}}const data={
           sponsor_packages_seed_starters:null,
           sponsor_lead_get_workspace:{roles:["sponsor_lead"],is_admin:false},
           sponsor_lead_get_portal_notifications:[],
@@ -67,9 +67,11 @@ test("Sponsor Lead can view and mark a mocked enquiry as contacted", async ({ pa
   await page.getByRole("tab", { name: "Enquiries" }).click();
   await expect(page.getByText("Test Business — Test Contact")).toBeVisible();
   await page.locator('[data-enquiry-status-select="enq-1"]').selectOption("in_discussion");
+  await page.evaluate(() => window.prompt = () => "Sponsor discussion is underway");
   await page.getByRole("button", { name: "Save progress" }).click();
   await expect(page.getByText(/Status: in discussion/)).toBeVisible();
   await expect(page.getByText(/No account is created or invited from this enquiry/)).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.__sponsorState.statusCall?._reason)).toBe("Sponsor discussion is underway");
 });
 
 test("migration retains the database-enforced anti-spam and access controls", async ({ page }) => {
