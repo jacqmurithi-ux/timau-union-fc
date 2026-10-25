@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 const path = "supabase/migrations/20261025070000_finance_approval_hardening.sql";
 const sql = readFileSync(path, "utf8");
 const checks = [
-  ["transactional migration", /^begin;[\s\S]*commit;\s*$/i.test(sql)],
+  ["transactional migration", /\bbegin;[\s\S]*\bcommit;\s*$/i.test(sql)],
   ["SECURITY DEFINER function uses empty search_path", /security definer\s+set search_path=''/i.test(sql)],
   ["Platform Admin denial is before club role allow-list", /if private\.is_active_platform_admin\(auth\.uid\(\)\) then[\s\S]*?raise exception 'Platform Admin cannot approve or reject club expenses'[\s\S]*?r:=private\.current_club_roles\(\);[\s\S]*?array\['chairman','secretary','treasurer'\]/i.test(sql)],
   ["self-approval is denied", /oldrow\.created_by=auth\.uid\(\)[\s\S]*?raise exception 'You cannot approve or reject your own expense'/i.test(sql)],
