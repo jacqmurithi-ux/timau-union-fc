@@ -21,7 +21,7 @@ form.addEventListener("submit",async event=>{
   const phone=String(values.get("phone")||"").trim();
   const message=String(values.get("message")||"").trim();
   const interest=String(values.get("interest")||"");
-  if(name.length<2||name.length>120||!/^\\S+@\\S+\\.\\S+$/.test(email)||email.length>254||business.length<2||business.length>160||phone.length>40||message.length>2000||!allowed.includes(interest)){
+  if(name.length<2||name.length>120||!/^\S+@\S+\.\S+$/.test(email)||email.length>254||business.length<2||business.length>160||phone.length>40||message.length>2000||!allowed.includes(interest)){
     showError("Please check your name, business or organisation, email address and package of interest.");return;
   }
   if(values.get("website_confirm")) { showError("We couldn’t submit your enquiry. Please try again.");return; }
