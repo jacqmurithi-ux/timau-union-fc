@@ -72,8 +72,8 @@ select set_config('request.test.roles','sponsor_lead',false);
 do $$ declare n integer; begin
  select count(*) into n from public.sponsor_enquiries;
  if n<>3 then raise exception 'FAIL: Sponsor Lead expected 3 enquiries, found %',n; end if;
- update public.sponsor_enquiries set status='contacted',contacted_at=now() where id=:'first_enquiry_id';
 end $$;
+update public.sponsor_enquiries set status='contacted',contacted_at=now() where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
 reset role;
 
 -- An unauthorised authenticated user cannot save public settings; Sponsor Lead can.
