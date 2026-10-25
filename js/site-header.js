@@ -18,8 +18,10 @@
         menuToggle.setAttribute("aria-expanded",String(open));
         menuToggle.setAttribute("aria-label",open?"Close navigation menu":"Open navigation menu");
         if(icon){icon.textContent=open?"×":"☰";icon.setAttribute("aria-hidden","true");}
-        document.documentElement.classList.toggle("navigation-open",open);
-        document.body.classList.toggle("navigation-open",open);
+        // Do not lock document scrolling: on mobile browsers a stale or
+        // partially rendered nav can otherwise leave the whole page frozen.
+        document.documentElement.classList.remove("navigation-open");
+        document.body.classList.remove("navigation-open");
         if(returnFocus)menuToggle.focus();
       };
       setMenuState(false);
@@ -35,9 +37,6 @@
         if(menuOpen&&!nav.contains(event.target))setMenuState(false);
       });
       document.addEventListener("keydown",event=>{if(event.key === "Escape"&&menuOpen)setMenuState(false,true);});
-      document.addEventListener("touchmove",event=>{
-        if(menuOpen&&!nav.contains(event.target)&&!menuToggle.contains(event.target))event.preventDefault();
-      },{passive:false});
       const desktop=window.matchMedia("(min-width: 960px)");
       const layout=event=>{if(event.matches&&menuOpen)setMenuState(false);};
       if(desktop.addEventListener)desktop.addEventListener("change",layout);else desktop.addListener(layout);
