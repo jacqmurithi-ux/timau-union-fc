@@ -32,7 +32,7 @@ test("shared public header fits and hamburger toggles at 360, 390 and 430px", as
       }
       await expect(nav).toHaveCSS("width", `${width}px`);
       await expect(page.locator("body")).toHaveJSProperty("scrollWidth", width);
-      await page.getByRole("button", { name: "Close navigation menu" }).click();
+      await nav.getByRole("button", { name: "Close navigation menu" }).click();
       await expect(nav).toBeHidden();
     }
   }
