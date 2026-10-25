@@ -13,6 +13,8 @@ on:
     paths:
       - "supabase/migrations/20261025070000_finance_approval_hardening.sql"
       - "tests/finance-approval-review.mjs"
+      - "tests/finance-approval-db-bootstrap.sql"
+      - "tests/finance-approval-integration.sql"
       - ".github/workflows/finance-approval-security.yml"
 
 permissions:
