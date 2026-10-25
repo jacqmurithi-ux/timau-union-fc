@@ -122,54 +122,54 @@ select public.sponsor_lead_set_user_link(
  true,
  'Integration test approved sponsor account link'
 );
-do $ begin
+do $test$ begin
  if not exists(select 1 from private.sponsor_user_links where user_id='00000000-0000-0000-0000-000000000002' and sponsor_record_id='10000000-0000-0000-0000-000000000001' and active) then
   raise exception 'FAIL: sponsor account link was not created';
  end if;
  if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_user_links' and action_key='sponsor_user_linked_or_changed') then
   raise exception 'FAIL: sponsor link creation was not audited';
  end if;
-end $;
+end $test$;
 reset role;
 
 -- Unauthorised member cannot create a sponsor link.
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
 select set_config('request.test.roles','member',false);
-do $ begin
+do $test$ begin
  begin
   perform public.sponsor_lead_set_user_link('00000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001',true,'unauthorised attempt');
   raise exception 'FAIL: member created sponsor link';
  exception when insufficient_privilege then null;
  end;
-end $;
+end $test$;
 reset role;
 
 -- An unverified Sponsor account cannot be linked even when its access status says approved.
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
 select set_config('request.test.roles','sponsor_lead',false);
-do $ begin
+do $test$ begin
  begin
   perform public.sponsor_lead_set_user_link('00000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000001',true,'unverified account attempt');
   raise exception 'FAIL: unverified sponsor account was linked';
  exception when sqlstate '22023' then
   if sqlerrm not like 'Target account must be email-verified%' then raise; end if;
  end;
-end $;
+end $test$;
 
 -- Sponsor Lead can unlink the account; unlinking is also audit logged.
 select public.sponsor_lead_set_user_link(
  '00000000-0000-0000-0000-000000000002',null,false,'Integration test unlink'
 );
-do $ begin
+do $test$ begin
  if exists(select 1 from private.sponsor_user_links where user_id='00000000-0000-0000-0000-000000000002' and active) then
   raise exception 'FAIL: sponsor link remained active after unlink';
  end if;
  if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_user_links' and action_key='sponsor_user_unlinked') then
   raise exception 'FAIL: sponsor unlink was not audited';
  end if;
-end $;
+end $test$;
 reset role;
 
 select 'PASS: migration, RLS, enquiry anti-spam, sponsor account linking/unlinking, role checks and audit logging' as result;
