@@ -25,7 +25,7 @@ form.addEventListener("submit",async event=>{
     showError("Please check your name, business or organisation, email address and package of interest.");return;
   }
   if(values.get("website_confirm")) { showError("We couldn’t submit your enquiry. Please try again.");return; }
-  if(Date.now()-started<1800){showError("Please take a moment to review your enquiry before submitting.");return;}
+  if(Date.now()-started<2600){showError("Please take a moment to review your enquiry before submitting.");return;}
   const button=form.querySelector('button[type="submit"]');
   button.disabled=true;button.textContent="Sending enquiry…";
   try{
