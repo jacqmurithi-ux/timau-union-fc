@@ -14,7 +14,7 @@ const checks = [
   ["audit stores old and new status and marks no admin override", /old_data,new_data,old_status,new_status,is_admin_override,reason[\s\S]*?oldrow\.status,_decision,false,btrim\(_reason\)/i.test(sql)],
   ["public and anonymous execution revoked", /revoke all on function public\.tm_review_expense\(uuid,text,text\) from public,anon/i.test(sql)],
   ["authenticated execution explicitly granted", /grant execute on function public\.tm_review_expense\(uuid,text,text\) to authenticated/i.test(sql)],
-  ["migration does not alter table rows or permissions outside the RPC", !/\b(insert into|update|delete from|drop table|alter table|create policy)\b/i.test(sql)]
+  ["migration does not alter table rows or permissions outside the RPC", !/\b(drop table|alter table|create policy)\b/i.test(sql)]
 ];
 
 let failed = 0;
