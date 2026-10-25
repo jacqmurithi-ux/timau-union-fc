@@ -81,3 +81,40 @@ test("migration retains the database-enforced anti-spam and access controls", as
   expect(sql).toContain("revoke all on public.sponsor_public_settings from public,anon,authenticated");
   expect(sql).not.toContain("create or replace function private.valid_club_record_data");
 });
+
+
+test("Sponsor Lead can create and audit-log a sponsor account link through the existing RPC", async ({ page }) => {
+  await page.route("**/private-nav.js*", route => route.abort());
+  await page.route("https://esm.sh/@supabase/supabase-js@2", route => route.fulfill({
+    status: 200,
+    contentType: "application/javascript",
+    body: `
+      window.__linkState={links:[],calls:[]};
+      const users=[{user_id:"sponsor-user-2",email:"sponsor@example.test",linked_sponsor_id:null}];
+      const sponsors=[{id:"sponsor-record-1",name:"Approved Test Sponsor",details:"Public approved record",contact_person:"Test Contact",contact_email:"sponsor@example.test",contact_phone:"0700000000"}];
+      export function createClient(){return {
+        auth:{getSession:async()=>({data:{session:{user:{id:"lead-user-1"}}},error:null}),signOut:async()=>({error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
+        rpc:async(name,args={})=>{
+          window.__linkState.calls.push({name,args});
+          if(name==="sponsor_lead_get_links") return {data:window.__linkState.links,error:null};
+          if(name==="sponsor_lead_get_link_options") return {data:{sponsor_users:users,sponsors,profile_edits:[]},error:null};
+          if(name==="sponsor_lead_set_user_link"){
+            if(args._link){window.__linkState.links.push({id:"link-1",user_id:args._user_id,sponsor_record_id:args._sponsor_record_id,active:true,linked_at:"2026-10-25T10:00:00Z",reason:args._reason,email:"sponsor@example.test",sponsor_name:"Approved Test Sponsor"});users[0].linked_sponsor_id=args._sponsor_record_id;}
+            else {window.__linkState.links.forEach(x=>{if(x.user_id===args._user_id)x.active=false;});users[0].linked_sponsor_id=null;}
+            return {data:{ok:true,link_id:"link-1",active:args._link,sponsor_record_id:args._sponsor_record_id},error:null};
+          }
+          return {data:null,error:null};
+        }
+      }}
+    `
+  }));
+  await page.goto("/app/sponsor-links.html");
+  await expect(page.getByText("Sponsor links and profile drafts loaded.")).toBeVisible();
+  await page.getByLabel("Sponsor user account").selectOption("sponsor-user-2");
+  await page.getByLabel("Approved sponsor / partner record").selectOption("sponsor-record-1");
+  await page.getByLabel("Reason for link, change or unlink").fill("Approved account-link integration test");
+  await page.getByRole("button", { name: "Link / change sponsor" }).click();
+  await expect(page.getByText("Sponsor account linked.")).toBeVisible();
+  await expect(page.getByText("sponsor@example.test", { exact: false }).first()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__linkState.calls.some(c => c.name==="sponsor_lead_set_user_link" && c.args._link===true && c.args._user_id==="sponsor-user-2" && c.args._sponsor_record_id==="sponsor-record-1"))).toBe(true);
+});
