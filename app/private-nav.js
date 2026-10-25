@@ -3,6 +3,10 @@ import {PAGE_ACCESS,PAGE_HOME,PAGE_LABELS,ROLE_LABELS,SECTION_ACCESS,SECTION_LAB
 
 const db=createClient("https://owvvimydkjsjlrmnzvdi.supabase.co","sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
+// Resilient private-workspace sign-out and sponsor-links navigation.
+const authSignOut=async()=>{try{await db.auth.signOut({scope:"local"});}finally{location.replace("/app/");}};
+document.addEventListener("click",e=>{const sign=e.target.closest("#signout,#sign-out");if(sign){e.preventDefault();e.stopImmediatePropagation();authSignOut();return;}const a=e.target.closest("a");if(a&&(a.textContent||"").trim().startsWith("Sponsor account links")){e.preventDefault();location.assign("/app/sponsor-links/");}},true);
+document.addEventListener("DOMContentLoaded",()=>{for(const a of document.querySelectorAll("a")){if((a.textContent||"").trim().startsWith("Sponsor account links")){a.href="/app/sponsor-links/";a.textContent="Sponsor account links";}}});
 const roleSet=roles=>new Set(Array.isArray(roles)?roles:[]);
 const routePages=new Set([...Object.keys(PAGE_ACCESS),"news.html"]);
 const currentPage=()=>{
