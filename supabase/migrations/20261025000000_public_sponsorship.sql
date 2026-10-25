@@ -7,7 +7,7 @@ create table if not exists public.sponsor_enquiries (
  phone text check(phone is null or char_length(phone)<=40),
  interests text[] not null check(cardinality(interests) between 1 and 6 and interests <@ array['Kit','Match day','Training','Website / social','Community partner','Other']::text[]),
  message text check(message is null or char_length(message)<=2000), news_opt_in boolean not null default false,
- status text not null default 'new' check(status in ('new','contacted','in_discussion','agreement_reached','account_setup','linked')), contacted_at timestamptz, notes text
+ status text not null default 'new' check(status in ('new','contacted','in_discussion','agreement_reached','account_setup','linked')), contacted_at timestamptz, linked_sponsor_record_id uuid references private.club_records(id), notes text
 );
 alter table public.sponsor_enquiries enable row level security;
 revoke all on public.sponsor_enquiries from anon,authenticated;
@@ -22,10 +22,11 @@ create index if not exists sponsor_enquiries_email_created_idx on public.sponsor
 create or replace function public.sponsor_enquiry_set_status(
  _enquiry_id uuid,
  _status text,
- _reason text
+ _reason text,
+ _sponsor_record_id uuid default null
 ) returns void
 language plpgsql security definer set search_path='' as $
-declare v_actor uuid:=auth.uid(); v_before text;
+declare v_actor uuid:=auth.uid(); v_before text; v_before_record uuid;
 begin
  if v_actor is null or not (
    private.is_active_platform_admin(v_actor) or
@@ -40,17 +41,28 @@ begin
  if char_length(btrim(coalesce(_reason,'')))<3 or char_length(_reason)>1000 then
    raise exception 'A reason of 3 to 1000 characters is required.' using errcode='22023';
  end if;
- select status into v_before from public.sponsor_enquiries where id=_enquiry_id for update;
+ select status,linked_sponsor_record_id into v_before,v_before_record from public.sponsor_enquiries where id=_enquiry_id for update;
  if not found then raise exception 'Sponsorship enquiry not found.' using errcode='P0002'; end if;
+ if _status='linked' then
+   if _sponsor_record_id is null or not exists(select 1 from private.club_records c where c.id=_sponsor_record_id and c.record_type='sponsor' and c.publication_status='approved') then
+     raise exception 'Choose an approved sponsor record that is already linked to an active Sponsor account.' using errcode='22023';
+   end if;
+   if not exists(select 1 from private.sponsor_user_links l where l.sponsor_record_id=_sponsor_record_id and l.active) then
+     raise exception 'Link an approved, verified Sponsor account to this record before marking the enquiry Linked.' using errcode='22023';
+   end if;
+ elsif _sponsor_record_id is not null then
+   raise exception 'A sponsor record can only be supplied when status is Linked.' using errcode='22023';
+ end if;
  update public.sponsor_enquiries set status=_status,
+   linked_sponsor_record_id=case when _status='linked' then _sponsor_record_id else null end,
    contacted_at=case when _status='contacted' then coalesce(contacted_at,now()) else contacted_at end
  where id=_enquiry_id;
  insert into private.sponsor_workspace_audit(actor_user_id,record_table,record_id,action_key,before_data,after_data,reason)
  values(v_actor,'sponsor_enquiries',_enquiry_id,'sponsor_enquiry_status_changed',
-   jsonb_build_object('status',v_before),jsonb_build_object('status',_status),btrim(_reason));
+   jsonb_build_object('status',v_before,'linked_sponsor_record_id',v_before_record),jsonb_build_object('status',_status,'linked_sponsor_record_id',case when _status='linked' then _sponsor_record_id else null end),btrim(_reason));
 end $;
-revoke all on function public.sponsor_enquiry_set_status(uuid,text,text) from public,anon;
-grant execute on function public.sponsor_enquiry_set_status(uuid,text,text) to authenticated;
+revoke all on function public.sponsor_enquiry_set_status(uuid,text,text,uuid) from public,anon;
+grant execute on function public.sponsor_enquiry_set_status(uuid,text,text,uuid) to authenticated;
 
 create or replace function public.submit_sponsor_enquiry(p_name text,p_email text,p_business text,p_phone text,p_interests text[],p_message text default null,p_news_opt_in boolean default false,p_website_confirm text default '',p_form_started_ms bigint default 0) returns uuid language plpgsql security definer set search_path='' as $$
 declare v_id uuid; v_ms bigint;
