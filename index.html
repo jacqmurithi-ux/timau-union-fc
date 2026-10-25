@@ -54,6 +54,7 @@
   <script src="/js/sponsorship-config.js" defer></script>
   <script src="/js/public-partners.js" defer></script>
   <link rel="stylesheet" href="css/homepage-hero.css?v=20261022-landscape-mobile">
+  <link rel="stylesheet" href="/css/blog-preview.css?v=20261025-blog-preview">
   <script>
     // Recovery links sent with the public Site URL should still reach the
     // private member-access page. Preserve Supabase's query/hash tokens.
@@ -82,6 +83,7 @@
     }
   </script>
   <script src="js/season.js" defer></script>
+  <script type="module" src="/js/blog-preview.js?v=20261025-blog-preview"></script>
 </head>
 
 <body id="top">
@@ -93,7 +95,7 @@
 <a class="brand" href="/" aria-label="Timau Union FC home"><img class="brand-mark" src="/assets/club-crest.jpg" alt="" width="48" height="48"><span class="brand-copy"><strong>TIMAU UNION FC</strong><small>Our club. Our community. Our future.</small></span></a>
 <div class="header-actions"><button class="header-icon-button" id="site-search-toggle" data-shared-search="true" type="button" aria-label="Search this page" aria-expanded="false" aria-controls="site-search-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg></button></div>
 <div class="search-panel" id="site-search-panel" hidden><form id="site-search-form" role="search"><label class="visually-hidden" for="site-search-input">Search this page</label><input id="site-search-input" type="search" placeholder="Search this page" autocomplete="off"><button class="button button-primary" type="submit">Search</button></form><div id="site-search-results" class="search-results" aria-live="polite"></div></div>
-<nav class="primary-nav" id="primary-nav" aria-label="Main navigation"><button class="primary-nav-close" type="button" aria-label="Close navigation menu">× Close menu</button><a href="/">Home</a><a href="/#fixtures">Fixtures</a><a href="/season/">2025/26 Season</a><a href="/players/">Players</a><a href="/#news">News</a><a href="/partnership.html">Partners</a><a href="/#contact">Contact</a><a class="nav-login" href="/app/">Login</a></nav>
+<nav class="primary-nav" id="primary-nav" aria-label="Main navigation"><button class="primary-nav-close" type="button" aria-label="Close navigation menu">× Close menu</button><a href="/">Home</a><a href="/#fixtures">Fixtures</a><a href="/season/">2025/26 Season</a><a href="/players/">Players</a><a href="/#news">News</a><a href="https://blog.timauunionfc.co.ke/" target="_blank" rel="noopener noreferrer">Blog ↗</a><a href="/partnership.html">Partners</a><a href="/#contact">Contact</a><a class="nav-login" href="/app/">Login</a></nav>
 </div></header>
 
   <section id="homepage-hero" hidden aria-label="Club highlights" aria-roledescription="carousel">
@@ -225,6 +227,25 @@
       </div>
     </section>
 
+
+    <section class="section blog-preview-section" id="blog" aria-labelledby="blog-preview-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow-green">STORIES FROM OUR CLUB</p>
+            <h2 id="blog-preview-title">From the Timau Union FC blog</h2>
+            <p class="section-lead">Match reports, club news and community stories from the pitch and beyond.</p>
+          </div>
+          <a class="text-link" href="https://blog.timauunionfc.co.ke/" target="_blank" rel="noopener noreferrer">Visit the blog <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="blog-preview-grid" id="blog-preview-list" aria-live="polite">
+          <p class="blog-preview-status" role="status">Loading the latest stories…</p>
+        </div>
+        <div class="blog-preview-footer">
+          <a class="button button-primary" href="https://blog.timauunionfc.co.ke/" target="_blank" rel="noopener noreferrer">Read all stories <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
 
     <section class="section intro-section" id="club">
       <div class="container intro-grid">
@@ -432,7 +453,7 @@
       Public information only. Club details are subject to official
       confirmation.
       <p>
-        <a href="/app/">Member login</a>
+        <a href="/app/">Member login</a> · <a href="https://blog.timauunionfc.co.ke/" target="_blank" rel="noopener noreferrer">Official club blog ↗</a>
       </p>
     </div>
   </footer>
