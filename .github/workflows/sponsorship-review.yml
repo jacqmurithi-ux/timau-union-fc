@@ -1,0 +1,75 @@
+name: Sponsorship PR review
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "partnership.html"
+      - "register-interest.html"
+      - "js/register-interest.js"
+      - "js/public-partners.js"
+      - "js/sponsorship-config.js"
+      - "app/sponsor-lead.js"
+      - "supabase/migrations/**"
+      - "tests/**"
+      - "package.json"
+      - "playwright.config.js"
+      - ".github/workflows/sponsorship-review.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  migration-static-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run test:migration-review
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  database-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: sponsorship_test_password
+          POSTGRES_DB: sponsorship_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sponsorship_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Bootstrap disposable database fixtures
+        env:
+          PGPASSWORD: sponsorship_test_password
+        run: psql -h 127.0.0.1 -U postgres -d sponsorship_test -v ON_ERROR_STOP=1 -f tests/sponsorship-db-bootstrap.sql
+      - name: Apply sponsorship migration to disposable PostgreSQL
+        env:
+          PGPASSWORD: sponsorship_test_password
+        run: psql -h 127.0.0.1 -U postgres -d sponsorship_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261025000000_public_sponsorship.sql
+      - name: Apply public partner cache hardening migration to disposable PostgreSQL
+        env:
+          PGPASSWORD: sponsorship_test_password
+        run: psql -h 127.0.0.1 -U postgres -d sponsorship_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261025060000_public_partner_cache_security.sql
+      - name: Test RPC validation, RLS, grants, rate limiting and public view
+        env:
+          PGPASSWORD: sponsorship_test_password
+        run: psql -h 127.0.0.1 -U postgres -d sponsorship_test -v ON_ERROR_STOP=1 -f tests/sponsorship-db-integration.sql

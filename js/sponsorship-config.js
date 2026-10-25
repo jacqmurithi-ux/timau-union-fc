@@ -1,0 +1,1 @@
+window.TIMAU_SPONSORSHIP_CONFIG=Object.freeze({whatsappUrl:"",brochureUrl:"",supabaseUrl:"https://owvvimydkjsjlrmnzvdi.supabase.co",supabasePublishableKey:"sb_publishable_fLCaYsS1Pbp1Kd9blLXHSA_s-_9NNtF"});
