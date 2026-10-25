@@ -1,9 +1,16 @@
 \set ON_ERROR_STOP on
 -- Migration has already been applied to this disposable PostgreSQL service.
-insert into auth.users(id) values
- ('00000000-0000-0000-0000-000000000001'),
- ('00000000-0000-0000-0000-000000000002'),
- ('00000000-0000-0000-0000-000000000003');
+insert into auth.users(id,email,email_confirmed_at) values
+ ('00000000-0000-0000-0000-000000000001','lead@example.test',now()),
+ ('00000000-0000-0000-0000-000000000002','sponsor@example.test',now()),
+ ('00000000-0000-0000-0000-000000000003','member@example.test',now()),
+ ('00000000-0000-0000-0000-000000000004','unverified@example.test',null);
+insert into private.role_assignments(user_id,role_key,active) values
+ ('00000000-0000-0000-0000-000000000002','sponsor',true),
+ ('00000000-0000-0000-0000-000000000004','sponsor',true);
+insert into private.account_access(user_id,status) values
+ ('00000000-0000-0000-0000-000000000002','approved'),
+ ('00000000-0000-0000-0000-000000000004','approved');
 insert into private.club_records(id,record_type,publication_status,data) values
  ('10000000-0000-0000-0000-000000000001','sponsor','approved','{"name":"Public Sponsor","support_type":"Kit","details":"Public summary","website":"https://example.com"}'),
  ('10000000-0000-0000-0000-000000000002','sponsor','pending','{"name":"Pending Sponsor","support_type":"Other","details":"Must not leak"}');
@@ -104,4 +111,65 @@ do $$ declare n integer; begin
  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='public_partners' and column_name in ('notes','email','phone')) then raise exception 'FAIL: sensitive columns leaked into public view'; end if;
 end $$;
 reset role;
-select 'PASS: migration, RPC validation, email rate limit, RLS, restricted grants, role checks and public view filtering' as result;
+
+-- Test the existing sponsor-account linking RPC in an isolated PostgreSQL fixture.
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
+select set_config('request.test.roles','sponsor_lead',false);
+select public.sponsor_lead_set_user_link(
+ '00000000-0000-0000-0000-000000000002',
+ '10000000-0000-0000-0000-000000000001',
+ true,
+ 'Integration test approved sponsor account link'
+);
+do $ begin
+ if not exists(select 1 from private.sponsor_user_links where user_id='00000000-0000-0000-0000-000000000002' and sponsor_record_id='10000000-0000-0000-0000-000000000001' and active) then
+  raise exception 'FAIL: sponsor account link was not created';
+ end if;
+ if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_user_links' and action_key='sponsor_user_linked_or_changed') then
+  raise exception 'FAIL: sponsor link creation was not audited';
+ end if;
+end $;
+reset role;
+
+-- Unauthorised member cannot create a sponsor link.
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
+select set_config('request.test.roles','member',false);
+do $ begin
+ begin
+  perform public.sponsor_lead_set_user_link('00000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001',true,'unauthorised attempt');
+  raise exception 'FAIL: member created sponsor link';
+ exception when insufficient_privilege then null;
+ end;
+end $;
+reset role;
+
+-- An unverified Sponsor account cannot be linked even when its access status says approved.
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
+select set_config('request.test.roles','sponsor_lead',false);
+do $ begin
+ begin
+  perform public.sponsor_lead_set_user_link('00000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000001',true,'unverified account attempt');
+  raise exception 'FAIL: unverified sponsor account was linked';
+ exception when sqlstate '22023' then
+  if sqlerrm not like 'Target account must be email-verified%' then raise; end if;
+ end;
+end $;
+
+-- Sponsor Lead can unlink the account; unlinking is also audit logged.
+select public.sponsor_lead_set_user_link(
+ '00000000-0000-0000-0000-000000000002',null,false,'Integration test unlink'
+);
+do $ begin
+ if exists(select 1 from private.sponsor_user_links where user_id='00000000-0000-0000-0000-000000000002' and active) then
+  raise exception 'FAIL: sponsor link remained active after unlink';
+ end if;
+ if not exists(select 1 from private.sponsor_workspace_audit where record_table='sponsor_user_links' and action_key='sponsor_user_unlinked') then
+  raise exception 'FAIL: sponsor unlink was not audited';
+ end if;
+end $;
+reset role;
+
+select 'PASS: migration, RLS, enquiry anti-spam, sponsor account linking/unlinking, role checks and audit logging' as result;
