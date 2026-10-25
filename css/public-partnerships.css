@@ -193,3 +193,5 @@ body > main > section#sponsors.sponsor-section {
  .partnership-page{padding-top:24px}
  .package-card{padding:16px}
 }
+
+#sponsors [data-public-partners][hidden]{display:none!important}
