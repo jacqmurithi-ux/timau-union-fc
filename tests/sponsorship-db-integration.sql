@@ -81,7 +81,7 @@ do $$ declare n integer; begin
  if n<>3 then raise exception 'FAIL: Sponsor Lead expected 3 enquiries, found %',n; end if;
 end $$;
 select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'in_discussion','Follow-up discussion started');
-do $$ begin if not exists(select 1 from public.sponsor_enquiries where email='test@example.com' and status='in_discussion') then raise exception 'FAIL: Sponsor Lead could not progress enquiry to In Discussion'; end if; end $;
+do $test$ begin if not exists(select 1 from public.sponsor_enquiries where email='test@example.com' and status='in_discussion') then raise exception 'FAIL: Sponsor Lead could not progress enquiry to In Discussion'; end if; end $test$;
 select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'agreement_reached','Commercial terms agreed');
 select public.sponsor_enquiry_set_status((select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1),'account_setup','Guided account setup started');
 do $test$ begin if (select count(*) from private.sponsor_workspace_audit where record_table='sponsor_enquiries' and action_key='sponsor_enquiry_status_changed') < 3 then raise exception 'FAIL: enquiry status changes were not audit-logged'; end if; end $test$;
