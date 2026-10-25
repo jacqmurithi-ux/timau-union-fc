@@ -195,3 +195,8 @@ body > main > section#sponsors.sponsor-section {
 }
 
 #sponsors [data-public-partners][hidden]{display:none!important}
+
+/* Red remains the primary action even against the red hero. */
+.partnership-hero{background:#970b22}
+.partnership-hero .button-primary,.partnership-hero .button.button-primary{color:#fff;background:#c8102e;border-color:#c8102e}
+.partnership-hero .button-primary:hover,.partnership-hero .button.button-primary:hover{color:#fff;background:#72071a;border-color:#72071a}
