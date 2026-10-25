@@ -2,7 +2,7 @@
   const config=window.TIMAU_SPONSORSHIP_CONFIG||{};
   const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const safeUrl=value=>{try{const url=new URL(value);return ["http:","https:"].includes(url.protocol)?url.href:"";}catch{return "";}};
-  const initials=value=>String(value||"TUFC").trim().split(/\\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase()||"TUFC";
+  const initials=value=>String(value||"TUFC").trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase()||"TUFC";
   document.addEventListener("DOMContentLoaded",async()=>{
     const targets=[...document.querySelectorAll("[data-public-partners]")];
     if(!targets.length)return;
