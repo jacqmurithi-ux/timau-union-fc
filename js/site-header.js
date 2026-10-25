@@ -23,13 +23,14 @@
         if(returnFocus)menuToggle.focus();
       };
       setMenuState(false);
-      menuToggle.addEventListener("click",event=>{event.preventDefault();setMenuState(!menuOpen);});
       closeButton.addEventListener("click",()=>setMenuState(false));
       nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>setMenuState(false)));
-      // Outside-click dismissal avoids pointerdown timing races on touch screens.
-      // The menu still handles Escape and touchmove while open.
+      // Delegated click handling works consistently for the icon and its child spans.
+      // Keep pointerdown out of the open/close path to avoid touch timing races.
       document.addEventListener("click",event=>{
-        if(menuOpen&&!nav.contains(event.target)&&!menuToggle.contains(event.target))setMenuState(false);
+        const trigger=event.target.closest("#menu-toggle");
+        if(trigger){event.preventDefault();setMenuState(!menuOpen);return;}
+        if(menuOpen&&!nav.contains(event.target))setMenuState(false);
       });
       document.addEventListener("keydown",event=>{if(event.key === "Escape"&&menuOpen)setMenuState(false,true);});
       document.addEventListener("touchmove",event=>{
