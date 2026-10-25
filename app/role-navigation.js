@@ -82,7 +82,7 @@ export const SECTION_LABELS = {
   "sponsor-lead.html": {
     sponsors: "Sponsors", pipeline: "Prospects & pipeline", evaluation: "Prospect evaluation", templates: "Proposal templates",
     proposals: "Proposals", packages: "Sponsorship packages", agreements: "Agreements", contributions: "Contributions",
-    benefits: "Benefits delivery", communications: "Communication log", requests: "Requests to other roles", reports: "Sponsor reports"
+    benefits: "Benefits delivery", communications: "Communication log", requests: "Requests to other roles", reports: "Sponsor reports", enquiries: "Sponsor enquiries"
   },
   "social-stats.html": { posts: "Posts & reach", followers: "Followers" },
   "sponsor.html": {
@@ -160,7 +160,7 @@ export const SECTION_ACCESS = {
     benefits: ["admin","chairman","sponsor_lead"],
     communications: ["admin","chairman","sponsor_lead"],
     requests: ["admin","chairman","sponsor_lead"],
-    reports: ["admin","chairman","sponsor_lead"]
+    reports: ["admin","chairman","sponsor_lead"], enquiries: ["admin","chairman","sponsor_lead"]
   },
   "social-stats.html": {
     posts: ["admin","chairman","secretary","treasurer","team_manager","coach","media_team","sponsor_lead"],
