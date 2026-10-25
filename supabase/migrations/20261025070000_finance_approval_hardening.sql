@@ -56,11 +56,11 @@ begin
 
  if _decision='approved' then
   insert into private.club_financial_ledger(
-   entry_type,amount_kes,description,source_expense_id,actor_user_id,approved_by
+   entry_type,amount_kes,description,source_expense_id,actor_user_id,approved_by,transaction_date
   )
   values(
    'expense',-oldrow.amount_kes,oldrow.category||': '||oldrow.description,
-   oldrow.id,auth.uid(),auth.uid()
+   oldrow.id,auth.uid(),auth.uid(),oldrow.expense_date
   )
   returning id into led;
 
