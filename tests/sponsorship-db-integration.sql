@@ -80,7 +80,11 @@ do $$ declare n integer; begin
  select count(*) into n from public.sponsor_enquiries;
  if n<>3 then raise exception 'FAIL: Sponsor Lead expected 3 enquiries, found %',n; end if;
 end $$;
-update public.sponsor_enquiries set status='contacted',contacted_at=now() where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
+update public.sponsor_enquiries set status='in_discussion' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
+do $ begin if not exists(select 1 from public.sponsor_enquiries where email='test@example.com' and status='in_discussion') then raise exception 'FAIL: Sponsor Lead could not progress enquiry to In Discussion'; end if; end $;
+update public.sponsor_enquiries set status='agreement_reached' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
+update public.sponsor_enquiries set status='account_setup' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
+update public.sponsor_enquiries set status='linked' where email='test@example.com' and id=(select id from public.sponsor_enquiries where email='test@example.com' order by created_at asc limit 1);
 reset role;
 
 -- An unauthorised authenticated user cannot save public settings; Sponsor Lead can.
