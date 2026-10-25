@@ -29,7 +29,7 @@
       document.addEventListener("pointerdown",event=>{
         if(menuOpen&&!nav.contains(event.target)&&!menuToggle.contains(event.target))setMenuState(false);
       });
-      document.addEventListener("keydown",event=>{if(event.key==="Escape"&&menuOpen)setMenuState(false,true);});
+      document.addEventListener("keydown",event=>{if(event.key === "Escape"&&menuOpen)setMenuState(false,true);});
       document.addEventListener("touchmove",event=>{
         if(menuOpen&&!nav.contains(event.target)&&!menuToggle.contains(event.target))event.preventDefault();
       },{passive:false});
@@ -46,7 +46,7 @@
       toggle.dataset.searchReady="true";
       const open=state=>{panel.hidden=!state;toggle.setAttribute("aria-expanded",String(state));if(state)input.focus();};
       toggle.addEventListener("click",()=>open(panel.hidden));
-      document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!panel.hidden){open(false);toggle.focus();}});
+      document.addEventListener("keydown",event=>{if(event.key === "Escape"&&!panel.hidden){open(false);toggle.focus();}});
       form.addEventListener("submit",event=>{
         event.preventDefault();results.replaceChildren();
         const query=input.value.trim().toLocaleLowerCase();
