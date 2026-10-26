@@ -75,6 +75,14 @@ function addStyle(){
  const style=document.createElement("style");
  style.id="private-nav-styles";
  style.textContent=`
+ /* Keep every authenticated portal screen centred and comfortably readable on wide displays. */
+ .site-header .container{width:calc(100% - 2rem);max-width:1180px;margin-inline:auto}
+ body>main#main{width:calc(100% - 2rem);max-width:1180px;margin-inline:auto}
+ body>main#main>.container{width:100%;max-width:100%;margin-inline:auto}
+ body>main#main>.ws,body>main#main>.tw,body>main#main>.sec{width:100%;max-width:1180px;margin-inline:auto}
+ body>main#main .ws-grid,body>main#main .tw-grid,body>main#main .sec-grid{min-width:0}
+ body>main#main .ws-panel,body>main#main .tw-panel,body>main#main .sec-panel{min-width:0}
+ @media(min-width:1200px){body>main#main{padding-left:clamp(1rem,2vw,1.5rem);padding-right:clamp(1rem,2vw,1.5rem)}}
  .site-header .header-inner{display:flex;align-items:center;justify-content:space-between;gap:.65rem;min-height:68px;flex-wrap:nowrap}
  .site-header .brand{display:flex;align-items:center;gap:.55rem;min-width:0;flex:1 1 auto}
  .site-header .brand-mark{width:40px;height:40px;flex:0 0 40px}
