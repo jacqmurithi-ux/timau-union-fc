@@ -1,0 +1,50 @@
+/* Desktop-first polish: centered content, confident editorial rhythm, responsive down to mobile. */
+:root { --desktop-content-width: 1240px; }
+@media (min-width: 1000px) {
+  .container { width: min(var(--desktop-content-width), calc(100% - 64px)); }
+  .header-inner { min-height: 88px; gap: 28px; }
+  .brand-mark { width: 54px; height: 54px; flex-basis: 54px; }
+  .brand-copy strong { font-size: 1rem; }
+  .brand-copy small { font-size: .72rem; }
+  .menu-toggle { display: none; }
+  .primary-nav { position: static; display: flex; align-items: center; gap: 2px; max-height: none; overflow: visible; padding: 0; border: 0; box-shadow: none; background: transparent; margin-left: auto; }
+  .primary-nav-close { display: none !important; }
+  .primary-nav a { padding: 10px 11px; font-size: .86rem; white-space: nowrap; }
+  .primary-nav a:hover { background: rgba(255,255,255,.12); }
+  .nav-login { border: 1px solid rgba(255,255,255,.65); border-radius: 7px; margin-left: 5px; }
+  .section { padding-block: clamp(64px, 6vw, 96px); }
+  .section-heading { margin-bottom: 32px; }
+  .section-heading h2 { max-width: 800px; }
+  .section-lead { max-width: 760px; font-size: 1.08rem; line-height: 1.7; }
+  #homepage-hero { width: min(1240px, calc(100% - 64px)); margin-block: 32px 50px; }
+  .hero-slider-viewport { border-radius: 22px; box-shadow: 0 24px 60px rgba(17,17,17,.2); }
+  .hero-slide-caption { padding-bottom: 4.2rem; }
+  .hero-slide-caption h1 { font-size: clamp(2.3rem, 4vw, 3.8rem); }
+  .achievement-section .club-grid { align-items: stretch; gap: 56px; }
+  .achievement-section .club-grid > div { align-self: center; }
+  .achievement-section .club-grid > div > p:not(.eyebrow) { max-width: 650px; font-size: 1.08rem; }
+  .achievement-card { min-height: 270px; padding: 36px; border-radius: 18px; }
+  .season-preview-section .container, .match-section .container, .news-section .container, .blog-preview-section .container, .sponsor-section .container { max-width: var(--desktop-content-width); }
+  .season-home-table-wrap { max-width: 100%; }
+  .season-summary { gap: 18px; }
+  .match-feature { max-width: 100%; border-radius: 18px; overflow: hidden; }
+  .news-grid { gap: 24px; }
+  .blog-preview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .blog-preview-card { border-radius: 16px; box-shadow: 0 12px 34px rgba(17,17,17,.07); }
+  .blog-preview-image-link { aspect-ratio: 16 / 10; }
+  .blog-preview-body { padding: 24px; }
+  .blog-preview-body h3 { font-size: 1.35rem; }
+  .blog-preview-excerpt { font-size: 1rem; }
+  .sponsor-grid, .partners-grid, .public-partners-grid { gap: 22px; }
+  .site-footer .container { max-width: var(--desktop-content-width); }
+}
+@media (min-width: 1400px) {
+  .container { width: min(1280px, calc(100% - 96px)); }
+  #homepage-hero { width: min(1280px, calc(100% - 96px)); }
+  .header-inner { min-height: 92px; }
+}
+@media (min-width: 1000px) and (max-width: 1160px) {
+  .primary-nav { gap: 0; }
+  .primary-nav a { padding-inline: 8px; font-size: .8rem; }
+  .brand-copy small { max-width: 210px; }
+}
